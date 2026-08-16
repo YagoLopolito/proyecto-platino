@@ -32,7 +32,11 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/registro") ||
     request.nextUrl.pathname.startsWith("/auth");
 
-  if (!user && !isAuthRoute && request.nextUrl.pathname.startsWith("/perfil")) {
+  const isProtectedRoute =
+    request.nextUrl.pathname.startsWith("/perfil") ||
+    request.nextUrl.pathname.startsWith("/psn");
+
+  if (!user && !isAuthRoute && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
