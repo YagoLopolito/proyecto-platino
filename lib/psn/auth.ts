@@ -18,6 +18,11 @@ export async function getAuthorizationFromNpsso(npsso: string): Promise<AuthToke
     const accessCode = await exchangeNpssoForAccessCode(npsso);
     return await exchangeAccessCodeForAuthTokens(accessCode);
   } catch (error) {
+    // No loguear `npsso` ni el error completo (puede incluir headers/cookies sensibles).
+    console.error(
+      "[lib/psn] Fallo el intercambio de NPSSO:",
+      error instanceof Error ? error.message : error,
+    );
     throw new NpssoExpiredError(error);
   }
 }
