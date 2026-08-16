@@ -7,6 +7,7 @@ import {
   type AuthTokensResponse,
 } from "psn-api";
 import { NpssoExpiredError } from "./errors";
+import { ensurePsnOutboundProxy } from "./proxy";
 
 /**
  * Cambia un NPSSO por tokens de autorización frescos.
@@ -14,6 +15,7 @@ import { NpssoExpiredError } from "./errors";
  * se vuelve a intercambiar en cada sync en vez de guardar tokens de corta vida.
  */
 export async function getAuthorizationFromNpsso(npsso: string): Promise<AuthTokensResponse> {
+  ensurePsnOutboundProxy();
   try {
     const accessCode = await exchangeNpssoForAccessCode(npsso);
     return await exchangeAccessCodeForAuthTokens(accessCode);

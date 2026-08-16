@@ -28,6 +28,7 @@ Sony **no tiene una API pública ni oficial** para trofeos. No hay developer pro
 - El NPSSO expira (históricamente ~2 meses de inactividad). El flujo debe soportar reconexión: si el sync falla por token vencido, avisar al usuario para que vuelva a pegar un NPSSO nuevo.
 - Como es una API no oficial, **puede cambiar o cortarse sin aviso**. El diseño debe aislar todas las llamadas a PSN detrás de una capa (`lib/psn/`) para poder adaptarse rápido si algo rompe.
 - Respetar rate limits razonables (no hacer polling agresivo; sync programado, no en cada request del usuario).
+- **Sony bloquea el intercambio de NPSSO desde IPs de datacenter** (confirmado con las funciones serverless de Vercel/AWS): funciona en local pero falla en producción con un error genérico de `psn-api`, aunque el NPSSO sea válido. Por eso `lib/psn/` rutea el tráfico saliente a través de un proxy con IP residencial cuando `PSN_PROXY_URL` está configurada (ver `lib/psn/proxy.ts`).
 
 ## Guías de desbloqueo: enfoque
 
@@ -71,4 +72,5 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 PSN_TOKEN_ENCRYPTION_KEY=
+PSN_PROXY_URL=
 ```
