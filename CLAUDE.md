@@ -28,7 +28,10 @@ Sony **no tiene una API pública ni oficial** para trofeos. No hay developer pro
 - El NPSSO expira (históricamente ~2 meses de inactividad). El flujo debe soportar reconexión: si el sync falla por token vencido, avisar al usuario para que vuelva a pegar un NPSSO nuevo.
 - Como es una API no oficial, **puede cambiar o cortarse sin aviso**. El diseño debe aislar todas las llamadas a PSN detrás de una capa (`lib/psn/`) para poder adaptarse rápido si algo rompe.
 - Respetar rate limits razonables (no hacer polling agresivo; sync programado, no en cada request del usuario).
-- **Sony bloquea el intercambio de NPSSO desde IPs de datacenter** (confirmado con las funciones serverless de Vercel/AWS): funciona en local pero falla en producción con un error genérico de `psn-api`, aunque el NPSSO sea válido. Por eso `lib/psn/` rutea el tráfico saliente a través de un proxy con IP residencial cuando `PSN_PROXY_URL` está configurada (ver `lib/psn/proxy.ts`).
+**Estado actual: la integración con PSN está sacada del proyecto.** No existen `lib/psn/`, `/psn` ni `/api/psn/sync`; el código está en el historial de git. Notas para cuando se retome:
+
+- `getProfileFromAccountId` **no acepta el alias `"me"`** (arma la URL como `/v1/share/profile/:accountId` sustituyendo el valor literal). Hay que sacar el `accountId` numérico de `getUserTrophyProfileSummary(auth, "me")` y pasárselo. Esto rompía la conexión en local y daba un `"Unexpected Error"` genérico.
+- Se sospechaba que **Sony bloquea el intercambio de NPSSO desde IPs de datacenter** (Vercel/AWS), y por eso existía un proxy configurable vía `PSN_PROXY_URL`. **Nunca se confirmó**: el bug del alias `"me"` rompía el flujo por igual en local y en producción, así que el bloqueo de IP puede no existir. Verificar antes de pagar un proxy.
 
 ## Guías de desbloqueo: enfoque
 
@@ -71,6 +74,7 @@ No existe una API de "guías de trofeos". Dos caminos, no excluyentes:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-PSN_TOKEN_ENCRYPTION_KEY=
-PSN_PROXY_URL=
 ```
+
+Cuando se retome la integración con PSN volverán a hacer falta `PSN_TOKEN_ENCRYPTION_KEY`
+(para cifrar el NPSSO) y, si el bloqueo por IP se confirma en producción, `PSN_PROXY_URL`.

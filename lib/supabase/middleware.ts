@@ -32,9 +32,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/registro") ||
     request.nextUrl.pathname.startsWith("/auth");
 
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/perfil") ||
-    request.nextUrl.pathname.startsWith("/psn");
+  const isProtectedRoute = request.nextUrl.pathname.startsWith("/perfil");
 
   if (!user && !isAuthRoute && isProtectedRoute) {
     const url = request.nextUrl.clone();

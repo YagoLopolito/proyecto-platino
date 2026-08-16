@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
 
@@ -19,15 +18,13 @@ export default async function PerfilPage() {
         <h1 className="text-xl font-semibold">Perfil</h1>
         <p className="text-sm text-zinc-400">Sesión iniciada como:</p>
         <p className="font-mono text-sm">{user.email}</p>
+        {/*
+          La integración con PSN se sacó del proyecto; el código está en el
+          historial de git. Ver CLAUDE.md antes de retomarla.
+        */}
         <p className="text-xs text-zinc-500">
-          La cuenta PSN se conecta por separado y no reemplaza este login.
+          La sincronización con PlayStation Network todavía no está disponible.
         </p>
-        <Link
-          href="/psn"
-          className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-medium text-white hover:bg-blue-500"
-        >
-          Conectar cuenta PSN
-        </Link>
         <form action={logout}>
           <button
             type="submit"
