@@ -58,6 +58,19 @@ export default function AddGameForm() {
         </select>
       </div>
 
+      <div className="space-y-1">
+        <label htmlFor="coverUrl" className="text-sm text-zinc-400">
+          Carátula (URL, opcional)
+        </label>
+        <input
+          id="coverUrl"
+          name="coverUrl"
+          type="url"
+          placeholder="https://..."
+          className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-50"
+        />
+      </div>
+
       {state.error && (
         <p role="alert" className="text-sm text-red-400">
           {state.error}

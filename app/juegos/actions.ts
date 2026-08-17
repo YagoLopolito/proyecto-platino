@@ -25,12 +25,16 @@ export async function addGame(
 ): Promise<GameActionState> {
   const name = String(formData.get("name") ?? "").trim();
   const platform = String(formData.get("platform") ?? "").trim();
+  const coverUrl = String(formData.get("coverUrl") ?? "").trim();
 
   if (!name) {
     return { error: "Poné el nombre del juego." };
   }
   if (!isPlatform(platform)) {
     return { error: "Elegí una plataforma válida." };
+  }
+  if (coverUrl && !/^https?:\/\//.test(coverUrl)) {
+    return { error: "La URL de la carátula tiene que empezar con http:// o https://." };
   }
 
   const supabase = await createClient();
@@ -59,7 +63,13 @@ export async function addGame(
   if (!gameId) {
     const { data: created, error: insertError } = await supabase
       .from("games")
-      .insert({ name, platform, created_by: user.id, source: "manual" })
+      .insert({
+        name,
+        platform,
+        created_by: user.id,
+        source: "manual",
+        cover_url: coverUrl || null,
+      })
       .select("id")
       .single();
 
