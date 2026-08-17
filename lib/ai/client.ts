@@ -9,7 +9,7 @@ const MODEL = "claude-sonnet-4-5";
 function getClient(): Anthropic {
   const apiKey = process.env.AI_PROVIDER_API_KEY;
   if (!apiKey) {
-    throw new Error("Falta la variable de entorno AI_PROVIDER_API_KEY.");
+    throw new AiProviderError(new Error("Falta la variable de entorno AI_PROVIDER_API_KEY."));
   }
   return new Anthropic({ apiKey });
 }
