@@ -13,6 +13,12 @@ export default async function PerfilPage() {
     redirect("/login");
   }
 
+  const { data: psnAccount } = await supabase
+    .from("psn_accounts")
+    .select("online_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="w-full max-w-sm space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-8">
@@ -25,14 +31,12 @@ export default async function PerfilPage() {
         >
           Mi biblioteca
         </Link>
-        {/*
-          La integración con PSN se sacó del proyecto; el código está en el
-          historial de git. Ver CLAUDE.md antes de retomarla.
-        */}
-        <p className="text-xs text-zinc-500">
-          La sincronización con PlayStation Network todavía no está disponible; por ahora los
-          juegos se cargan a mano.
-        </p>
+        <Link
+          href="/psn"
+          className="block w-full rounded border border-zinc-700 px-4 py-2 text-center font-medium text-zinc-50 hover:border-blue-500"
+        >
+          {psnAccount ? `PSN conectada: ${psnAccount.online_id}` : "Conectar cuenta PSN"}
+        </Link>
         <form action={logout}>
           <button
             type="submit"
