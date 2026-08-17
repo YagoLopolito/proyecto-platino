@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { markTrophyObtained, unmarkTrophyObtained } from "./actions";
+import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
 
 const TYPE_LABEL: Record<string, string> = {
   bronze: "Bronce",
@@ -35,7 +37,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
   const { data: game, error: gameError } = await supabase
     .from("games")
-    .select("id, name, platform")
+    .select("id, name, platform, cover_url")
     .eq("id", gameId)
     .single();
 
@@ -45,7 +47,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
   const { data: trophies, error: trophiesError } = await supabase
     .from("trophies")
-    .select("id, name, description, type, hidden")
+    .select("id, name, description, type, hidden, icon_url")
     .eq("game_id", gameId)
     .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
@@ -63,9 +65,25 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">{game.name}</h1>
-          <p className="text-sm text-zinc-400">{game.platform}</p>
+        <div className="flex items-center gap-4">
+          {game.cover_url ? (
+            <Image
+              src={game.cover_url}
+              alt={game.name}
+              width={64}
+              height={64}
+              unoptimized
+              className="h-16 w-16 shrink-0 rounded object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-zinc-800 text-xs text-zinc-500">
+              Sin img
+            </div>
+          )}
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold">{game.name}</h1>
+            <p className="text-sm text-zinc-400">{game.platform}</p>
+          </div>
         </div>
 
         <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
@@ -103,17 +121,36 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                   key={trophy.id}
                   className="flex items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">
-                      {trophy.name}
-                      {trophy.hidden && (
-                        <span className="ml-2 text-xs text-zinc-500">(oculto)</span>
-                      )}
-                    </p>
-                    {trophy.description && (
-                      <p className="truncate text-xs text-zinc-500">{trophy.description}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {trophy.icon_url ? (
+                      <Image
+                        src={trophy.icon_url}
+                        alt=""
+                        width={40}
+                        height={40}
+                        unoptimized
+                        className="h-10 w-10 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-zinc-800">
+                        <TrophyTypeIcon type={trophy.type as TrophyType} className="h-5 w-5" />
+                      </div>
                     )}
-                    <p className="text-xs text-zinc-500">{TYPE_LABEL[trophy.type] ?? trophy.type}</p>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {trophy.name}
+                        {trophy.hidden && (
+                          <span className="ml-2 text-xs text-zinc-500">(oculto)</span>
+                        )}
+                      </p>
+                      {trophy.description && (
+                        <p className="truncate text-xs text-zinc-500">{trophy.description}</p>
+                      )}
+                      <p className="flex items-center gap-1 text-xs text-zinc-500">
+                        <TrophyTypeIcon type={trophy.type as TrophyType} className="h-3.5 w-3.5" />
+                        {TYPE_LABEL[trophy.type] ?? trophy.type}
+                      </p>
+                    </div>
                   </div>
                   <form action={isObtained ? unmarkTrophyObtained : markTrophyObtained}>
                     <input type="hidden" name="trophyId" value={trophy.id} />
@@ -135,9 +172,14 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           </ul>
         </section>
 
-        <Link href="/juegos" className="text-sm text-blue-400 hover:underline">
-          ← Volver a mi biblioteca
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href="/juegos" className="text-sm text-blue-400 hover:underline">
+            ← Volver a mi biblioteca
+          </Link>
+          <Link href={`/juegos/${gameId}/guias`} className="text-sm text-blue-400 hover:underline">
+            Ver guías →
+          </Link>
+        </div>
       </div>
     </div>
   );
