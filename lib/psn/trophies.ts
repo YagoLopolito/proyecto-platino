@@ -29,6 +29,7 @@ export type FetchedTitle = {
   name: string;
   iconUrl: string | null;
   platform: Platform | null;
+  lastPlayedAt: string | null;
   trophies: FetchedTrophy[];
 };
 
@@ -97,6 +98,7 @@ export async function fetchUserTitlesWithTrophies(
       name: title.trophyTitleName,
       iconUrl: title.trophyTitleIconUrl ?? null,
       platform: mapPsnPlatformToLocal(title.trophyTitlePlatform),
+      lastPlayedAt: title.lastUpdatedDateTime ?? null,
       trophies,
     };
   });
