@@ -4,6 +4,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { markTrophyObtained, unmarkTrophyObtained } from "./actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
+import AiAdvisorPanel from "./AiAdvisorPanel";
+import type { AiGamePlan } from "@/lib/ai";
 
 const TYPE_LABEL: Record<string, string> = {
   bronze: "Bronce",
@@ -63,6 +65,17 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     userTrophies.push(...(page ?? []));
     if (!page || page.length < PAGE_SIZE) break;
   }
+
+  const { data: cachedPlanRow } = await supabase
+    .from("ai_game_plans")
+    .select("payload_json")
+    .eq("game_id", gameId)
+    .eq("user_id", user.id)
+    .eq("status", "ok")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const cachedPlan = (cachedPlanRow?.payload_json as AiGamePlan | undefined) ?? null;
 
   const obtained = new Map(userTrophies.map((row) => [row.trophy_id, row.unlocked_at]));
   const total = trophies?.length ?? 0;
@@ -178,6 +191,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             })}
           </ul>
         </section>
+
+        <AiAdvisorPanel
+          gameId={gameId}
+          trophies={(trophies ?? []).map((t) => ({ id: t.id, name: t.name, type: t.type }))}
+          cachedPlan={cachedPlan}
+        />
 
         <div className="flex items-center justify-between">
           <Link href="/juegos" className="text-sm text-blue-400 hover:underline">
