@@ -33,9 +33,8 @@ function getClient(): Anthropic {
  * schema, devuelve [] en vez de romper el resto del flujo de "poblar enlaces".
  */
 export async function findAiCuratedGuideLinks(gameName: string): Promise<AiFoundGuideLink[]> {
-  const client = getClient();
-
   try {
+    const client = getClient();
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 1024,
