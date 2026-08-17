@@ -1,8 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import AddTrophyForm from "./AddTrophyForm";
-import AddTrophiesBatchForm from "./AddTrophiesBatchForm";
 import { markTrophyObtained, unmarkTrophyObtained } from "./actions";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -81,9 +79,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             <div className="h-full bg-blue-600" style={{ width: `${percent}%` }} />
           </div>
         </div>
-
-        <AddTrophyForm gameId={gameId} />
-        <AddTrophiesBatchForm gameId={gameId} />
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Trofeos {total > 0 && `(${total})`}</h2>

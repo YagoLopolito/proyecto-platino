@@ -28,10 +28,12 @@ Sony **no tiene una API pública ni oficial** para trofeos. No hay developer pro
 - El NPSSO expira (históricamente ~2 meses de inactividad). El flujo debe soportar reconexión: si el sync falla por token vencido, avisar al usuario para que vuelva a pegar un NPSSO nuevo.
 - Como es una API no oficial, **puede cambiar o cortarse sin aviso**. El diseño debe aislar todas las llamadas a PSN detrás de una capa (`lib/psn/`) para poder adaptarse rápido si algo rompe.
 - Respetar rate limits razonables (no hacer polling agresivo; sync programado, no en cada request del usuario).
-**Estado actual: la integración con PSN está sacada del proyecto.** No existen `lib/psn/`, `/psn` ni `/api/psn/sync`; el código está en el historial de git. Notas para cuando se retome:
+**Estado actual: la integración con PSN está de vuelta** (`lib/psn/`, `/psn`, `/api/psn/sync`). Es la única fuente de juegos y trofeos — no hay carga manual en la app; todo sale del sync con la cuenta PSN real del usuario.
 
-- `getProfileFromAccountId` **no acepta el alias `"me"`** (arma la URL como `/v1/share/profile/:accountId` sustituyendo el valor literal). Hay que sacar el `accountId` numérico de `getUserTrophyProfileSummary(auth, "me")` y pasárselo. Esto rompía la conexión en local y daba un `"Unexpected Error"` genérico.
-- Se sospechaba que **Sony bloquea el intercambio de NPSSO desde IPs de datacenter** (Vercel/AWS), y por eso existía un proxy configurable vía `PSN_PROXY_URL`. **Nunca se confirmó**: el bug del alias `"me"` rompía el flujo por igual en local y en producción, así que el bloqueo de IP puede no existir. Verificar antes de pagar un proxy.
+- `getProfileFromAccountId` **no acepta el alias `"me"`** (arma la URL como `/v1/share/profile/:accountId` sustituyendo el valor literal). `lib/psn/auth.ts` saca el `accountId` numérico de `getUserTrophyProfileSummary(auth, "me")` primero y recién ahí llama a `getProfileFromAccountId` con ese id. Este era el bug real que rompía la conexión con un `"Unexpected Error"` genérico.
+- Se sospechaba que **Sony bloquea el intercambio de NPSSO desde IPs de datacenter** (Vercel/AWS). **Nunca se confirmó** y no se implementó proxy (`PSN_PROXY_URL`) — el bug del alias `"me"` alcanza para explicar el fallo original. Si el sync falla específicamente en producción (Vercel) pero funciona en local con el mismo NPSSO, ahí sí vale la pena investigar un proxy saliente (`undici`'s `ProxyAgent`) antes de asumir que es el único camino.
+- Las filas de `games`/`trophies` que trae el sync quedan con `created_by = auth.uid()` y `source = 'psn'` (encaja con las RLS existentes sin migraciones nuevas). Limitación v1: si dos usuarios sincronizan el mismo juego, el catálogo compartido queda "de facto" en manos de quien lo sincronizó primero — `lib/psn/sync.ts` busca antes de escribir para no romper por RLS, pero no reescribe filas de otro usuario. Considerar un cliente service-role si esto se vuelve un problema real.
+- `lib/covers/index.ts` (RAWG, vía `RAWG_API_KEY`) sólo complementa la carátula (`cover_url`) cuando se crea un juego nuevo por sync; nunca aporta trofeos ni bloquea el sync si falla.
 
 ## Guías de desbloqueo: enfoque
 
@@ -74,7 +76,9 @@ No existe una API de "guías de trofeos". Dos caminos, no excluyentes:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+PSN_TOKEN_ENCRYPTION_KEY=
+RAWG_API_KEY=
 ```
 
-Cuando se retome la integración con PSN volverán a hacer falta `PSN_TOKEN_ENCRYPTION_KEY`
-(para cifrar el NPSSO) y, si el bloqueo por IP se confirma en producción, `PSN_PROXY_URL`.
+- `PSN_TOKEN_ENCRYPTION_KEY`: requerida para conectar cuentas PSN (cifra el NPSSO en reposo). 32 bytes en base64 — generar con `openssl rand -base64 32`.
+- `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.

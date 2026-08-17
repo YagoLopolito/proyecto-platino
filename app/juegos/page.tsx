@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import AddGameForm from "./AddGameForm";
 import { removeGame } from "./actions";
 
 export default async function JuegosPage() {
@@ -25,11 +24,13 @@ export default async function JuegosPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">Mi biblioteca</h1>
           <p className="text-sm text-zinc-400">
-            Cargá los juegos que estás platinando. Los trofeos se agregan desde cada juego.
+            Tus juegos y trofeos se traen automáticamente desde tu cuenta PSN.{" "}
+            <Link href="/psn" className="text-blue-400 hover:underline">
+              Sincronizar ahora
+            </Link>
+            .
           </p>
         </div>
-
-        <AddGameForm />
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">
@@ -44,7 +45,11 @@ export default async function JuegosPage() {
 
           {!error && (!library || library.length === 0) && (
             <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-              Todavía no agregaste ningún juego. Empezá con el formulario de arriba.
+              Todavía no hay juegos.{" "}
+              <Link href="/psn" className="text-blue-400 hover:underline">
+                Conectá tu cuenta PSN
+              </Link>{" "}
+              para traerlos automáticamente.
             </p>
           )}
 
