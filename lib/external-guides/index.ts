@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
 import { findSteamGuides } from "./steam";
-import { findAiCuratedGuideLinks } from "./ai-search";
+import { buildSiteSearchLinks } from "./site-search";
 import { ExternalGuideSourceError } from "./errors";
 
 export type PopulateExternalGuidesResult = {
@@ -11,11 +11,14 @@ export type PopulateExternalGuidesResult = {
 
 /**
  * Puebla game_external_guides para un juego combinando Steam (API oficial)
- * y búsqueda con IA acotada a PowerPyx/PSNProfiles/TrueTrophies. Usa el
- * cliente service-role porque estas filas no son contenido de usuario -- la
- * tabla no tiene policies de insert para `authenticated` a propósito (ver
- * migración). Si una fuente falla no bloquea a la otra; los duplicados por
- * (game_id, url) se ignoran vía upsert con ignoreDuplicates.
+ * y links de búsqueda a PowerPyx/PSNProfiles/TrueTrophies. Ninguna de las
+ * dos fuentes es paga ni hace scraping: Steam usa su Web API oficial, y los
+ * otros tres son solo un link a la búsqueda propia de cada sitio (ver
+ * lib/external-guides/site-search.ts). Usa el cliente service-role porque
+ * estas filas no son contenido de usuario -- la tabla no tiene policies de
+ * insert para `authenticated` a propósito (ver migración). Si Steam falla
+ * no bloquea a los links de búsqueda; los duplicados por (game_id, url) se
+ * ignoran vía upsert con ignoreDuplicates.
  */
 export async function populateExternalGuidesForGame(
   gameId: string,
@@ -23,21 +26,17 @@ export async function populateExternalGuidesForGame(
 ): Promise<PopulateExternalGuidesResult> {
   const errors: string[] = [];
 
-  const [steamResult, aiResult] = await Promise.allSettled([
-    findSteamGuides(gameName),
-    findAiCuratedGuideLinks(gameName),
-  ]);
-
   const rows: {
     game_id: string;
     title: string;
     url: string;
     source: string;
-    source_type: "steam_api" | "ai_search";
+    source_type: "steam_api" | "site_search";
   }[] = [];
 
-  if (steamResult.status === "fulfilled") {
-    for (const guide of steamResult.value) {
+  try {
+    const steamGuides = await findSteamGuides(gameName);
+    for (const guide of steamGuides) {
       rows.push({
         game_id: gameId,
         title: guide.title,
@@ -46,30 +45,22 @@ export async function populateExternalGuidesForGame(
         source_type: "steam_api",
       });
     }
-  } else {
+  } catch (cause) {
     errors.push(
-      steamResult.reason instanceof ExternalGuideSourceError
-        ? steamResult.reason.message
+      cause instanceof ExternalGuideSourceError
+        ? cause.message
         : "Falló la búsqueda de guías en Steam.",
     );
   }
 
-  if (aiResult.status === "fulfilled") {
-    for (const link of aiResult.value) {
-      rows.push({
-        game_id: gameId,
-        title: link.title,
-        url: link.url,
-        source: link.source,
-        source_type: "ai_search",
-      });
-    }
-  } else {
-    errors.push(
-      aiResult.reason instanceof ExternalGuideSourceError
-        ? aiResult.reason.message
-        : "Falló la búsqueda de guías con IA.",
-    );
+  for (const link of buildSiteSearchLinks(gameName)) {
+    rows.push({
+      game_id: gameId,
+      title: link.title,
+      url: link.url,
+      source: link.source,
+      source_type: "site_search",
+    });
   }
 
   if (rows.length === 0) {

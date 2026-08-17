@@ -64,7 +64,7 @@ export async function findSteamGuides(
     url.searchParams.set("query_type", "1"); // k_PublishedFileQueryType_RankedByVote
     url.searchParams.set("numperpage", String(limit));
     url.searchParams.set("appid", String(appId));
-    url.searchParams.set("filetype", "9"); // guía de comunidad
+    url.searchParams.set("filetype", "11"); // k_EWorkshopFileType (WebGuide) -- 9 es "Concept", no guía
     url.searchParams.set("return_metadata", "true");
 
     const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
