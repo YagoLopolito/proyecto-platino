@@ -55,10 +55,10 @@ export default async function JuegosPage() {
                   key={game.id}
                   className="flex items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
                 >
-                  <div className="min-w-0">
+                  <Link href={`/juegos/${game.id}`} className="min-w-0 hover:underline">
                     <p className="truncate font-medium">{game.name}</p>
                     <p className="text-xs text-zinc-500">{game.platform}</p>
-                  </div>
+                  </Link>
                   <form action={removeGame}>
                     <input type="hidden" name="gameId" value={game.id} />
                     <button
