@@ -59,6 +59,44 @@ export type Database = {
           },
         ]
       }
+      game_external_guides: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          source: string
+          source_type: string
+          title: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          source: string
+          source_type: string
+          title: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          source?: string
+          source_type?: string
+          title?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_external_guides_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           cover_url: string | null

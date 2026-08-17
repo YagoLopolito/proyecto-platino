@@ -72,10 +72,22 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
           <h1 className="text-2xl font-semibold">Guías de {game.name}</h1>
           <p className="text-sm text-zinc-400">
             Checklist de pasos para desbloquear trofeos. Marcalos a medida que los vas haciendo.
+            Para guías de fuentes externas o generadas por IA, mirá{" "}
+            <Link href={`/juegos/${gameId}/enlaces`} className="text-blue-400 hover:underline">
+              enlaces externos
+            </Link>{" "}
+            y el advisor con IA en la página del juego.
           </p>
         </div>
 
-        <AddGuideForm gameId={gameId} />
+        <details className="group rounded-lg border border-zinc-800 bg-zinc-900/50">
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm text-zinc-400 hover:text-zinc-200">
+            + Crear una guía propia (opcional)
+          </summary>
+          <div className="border-t border-zinc-800 p-4">
+            <AddGuideForm gameId={gameId} />
+          </div>
+        </details>
 
         <section className="space-y-4">
           {guidesError && (

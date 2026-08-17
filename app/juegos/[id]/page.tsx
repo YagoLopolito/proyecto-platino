@@ -7,6 +7,15 @@ import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
 import AiAdvisorPanel from "./AiAdvisorPanel";
 import type { AiGamePlan } from "@/lib/ai";
 
+/**
+ * El botón "Generar plan" invoca generateAiPlan (ai-actions.ts), que llama a
+ * Claude y puede reintentar una vez si el schema falla -- puede pasar los
+ * 10s por defecto de una función de Vercel. maxDuration para un Server
+ * Action va en la página que lo invoca, no en el archivo "use server" (ver
+ * https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#maxduration).
+ */
+export const maxDuration = 60;
+
 const TYPE_LABEL: Record<string, string> = {
   bronze: "Bronce",
   silver: "Plata",
