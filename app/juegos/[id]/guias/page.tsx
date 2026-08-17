@@ -3,6 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import AddGuideForm from "./AddGuideForm";
 import AddStepForm from "./AddStepForm";
+import EditGuideForm from "./EditGuideForm";
+import EditStepForm from "./EditStepForm";
 import { deleteGuide, deleteStep, toggleStepProgress } from "./actions";
 
 export default async function GameGuidesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -100,22 +102,31 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
                 className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <h2 className="font-semibold">{guide.title}</h2>
-                    {guide.source && (
-                      <p className="text-xs text-zinc-500">Fuente: {guide.source}</p>
-                    )}
-                    {guide.external_url && (
-                      <a
-                        href={guide.external_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-400 hover:underline"
-                      >
-                        {guide.external_url}
-                      </a>
-                    )}
-                  </div>
+                  {isOwner ? (
+                    <EditGuideForm gameId={gameId} guide={guide} />
+                  ) : (
+                    <div className="min-w-0">
+                      <h2 className="font-semibold">{guide.title}</h2>
+                      {guide.source && (
+                        <p className="text-xs text-zinc-500">Fuente: {guide.source}</p>
+                      )}
+                      {guide.external_url && (
+                        <a
+                          href={guide.external_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-400 hover:underline"
+                        >
+                          {guide.external_url}
+                        </a>
+                      )}
+                      {guide.content_markdown && (
+                        <pre className="mt-2 whitespace-pre-wrap rounded border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-300">
+                          {guide.content_markdown}
+                        </pre>
+                      )}
+                    </div>
+                  )}
                   {isOwner && (
                     <form action={deleteGuide}>
                       <input type="hidden" name="guideId" value={guide.id} />
@@ -130,12 +141,6 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
                   )}
                 </div>
 
-                {guide.content_markdown && (
-                  <pre className="whitespace-pre-wrap rounded border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-300">
-                    {guide.content_markdown}
-                  </pre>
-                )}
-
                 {steps.length > 0 && (
                   <ul className="space-y-1">
                     {steps.map((step) => {
@@ -146,7 +151,7 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
                       return (
                         <li
                           key={step.id}
-                          className="flex items-center justify-between gap-2 rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
+                          className="flex flex-wrap items-center justify-between gap-2 rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm"
                         >
                           <form
                             action={toggleStepProgress}
@@ -172,17 +177,25 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
                             </span>
                           </form>
                           {isOwner && (
-                            <form action={deleteStep}>
-                              <input type="hidden" name="stepId" value={step.id} />
-                              <input type="hidden" name="guideId" value={guide.id} />
-                              <input type="hidden" name="gameId" value={gameId} />
-                              <button
-                                type="submit"
-                                className="shrink-0 text-xs text-zinc-500 hover:text-red-400"
-                              >
-                                Quitar
-                              </button>
-                            </form>
+                            <div className="flex shrink-0 items-center gap-2">
+                              <EditStepForm
+                                gameId={gameId}
+                                guideId={guide.id}
+                                step={step}
+                                trophies={trophies ?? []}
+                              />
+                              <form action={deleteStep}>
+                                <input type="hidden" name="stepId" value={step.id} />
+                                <input type="hidden" name="guideId" value={guide.id} />
+                                <input type="hidden" name="gameId" value={gameId} />
+                                <button
+                                  type="submit"
+                                  className="shrink-0 text-xs text-zinc-500 hover:text-red-400"
+                                >
+                                  Quitar
+                                </button>
+                              </form>
+                            </div>
                           )}
                         </li>
                       );

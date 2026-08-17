@@ -67,6 +67,58 @@ export async function createGuide(
   return { error: null, success: `Guía "${title}" creada.` };
 }
 
+export async function updateGuide(
+  _prevState: GuideActionState,
+  formData: FormData,
+): Promise<GuideActionState> {
+  const guideId = String(formData.get("guideId") ?? "");
+  const gameId = String(formData.get("gameId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const contentMarkdown = String(formData.get("contentMarkdown") ?? "").trim();
+  const externalUrl = String(formData.get("externalUrl") ?? "").trim();
+  const source = String(formData.get("source") ?? "").trim();
+
+  if (!guideId || !gameId) {
+    return { error: "Falta la guía." };
+  }
+  if (!title) {
+    return { error: "Poné un título para la guía." };
+  }
+  if (!contentMarkdown && !externalUrl) {
+    return { error: "Escribí contenido en markdown o pegá un link externo." };
+  }
+  if (externalUrl && !/^https?:\/\//i.test(externalUrl)) {
+    return { error: "El link externo tiene que empezar con http:// o https://." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Tenés que iniciar sesión." };
+  }
+
+  const { error } = await supabase
+    .from("guides")
+    .update({
+      title,
+      content_markdown: contentMarkdown || null,
+      external_url: externalUrl || null,
+      source: source || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", guideId)
+    .eq("author_id", user.id);
+
+  if (error) {
+    return { error: `No se pudo actualizar la guía: ${error.message}` };
+  }
+
+  revalidatePath(`/juegos/${gameId}/guias`);
+  return { error: null, success: "Guía actualizada." };
+}
+
 export async function deleteGuide(formData: FormData): Promise<void> {
   const guideId = String(formData.get("guideId") ?? "");
   const gameId = String(formData.get("gameId") ?? "");
@@ -124,6 +176,47 @@ export async function addStep(
 
   revalidatePath(`/juegos/${gameId}/guias`);
   return { error: null, success: "Paso agregado." };
+}
+
+export async function updateStep(
+  _prevState: GuideActionState,
+  formData: FormData,
+): Promise<GuideActionState> {
+  const stepId = String(formData.get("stepId") ?? "");
+  const guideId = String(formData.get("guideId") ?? "");
+  const gameId = String(formData.get("gameId") ?? "");
+  const content = String(formData.get("content") ?? "").trim();
+  const trophyId = String(formData.get("trophyId") ?? "").trim();
+
+  if (!stepId || !guideId) {
+    return { error: "Falta el paso." };
+  }
+  if (!content) {
+    return { error: "Escribí el contenido del paso." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Tenés que iniciar sesión." };
+  }
+  if (!(await assertOwnsGuide(supabase, user.id, guideId))) {
+    return { error: "Solo el autor puede editar esta guía." };
+  }
+
+  const { error } = await supabase
+    .from("guide_steps")
+    .update({ content, trophy_id: trophyId || null })
+    .eq("id", stepId);
+
+  if (error) {
+    return { error: `No se pudo actualizar el paso: ${error.message}` };
+  }
+
+  revalidatePath(`/juegos/${gameId}/guias`);
+  return { error: null, success: "Paso actualizado." };
 }
 
 export async function deleteStep(formData: FormData): Promise<void> {
