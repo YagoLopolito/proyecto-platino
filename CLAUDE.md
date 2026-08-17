@@ -43,6 +43,19 @@ No existe una API de "guías de trofeos". Dos caminos, no excluyentes:
 1. **Curación propia**: guías escritas/editadas dentro de la app (markdown), asociadas a `game_id` / `trophy_id`. Es el contenido más confiable y evita temas de scraping.
 2. **Enlaces a fuentes externas**: guardar links a guías existentes (PowerPyx, PSNProfiles, TrueTrophies, foros, YouTube) en vez de copiar su contenido. Citar siempre la fuente. **No scrapear sitios de terceros sin revisar sus términos de uso** — si se integra algo automatizado, priorizar fuentes con RSS/API propia antes que scraping.
 
+**Estado actual: CRUD completo** en `app/juegos/[id]/guias/` (`actions.ts` + `page.tsx` + `AddGuideForm`/`EditGuideForm`/`AddStepForm`/`EditStepForm`). El autor es el único que puede editar/borrar su guía (`assertOwnsGuide` chequea `author_id` antes de tocar `guide_steps`, y las policies de RLS en `guides`/`guide_steps` lo refuerzan del lado de la base). El checklist (`user_guide_progress`) es independiente por usuario y se auto-tilda si el trofeo asociado ya está en `user_trophies`.
+
+## Advisor con IA: `lib/ai/`
+
+Igual patrón que `lib/psn/`: toda llamada al LLM vive acá, nunca directo en componentes ni rutas. Ver `PRODUCT_SPEC.md` sección 4 para el diseño completo (input/output esperado).
+
+- `lib/ai/prompt.ts` — arma el system prompt y el prompt de usuario (juego + trofeos + guías propias ya cargadas, para que la IA no las contradiga).
+- `lib/ai/client.ts` — `generateAiGamePlan()`, llama a la API de Claude (`@anthropic-ai/sdk`, modelo `claude-sonnet-4-5`) server-side. Si la respuesta no matchea el schema, reintenta **una sola vez** pidiéndole al modelo que corrija el JSON; si vuelve a fallar tira `AiSchemaValidationError` (nunca cachear ni devolver un 500 silencioso — el caller decide cómo mostrar "no se pudo generar").
+- `lib/ai/schema.ts` — schema de Zod (`aiGamePlanSchema`) que valida la estructura exacta de la sección 4 del spec. Los `trofeo_id` del output son siempre el `id` (uuid interno de `trophies`), no el `trophy_id` texto que usa la API de PSN — así se puede cruzar directo con `user_trophies`/`guide_steps` sin una tabla de mapeo extra.
+- `lib/ai/errors.ts` — `AiProviderError` (falló la llamada al proveedor) vs `AiSchemaValidationError` (la llamada anduvo pero el JSON no sirve); distinguirlos importa para decidir si vale la pena reintentar.
+- **Todavía no existe** el endpoint `app/api/ai/` ni la UI del panel de advisor ni el guardado en `ai_game_plans` (versionado, botón "regenerar") — eso es la Fase 6 completa del roadmap, `lib/ai/` solo cubre cliente+prompt+validación.
+- Requiere `AI_PROVIDER_API_KEY` (API key de Anthropic) server-side, nunca `NEXT_PUBLIC_`.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -53,23 +66,31 @@ No existe una API de "guías de trofeos". Dos caminos, no excluyentes:
 - `guides` — guía por juego (autor, contenido markdown o link externo, fuente).
 - `guide_steps` — pasos de una guía, opcionalmente ligados a un `trophy_id`.
 - `user_guide_progress` — checklist de pasos completados por el usuario, independiente de si el trofeo ya sincronizó.
+- `ai_game_plans` — planes generados por el advisor de IA por juego (`payload_json` con la estructura de `lib/ai/schema.ts`, `user_id` nullable si el plan es genérico/compartible). Ver `PRODUCT_SPEC.md` sección 6 para el detalle de columnas y RLS.
 
 ## Convenciones de código
 
 - TypeScript estricto, sin `any` salvo en boundaries de librerías externas.
-- Toda llamada a `psn-api` vive en `lib/psn/`, nunca directo en componentes ni en rutas sueltas.
+- Toda llamada a `psn-api` vive en `lib/psn/`, nunca directo en componentes ni en rutas sueltas; toda llamada al LLM vive en `lib/ai/`, mismo criterio (ver arriba).
 - Server Components por defecto; Client Components solo donde haya interactividad real.
-- Variables sensibles (NPSSO, service role key de Supabase) solo en variables de entorno server-side, nunca prefijo `NEXT_PUBLIC_`.
+- Variables sensibles (NPSSO, service role key de Supabase, API key de IA) solo en variables de entorno server-side, nunca prefijo `NEXT_PUBLIC_`.
+- Los módulos server-only (`lib/psn/*`, `lib/ai/*`) arrancan con `import "server-only";` para que Next tire error de build si algo los importa desde un Client Component por accidente.
+- Mutaciones desde la UI van como Server Actions (`"use server"` en `actions.ts` junto a la página, `useActionState` del lado del cliente) — es el patrón usado en `app/juegos/[id]/guias/`, no API routes salvo que la lógica no dependa de la sesión de cookies del usuario (ej. `app/api/psn/sync`, que declara `maxDuration`).
+- **Regla de lint (`react-hooks/set-state-in-effect`)**: no llamar a un setter de `useState` dentro de un `useEffect` para sincronizar con el resultado de una Server Action (ej. cerrar un form de edición cuando `useActionState` devuelve éxito). En vez de eso, comparar el `state` actual contra una copia guardada con `useState` y, si cambió, ajustar el estado **durante el render** (patrón oficial de React, no dispara el lint). Ver `EditGuideForm.tsx`/`EditStepForm.tsx` para el ejemplo de referencia.
+- Autoría/edición de contenido de usuario (guías) siempre se valida en dos capas: en la Server Action (`assertOwnsGuide` o `.eq("author_id", user.id)` en la query) **y** en la policy de RLS correspondiente — ninguna alcanza sola como única defensa.
 
 ## Roadmap sugerido
 
-1. Auth + esquema base en Supabase.
-2. Conexión de cuenta PSN (input de NPSSO) + primer sync manual de trofeos.
-3. Vista de perfil: juegos, % completitud, trofeos por juego.
-4. Sync automático (cron) + manejo de expiración de token.
-5. Guías propias (CRUD simple) ligadas a juegos/trofeos.
-6. Checklist de guía cruzada con trofeos ya obtenidos.
-7. Enlaces a guías externas curadas.
+1. Auth + esquema base en Supabase. ✅
+2. Conexión de cuenta PSN (input de NPSSO) + primer sync manual de trofeos. ✅
+3. Vista de perfil: juegos, % completitud, trofeos por juego. ✅
+4. Sync automático (cron) + manejo de expiración de token. Pendiente (sync sigue siendo manual, disparado por el usuario).
+5. Guías propias (CRUD simple) ligadas a juegos/trofeos. ✅ (`app/juegos/[id]/guias/`)
+6. Checklist de guía cruzada con trofeos ya obtenidos. ✅ (`toggleStepProgress` + auto-tilde si el trofeo ya sincronizó)
+7. Enlaces a guías externas curadas. ✅ como campo (`external_url`/`source`) dentro de una guía; falta la vista dedicada de "enlaces por juego" de la Fase 9 del `PRODUCT_SPEC.md`.
+8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema ✅. Falta el endpoint `app/api/ai/`, la UI del panel y el guardado versionado en `ai_game_plans`.
+
+Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-10), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
 ## Variables de entorno esperadas
 
@@ -78,8 +99,10 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 PSN_TOKEN_ENCRYPTION_KEY=
+AI_PROVIDER_API_KEY=
 RAWG_API_KEY=
 ```
 
 - `PSN_TOKEN_ENCRYPTION_KEY`: requerida para conectar cuentas PSN (cifra el NPSSO en reposo). 32 bytes en base64 — generar con `openssl rand -base64 32`.
+- `AI_PROVIDER_API_KEY`: requerida para el advisor con IA (`lib/ai/`). API key de Anthropic (Claude). Sin ella, `generateAiGamePlan()` tira error al primer llamado — no rompe nada más de la app porque no se invoca en el sync ni en el render de páginas.
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
