@@ -27,20 +27,32 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
-  const [{ data: trophies }, { data: guides, error: guidesError }, { data: userTrophies }] =
-    await Promise.all([
-      supabase.from("trophies").select("id, name").eq("game_id", gameId),
-      supabase
-        .from("guides")
-        .select(
-          "id, title, content_markdown, external_url, source, author_id, created_at, guide_steps (id, content, step_order, trophy_id)",
-        )
-        .eq("game_id", gameId)
-        .order("created_at", { ascending: true }),
-      supabase.from("user_trophies").select("trophy_id").eq("user_id", user.id),
-    ]);
+  const PAGE_SIZE = 1000;
+  const userTrophies: { trophy_id: string }[] = [];
 
-  const obtainedTrophyIds = new Set((userTrophies ?? []).map((row) => row.trophy_id));
+  const [{ data: trophies }, { data: guides, error: guidesError }] = await Promise.all([
+    supabase.from("trophies").select("id, name").eq("game_id", gameId),
+    supabase
+      .from("guides")
+      .select(
+        "id, title, content_markdown, external_url, source, author_id, created_at, guide_steps (id, content, step_order, trophy_id)",
+      )
+      .eq("game_id", gameId)
+      .order("created_at", { ascending: true }),
+    (async () => {
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data: page } = await supabase
+          .from("user_trophies")
+          .select("trophy_id")
+          .eq("user_id", user.id)
+          .range(from, from + PAGE_SIZE - 1);
+        userTrophies.push(...(page ?? []));
+        if (!page || page.length < PAGE_SIZE) break;
+      }
+    })(),
+  ]);
+
+  const obtainedTrophyIds = new Set(userTrophies.map((row) => row.trophy_id));
 
   const { data: userProgress } = await supabase
     .from("user_guide_progress")

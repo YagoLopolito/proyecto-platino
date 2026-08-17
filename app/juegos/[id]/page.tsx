@@ -52,12 +52,19 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
-  const { data: userTrophies } = await supabase
-    .from("user_trophies")
-    .select("trophy_id, unlocked_at")
-    .eq("user_id", user.id);
+  const PAGE_SIZE = 1000;
+  const userTrophies: { trophy_id: string; unlocked_at: string | null }[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data: page } = await supabase
+      .from("user_trophies")
+      .select("trophy_id, unlocked_at")
+      .eq("user_id", user.id)
+      .range(from, from + PAGE_SIZE - 1);
+    userTrophies.push(...(page ?? []));
+    if (!page || page.length < PAGE_SIZE) break;
+  }
 
-  const obtained = new Map((userTrophies ?? []).map((row) => [row.trophy_id, row.unlocked_at]));
+  const obtained = new Map(userTrophies.map((row) => [row.trophy_id, row.unlocked_at]));
   const total = trophies?.length ?? 0;
   const obtainedCount = trophies?.filter((t) => obtained.has(t.id)).length ?? 0;
   const percent = total > 0 ? Math.round((obtainedCount / total) * 100) : 0;

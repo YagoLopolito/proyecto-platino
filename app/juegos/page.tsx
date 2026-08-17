@@ -44,12 +44,18 @@ export default async function JuegosPage() {
       if (!page || page.length < PAGE_SIZE) break;
     }
 
-    const { data: userTrophies } = await supabase
-      .from("user_trophies")
-      .select("trophy_id")
-      .eq("user_id", user.id);
+    const userTrophies: { trophy_id: string }[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data: page } = await supabase
+        .from("user_trophies")
+        .select("trophy_id")
+        .eq("user_id", user.id)
+        .range(from, from + PAGE_SIZE - 1);
+      userTrophies.push(...(page ?? []));
+      if (!page || page.length < PAGE_SIZE) break;
+    }
 
-    const obtainedIds = new Set((userTrophies ?? []).map((row) => row.trophy_id));
+    const obtainedIds = new Set(userTrophies.map((row) => row.trophy_id));
 
     for (const gameId of gameIds) {
       statsByGame.set(gameId, {
