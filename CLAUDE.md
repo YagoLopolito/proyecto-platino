@@ -35,6 +35,7 @@ Sony **no tiene una API pública ni oficial** para trofeos. No hay developer pro
 - Las filas de `games`/`trophies` que trae el sync quedan con `created_by = auth.uid()` y `source = 'psn'` (encaja con las RLS existentes sin migraciones nuevas). Limitación v1: si dos usuarios sincronizan el mismo juego, el catálogo compartido queda "de facto" en manos de quien lo sincronizó primero — `lib/psn/sync.ts` busca antes de escribir para no romper por RLS, pero no reescribe filas de otro usuario. Considerar un cliente service-role si esto se vuelve un problema real.
 - **El primer sync real puede tardar** (varias decenas de juegos, cada uno con su propia consulta a PSN) y en Vercel eso se traduce en `FUNCTION_INVOCATION_TIMEOUT` si no se lo tiene en cuenta. `lib/psn/sync.ts` procesa títulos con concurrencia limitada (`lib/psn/concurrency.ts`) y hace los inserts/upserts de trofeos en bloque por título en vez de uno por uno (antes eran hasta 2 round-trips a la base *por trofeo*, lo cual escalaba fatal con bibliotecas grandes). `app/api/psn/sync/route.ts` declara `export const maxDuration = 300`, pero en el plan Hobby de Vercel el límite real sigue siendo 60s pase lo que declare la ruta — si el sync sigue dando timeout en producción con eso, el plan de Vercel es la causa más probable, no el código.
 - `lib/covers/index.ts` (RAWG, vía `RAWG_API_KEY`) sólo complementa la carátula (`cover_url`) cuando se crea un juego nuevo por sync; nunca aporta trofeos ni bloquea el sync si falla.
+- **Sync automático**: `app/api/cron/sync/route.ts` corre vía Vercel Cron (`vercel.json`, diario) y sincroniza todas las `psn_accounts` con `token_status = 'valid'`, con la misma concurrencia limitada que el sync manual. Usa `lib/supabase/service.ts` (service role, bypassea RLS) porque no hay sesión de cookies de usuario en un cron; nunca usar ese cliente en una ruta que sirve requests de usuarios. El endpoint exige `Authorization: Bearer ${CRON_SECRET}` (Vercel lo manda solo si `CRON_SECRET` está seteada en el proyecto) — sin esa variable, el endpoint rechaza todo con 401. Si una cuenta falla (NPSSO vencido, error de PSN), no aborta el resto: se guarda por-cuenta en la respuesta y `psn_accounts.token_status` queda en `'expired'` para que la UI le pida al usuario reconectar.
 
 ## Guías de desbloqueo: enfoque
 
@@ -53,7 +54,7 @@ Igual patrón que `lib/psn/`: toda llamada al LLM vive acá, nunca directo en co
 - `lib/ai/client.ts` — `generateAiGamePlan()`, llama a la API de Claude (`@anthropic-ai/sdk`, modelo `claude-sonnet-4-5`) server-side. Si la respuesta no matchea el schema, reintenta **una sola vez** pidiéndole al modelo que corrija el JSON; si vuelve a fallar tira `AiSchemaValidationError` (nunca cachear ni devolver un 500 silencioso — el caller decide cómo mostrar "no se pudo generar").
 - `lib/ai/schema.ts` — schema de Zod (`aiGamePlanSchema`) que valida la estructura exacta de la sección 4 del spec. Los `trofeo_id` del output son siempre el `id` (uuid interno de `trophies`), no el `trophy_id` texto que usa la API de PSN — así se puede cruzar directo con `user_trophies`/`guide_steps` sin una tabla de mapeo extra.
 - `lib/ai/errors.ts` — `AiProviderError` (falló la llamada al proveedor) vs `AiSchemaValidationError` (la llamada anduvo pero el JSON no sirve); distinguirlos importa para decidir si vale la pena reintentar.
-- **Todavía no existe** el endpoint `app/api/ai/` ni la UI del panel de advisor ni el guardado en `ai_game_plans` (versionado, botón "regenerar") — eso es la Fase 6 completa del roadmap, `lib/ai/` solo cubre cliente+prompt+validación.
+- **Estado actual: Fase 6 completa.** `app/juegos/[id]/ai-actions.ts` (`generateAiPlan`, Server Action — no API route, porque depende de la sesión de cookies del usuario igual que las guías) arma el input desde trofeos + `user_trophies` + guías propias, llama `generateAiGamePlan()` y siempre inserta una fila nueva en `ai_game_plans` (versionado: nunca pisa la anterior, `status` `ok`/`error`). `app/juegos/[id]/AiAdvisorPanel.tsx` (Client Component) muestra el último plan `ok` cacheado y expone el botón "Generar plan"/"Regenerar plan"; el label de "contenido generado por IA" está siempre visible en el panel, no solo en el resultado.
 - Requiere `AI_PROVIDER_API_KEY` (API key de Anthropic) server-side, nunca `NEXT_PUBLIC_`.
 
 ## Modelo de datos (borrador)
@@ -84,11 +85,11 @@ Igual patrón que `lib/psn/`: toda llamada al LLM vive acá, nunca directo en co
 1. Auth + esquema base en Supabase. ✅
 2. Conexión de cuenta PSN (input de NPSSO) + primer sync manual de trofeos. ✅
 3. Vista de perfil: juegos, % completitud, trofeos por juego. ✅
-4. Sync automático (cron) + manejo de expiración de token. Pendiente (sync sigue siendo manual, disparado por el usuario).
+4. Sync automático (cron) + manejo de expiración de token. ✅ (`app/api/cron/sync/`, ver detalle abajo). El disparo manual (`/api/psn/sync`) sigue existiendo para el primer sync y para reconectar tras un NPSSO vencido.
 5. Guías propias (CRUD simple) ligadas a juegos/trofeos. ✅ (`app/juegos/[id]/guias/`)
 6. Checklist de guía cruzada con trofeos ya obtenidos. ✅ (`toggleStepProgress` + auto-tilde si el trofeo ya sincronizó)
 7. Enlaces a guías externas curadas. ✅ como campo (`external_url`/`source`) dentro de una guía; falta la vista dedicada de "enlaces por juego" de la Fase 9 del `PRODUCT_SPEC.md`.
-8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema ✅. Falta el endpoint `app/api/ai/`, la UI del panel y el guardado versionado en `ai_game_plans`.
+8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema + endpoint + UI del panel + guardado versionado en `ai_game_plans`. ✅ Fase 6 completa.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-10), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
@@ -101,8 +102,10 @@ SUPABASE_SERVICE_ROLE_KEY=
 PSN_TOKEN_ENCRYPTION_KEY=
 AI_PROVIDER_API_KEY=
 RAWG_API_KEY=
+CRON_SECRET=
 ```
 
 - `PSN_TOKEN_ENCRYPTION_KEY`: requerida para conectar cuentas PSN (cifra el NPSSO en reposo). 32 bytes en base64 — generar con `openssl rand -base64 32`.
 - `AI_PROVIDER_API_KEY`: requerida para el advisor con IA (`lib/ai/`). API key de Anthropic (Claude). Sin ella, `generateAiGamePlan()` tira error al primer llamado — no rompe nada más de la app porque no se invoca en el sync ni en el render de páginas.
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
+- `CRON_SECRET`: requerida para que `/api/cron/sync` acepte invocaciones. Vercel la agrega sola como header en las llamadas que dispara desde `vercel.json` si está seteada en el proyecto — sin ella el cron queda deshabilitado (401 siempre) pero el sync manual (`/api/psn/sync`) no se ve afectado.
