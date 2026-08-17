@@ -2,6 +2,51 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
+import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
+
+const TROPHY_TYPES: TrophyType[] = ["platinum", "gold", "silver", "bronze"];
+
+/**
+ * Puntos por tipo de trofeo, según la escala clásica que usa PSN para calcular
+ * el nivel de trofeos (bronce 15, plata 30, oro 90, platino 300).
+ */
+const TROPHY_POINTS: Record<TrophyType, number> = {
+  bronze: 15,
+  silver: 30,
+  gold: 90,
+  platinum: 300,
+};
+
+/**
+ * Curva de nivel oficial de PSN: cada nivel requiere más puntos que el
+ * anterior, en tramos que se vuelven más caros. Replica la fórmula pública
+ * que usa PSNProfiles para el nivel de trofeos.
+ */
+function levelFromPoints(points: number): { level: number; progressPercent: number } {
+  const TIERS: { upToLevel: number; cost: number }[] = [
+    { upToLevel: 2, cost: 30 },
+    { upToLevel: 8, cost: 200 },
+    { upToLevel: 16, cost: 400 },
+    { upToLevel: 40, cost: 800 },
+    { upToLevel: 100, cost: 1400 },
+    { upToLevel: 999, cost: 2000 },
+  ];
+
+  let remaining = points;
+  let level = 1;
+
+  for (const tier of TIERS) {
+    while (level < tier.upToLevel) {
+      if (remaining < tier.cost) {
+        return { level, progressPercent: Math.floor((remaining / tier.cost) * 100) };
+      }
+      remaining -= tier.cost;
+      level += 1;
+    }
+  }
+
+  return { level, progressPercent: 0 };
+}
 
 export default async function PerfilPage() {
   const supabase = await createClient();
@@ -13,18 +58,67 @@ export default async function PerfilPage() {
     redirect("/login");
   }
 
-  const { data: psnAccount } = await supabase
-    .from("psn_accounts")
-    .select("online_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: psnAccount }, { count: gamesCount }, { data: userTrophies }] = await Promise.all([
+    supabase.from("psn_accounts").select("online_id").eq("user_id", user.id).maybeSingle(),
+    supabase.from("user_games").select("game_id", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.from("user_trophies").select("trophy_id, trophies (type)").eq("user_id", user.id),
+  ]);
+
+  const counts: Record<TrophyType, number> = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
+  for (const row of userTrophies ?? []) {
+    const type = row.trophies?.type as TrophyType | undefined;
+    if (type && type in counts) {
+      counts[type] += 1;
+    }
+  }
+
+  const totalTrophies = Object.values(counts).reduce((sum, n) => sum + n, 0);
+  const totalPoints = TROPHY_TYPES.reduce((sum, type) => sum + counts[type] * TROPHY_POINTS[type], 0);
+  const { level, progressPercent } = levelFromPoints(totalPoints);
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center bg-zinc-950 px-4 py-16 text-zinc-50">
-      <div className="w-full max-w-sm space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-8">
-        <h1 className="text-xl font-semibold">Perfil</h1>
-        <p className="text-sm text-zinc-400">Sesión iniciada como:</p>
-        <p className="font-mono text-sm">{user.email}</p>
+      <div className="w-full max-w-sm space-y-6 rounded-lg border border-zinc-800 bg-zinc-900 p-8">
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold">Perfil</h1>
+          <p className="text-sm text-zinc-400">Sesión iniciada como:</p>
+          <p className="font-mono text-sm">{user.email}</p>
+        </div>
+
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-zinc-400">Nivel de trofeos</span>
+            <span className="text-lg font-semibold">{level}</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+            <div className="h-full bg-blue-600" style={{ width: `${progressPercent}%` }} />
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-400">Juegos en biblioteca</span>
+            <span className="font-medium">{gamesCount ?? 0}</span>
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-400">Trofeos totales</span>
+            <span className="font-medium">{totalTrophies}</span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 pt-1 text-center">
+            {TROPHY_TYPES.map((type) => (
+              <div key={type} className="flex flex-col items-center gap-1">
+                <TrophyTypeIcon type={type} className="h-5 w-5" />
+                <span className="text-sm font-medium">{counts[type]}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="pt-1 text-xs text-zinc-600">
+            La rareza de cada trofeo depende de estadísticas globales de PSN que todavía no
+            sincronizamos; por ahora sólo mostramos tus totales.
+          </p>
+        </div>
+
         <Link
           href="/juegos"
           className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-medium text-white hover:bg-blue-500"
