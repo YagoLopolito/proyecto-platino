@@ -37,7 +37,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
   const { data: game, error: gameError } = await supabase
     .from("games")
-    .select("id, name, platform, cover_url")
+    .select("id, name, platform, cover_url, icon_url")
     .eq("id", gameId)
     .single();
 
@@ -66,9 +66,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
         <div className="flex items-center gap-4">
-          {game.cover_url ? (
+          {game.cover_url ?? game.icon_url ? (
             <Image
-              src={game.cover_url}
+              src={game.cover_url ?? game.icon_url!}
               alt={game.name}
               width={64}
               height={64}

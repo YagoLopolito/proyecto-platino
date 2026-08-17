@@ -14,7 +14,25 @@ type GameStats = {
   counts: Record<TrophyType, number>;
 };
 
-export default async function JuegosPage() {
+type SortOption = "recent" | "name" | "percent";
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "recent", label: "Jugados recientemente" },
+  { value: "name", label: "Nombre" },
+  { value: "percent", label: "% completado" },
+];
+
+export default async function JuegosPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ sort?: string }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const sort: SortOption =
+    resolvedSearchParams?.sort === "name" || resolvedSearchParams?.sort === "percent"
+      ? resolvedSearchParams.sort
+      : "recent";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,7 +44,7 @@ export default async function JuegosPage() {
 
   const { data: library, error } = await supabase
     .from("user_games")
-    .select("added_at, last_played_at, games (id, name, platform, cover_url)")
+    .select("added_at, last_played_at, games (id, name, platform, cover_url, icon_url)")
     .order("last_played_at", { ascending: false, nullsFirst: false })
     .order("added_at", { ascending: false });
 
@@ -81,6 +99,25 @@ export default async function JuegosPage() {
     }
   }
 
+  const sortedLibrary = [...(library ?? [])].sort((a, b) => {
+    if (sort === "name") {
+      return (a.games?.name ?? "").localeCompare(b.games?.name ?? "");
+    }
+
+    if (sort === "percent") {
+      const aPercent = a.games ? (statsByGame.get(a.games.id)?.percent ?? 0) : 0;
+      const bPercent = b.games ? (statsByGame.get(b.games.id)?.percent ?? 0) : 0;
+      return bPercent - aPercent;
+    }
+
+    const aTime = a.last_played_at ? new Date(a.last_played_at).getTime() : null;
+    const bTime = b.last_played_at ? new Date(b.last_played_at).getTime() : null;
+    if (aTime !== null && bTime !== null) return bTime - aTime;
+    if (aTime !== null) return -1;
+    if (bTime !== null) return 1;
+    return new Date(b.added_at).getTime() - new Date(a.added_at).getTime();
+  });
+
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
@@ -96,9 +133,29 @@ export default async function JuegosPage() {
         </div>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold">
-            Juegos {library && library.length > 0 && `(${library.length})`}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">
+              Juegos {library && library.length > 0 && `(${library.length})`}
+            </h2>
+
+            {library && library.length > 1 && (
+              <div className="flex items-center gap-1 text-xs">
+                {SORT_OPTIONS.map((option) => (
+                  <Link
+                    key={option.value}
+                    href={option.value === "recent" ? "/juegos" : `/juegos?sort=${option.value}`}
+                    className={`rounded-full border px-3 py-1 ${
+                      sort === option.value
+                        ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                        : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                    }`}
+                  >
+                    {option.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
 
           {error && (
             <p role="alert" className="text-sm text-red-400">
@@ -117,9 +174,10 @@ export default async function JuegosPage() {
           )}
 
           <ul className="space-y-3">
-            {library?.map(({ games: game }) => {
+            {sortedLibrary.map(({ games: game }) => {
               if (!game) return null;
               const stats = statsByGame.get(game.id);
+              const imageUrl = game.cover_url ?? game.icon_url;
 
               return (
                 <li
@@ -127,9 +185,9 @@ export default async function JuegosPage() {
                   className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
                 >
                   <Link href={`/juegos/${game.id}`} className="shrink-0">
-                    {game.cover_url ? (
+                    {imageUrl ? (
                       <Image
-                        src={game.cover_url}
+                        src={imageUrl}
                         alt={game.name}
                         width={56}
                         height={56}
