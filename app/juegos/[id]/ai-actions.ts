@@ -16,8 +16,6 @@ export type AiPlanActionState = {
   error: string | null;
 };
 
-export const initialAiPlanState: AiPlanActionState = { plan: null, error: null };
-
 /**
  * Genera un plan nuevo para el juego (issue "generar plan" + "botón regenerar"):
  * siempre inserta una fila nueva en ai_game_plans en vez de pisar la anterior,

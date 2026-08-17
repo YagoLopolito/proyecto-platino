@@ -44,7 +44,17 @@ No existe una API de "guías de trofeos". Dos caminos, no excluyentes:
 1. **Curación propia**: guías escritas/editadas dentro de la app (markdown), asociadas a `game_id` / `trophy_id`. Es el contenido más confiable y evita temas de scraping.
 2. **Enlaces a fuentes externas**: guardar links a guías existentes (PowerPyx, PSNProfiles, TrueTrophies, foros, YouTube) en vez de copiar su contenido. Citar siempre la fuente. **No scrapear sitios de terceros sin revisar sus términos de uso** — si se integra algo automatizado, priorizar fuentes con RSS/API propia antes que scraping.
 
-**Estado actual: CRUD completo** en `app/juegos/[id]/guias/` (`actions.ts` + `page.tsx` + `AddGuideForm`/`EditGuideForm`/`AddStepForm`/`EditStepForm`). El autor es el único que puede editar/borrar su guía (`assertOwnsGuide` chequea `author_id` antes de tocar `guide_steps`, y las policies de RLS en `guides`/`guide_steps` lo refuerzan del lado de la base). El checklist (`user_guide_progress`) es independiente por usuario y se auto-tilda si el trofeo asociado ya está en `user_trophies`.
+**Estado actual: CRUD completo** en `app/juegos/[id]/guias/` (`actions.ts` + `page.tsx` + `AddGuideForm`/`EditGuideForm`/`AddStepForm`/`EditStepForm`), pero es secundario: la pantalla principal de guías prioriza enlaces externos y el advisor con IA, y el form de alta queda colapsado detrás de un `<details>` ("Crear una guía propia (opcional)"). El autor es el único que puede editar/borrar su guía (`assertOwnsGuide` chequea `author_id` antes de tocar `guide_steps`, y las policies de RLS en `guides`/`guide_steps` lo refuerzan del lado de la base). El checklist (`user_guide_progress`) es independiente por usuario y se auto-tilda si el trofeo asociado ya está en `user_trophies`.
+
+## Enlaces externos curados automáticamente: `lib/external-guides/`
+
+Pobla `game_external_guides` (tabla sin RLS de insert para `authenticated` — solo lectura pública; se escribe con `lib/supabase/service.ts`, ver migración `20260817130000_create_game_external_guides.sql`) combinando dos fuentes, ninguna hace scraping de HTML de terceros:
+
+- `lib/external-guides/steam.ts` — Steam Web API oficial (`IPublishedFileService/QueryFiles`, requiere `STEAM_API_KEY`) para traer las guías de la comunidad de Steam mejor puntuadas de un juego. Resuelve el appid antes vía `store.steampowered.com/api/storesearch` (público, sin key).
+- `lib/external-guides/ai-search.ts` — usa la tool `web_search` de Claude (`@anthropic-ai/sdk`, acotada a `powerpyx.com`/`psnprofiles.com`/`truetrophies.com` vía `allowed_domains`) para encontrar la URL de la guía en esos sitios. El modelo devuelve solo título+link+fuente, nunca el contenido de la página — así se respeta la regla de "no scrapear sin revisar ToS" del enfoque de guías.
+- `lib/external-guides/index.ts` — `populateExternalGuidesForGame()` orquesta ambas fuentes con `Promise.allSettled` (si una falla no bloquea a la otra) y hace upsert con `onConflict: "game_id,url"` para no duplicar.
+- Se dispara manualmente desde `app/juegos/[id]/enlaces/` (botón "Buscar guías externas", `FindExternalGuidesButton.tsx` + `actions.ts`), no hay cron todavía. `actions.ts` declara `maxDuration = 60` porque la búsqueda con IA vía `web_search` puede tardar más que el default de una función de Vercel — mismo motivo que `ai-actions.ts` (ver abajo).
+- PowerPyx/PSNProfiles/TrueTrophies no tienen API propia: si en el futuro se suman más fuentes con scraping real de esos sitios, primero hay que revisar sus términos de uso (regla general de la sección "Guías de desbloqueo" arriba).
 
 ## Advisor con IA: `lib/ai/`
 
@@ -103,11 +113,13 @@ PSN_TOKEN_ENCRYPTION_KEY=
 AI_PROVIDER_API_KEY=
 RAWG_API_KEY=
 STEAMGRIDDB_API_KEY=
+STEAM_API_KEY=
 CRON_SECRET=
 ```
 
 - `PSN_TOKEN_ENCRYPTION_KEY`: requerida para conectar cuentas PSN (cifra el NPSSO en reposo). 32 bytes en base64 — generar con `openssl rand -base64 32`.
-- `AI_PROVIDER_API_KEY`: requerida para el advisor con IA (`lib/ai/`). API key de Anthropic (Claude). Sin ella, `generateAiGamePlan()` tira error al primer llamado — no rompe nada más de la app porque no se invoca en el sync ni en el render de páginas.
+- `AI_PROVIDER_API_KEY`: requerida para el advisor con IA (`lib/ai/`) y para la búsqueda de enlaces externos con IA (`lib/external-guides/ai-search.ts`). API key de Anthropic (Claude). Sin ella, ambos tiran error al primer llamado — no rompe nada más de la app porque no se invocan en el sync ni en el render de páginas.
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
 - `STEAMGRIDDB_API_KEY`: opcional. Fallback de `lib/covers` cuando RAWG no encuentra la carátula (o falta `RAWG_API_KEY`). Sin ninguna de las dos, el sync sigue funcionando igual con los íconos que trae PSN.
+- `STEAM_API_KEY`: opcional, gratis en steamcommunity.com/dev/apikey. Sin ella, `lib/external-guides/steam.ts` no trae guías de Steam Community — la búsqueda con IA en PowerPyx/PSNProfiles/TrueTrophies sigue funcionando igual.
 - `CRON_SECRET`: requerida para que `/api/cron/sync` acepte invocaciones. Vercel la agrega sola como header en las llamadas que dispara desde `vercel.json` si está seteada en el proyecto — sin ella el cron queda deshabilitado (401 siempre) pero el sync manual (`/api/psn/sync`) no se ve afectado.

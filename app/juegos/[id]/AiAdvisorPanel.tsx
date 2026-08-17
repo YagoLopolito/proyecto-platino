@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { generateAiPlan, initialAiPlanState, type AiPlanActionState } from "./ai-actions";
+import { generateAiPlan, type AiPlanActionState } from "./ai-actions";
 import type { AiGamePlan } from "@/lib/ai";
+
+const initialAiPlanState: AiPlanActionState = { plan: null, error: null };
 
 const TYPE_LABEL: Record<string, string> = {
   bronze: "Bronce",
