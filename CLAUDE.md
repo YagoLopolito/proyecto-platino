@@ -35,6 +35,7 @@ Sony **no tiene una API pública ni oficial** para trofeos. No hay developer pro
 - Las filas de `games`/`trophies` que trae el sync quedan con `created_by = auth.uid()` y `source = 'psn'` (encaja con las RLS existentes sin migraciones nuevas). Limitación v1: si dos usuarios sincronizan el mismo juego, el catálogo compartido queda "de facto" en manos de quien lo sincronizó primero — `lib/psn/sync.ts` busca antes de escribir para no romper por RLS, pero no reescribe filas de otro usuario. Considerar un cliente service-role si esto se vuelve un problema real.
 - **El primer sync real puede tardar** (varias decenas de juegos, cada uno con su propia consulta a PSN) y en Vercel eso se traduce en `FUNCTION_INVOCATION_TIMEOUT` si no se lo tiene en cuenta. `lib/psn/sync.ts` procesa títulos con concurrencia limitada (`lib/psn/concurrency.ts`) y hace los inserts/upserts de trofeos en bloque por título en vez de uno por uno (antes eran hasta 2 round-trips a la base *por trofeo*, lo cual escalaba fatal con bibliotecas grandes). `app/api/psn/sync/route.ts` declara `export const maxDuration = 300`, pero en el plan Hobby de Vercel el límite real sigue siendo 60s pase lo que declare la ruta — si el sync sigue dando timeout en producción con eso, el plan de Vercel es la causa más probable, no el código.
 - `lib/covers/index.ts` (RAWG, vía `RAWG_API_KEY`) sólo complementa la carátula (`cover_url`) cuando se crea un juego nuevo por sync; nunca aporta trofeos ni bloquea el sync si falla.
+- **Sync automático**: `app/api/cron/psn-sync/route.ts` corre por Vercel Cron (`vercel.json`, diario a las 06:00 UTC) y sincroniza todas las cuentas PSN conectadas (`token_status != 'expired'`), no solo la del usuario que dispara el request. Usa `lib/supabase/service.ts` (service role, bypassea RLS) porque no hay sesión de usuario en un cron. Se protege comparando el header `Authorization: Bearer $CRON_SECRET` — Vercel lo agrega solo si la env var `CRON_SECRET` está configurada en el proyecto. Reutiliza `syncTrophiesForUser` con concurrencia acotada entre cuentas (`ACCOUNT_SYNC_CONCURRENCY`); si una cuenta falla (ej. NPSSO vencido) no corta el resto. Mismo límite real de 60s en plan Hobby que `/api/psn/sync` — con muchas cuentas conectadas esto va a necesitar Pro/Enterprise.
 
 ## Guías de desbloqueo: enfoque
 
@@ -84,11 +85,11 @@ Igual patrón que `lib/psn/`: toda llamada al LLM vive acá, nunca directo en co
 1. Auth + esquema base en Supabase. ✅
 2. Conexión de cuenta PSN (input de NPSSO) + primer sync manual de trofeos. ✅
 3. Vista de perfil: juegos, % completitud, trofeos por juego. ✅
-4. Sync automático (cron) + manejo de expiración de token. Pendiente (sync sigue siendo manual, disparado por el usuario).
+4. Sync automático (cron) + manejo de expiración de token. ✅ (`app/api/cron/psn-sync/`, Vercel Cron vía `vercel.json`)
 5. Guías propias (CRUD simple) ligadas a juegos/trofeos. ✅ (`app/juegos/[id]/guias/`)
 6. Checklist de guía cruzada con trofeos ya obtenidos. ✅ (`toggleStepProgress` + auto-tilde si el trofeo ya sincronizó)
 7. Enlaces a guías externas curadas. ✅ como campo (`external_url`/`source`) dentro de una guía; falta la vista dedicada de "enlaces por juego" de la Fase 9 del `PRODUCT_SPEC.md`.
-8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema ✅. Falta el endpoint `app/api/ai/`, la UI del panel y el guardado versionado en `ai_game_plans`.
+8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema ✅. UI y guardado versionado ✅ (`app/juegos/[id]/advisor/`, cada generación inserta una fila nueva en `ai_game_plans` en vez de pisar la anterior).
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-10), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
@@ -101,8 +102,11 @@ SUPABASE_SERVICE_ROLE_KEY=
 PSN_TOKEN_ENCRYPTION_KEY=
 AI_PROVIDER_API_KEY=
 RAWG_API_KEY=
+CRON_SECRET=
 ```
 
 - `PSN_TOKEN_ENCRYPTION_KEY`: requerida para conectar cuentas PSN (cifra el NPSSO en reposo). 32 bytes en base64 — generar con `openssl rand -base64 32`.
 - `AI_PROVIDER_API_KEY`: requerida para el advisor con IA (`lib/ai/`). API key de Anthropic (Claude). Sin ella, `generateAiGamePlan()` tira error al primer llamado — no rompe nada más de la app porque no se invoca en el sync ni en el render de páginas.
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
+- `SUPABASE_SERVICE_ROLE_KEY`: requerida por `lib/supabase/service.ts` (usado por el cron de sync, que corre sin sesión de usuario y necesita bypassear RLS para leer todas las `psn_accounts`).
+- `CRON_SECRET`: requerida para que `app/api/cron/psn-sync` acepte requests. Configurarla en el proyecto de Vercel — Vercel Cron la agrega automáticamente como header `Authorization: Bearer` en las invocaciones programadas.

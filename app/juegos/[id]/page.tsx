@@ -183,9 +183,14 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           <Link href="/juegos" className="text-sm text-blue-400 hover:underline">
             ← Volver a mi biblioteca
           </Link>
-          <Link href={`/juegos/${gameId}/guias`} className="text-sm text-blue-400 hover:underline">
-            Ver guías →
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href={`/juegos/${gameId}/advisor`} className="text-sm text-blue-400 hover:underline">
+              Advisor con IA →
+            </Link>
+            <Link href={`/juegos/${gameId}/guias`} className="text-sm text-blue-400 hover:underline">
+              Ver guías →
+            </Link>
+          </div>
         </div>
       </div>
     </div>
