@@ -101,8 +101,10 @@ SUPABASE_SERVICE_ROLE_KEY=
 PSN_TOKEN_ENCRYPTION_KEY=
 AI_PROVIDER_API_KEY=
 RAWG_API_KEY=
+STEAMGRIDDB_API_KEY=
 ```
 
 - `PSN_TOKEN_ENCRYPTION_KEY`: requerida para conectar cuentas PSN (cifra el NPSSO en reposo). 32 bytes en base64 — generar con `openssl rand -base64 32`.
 - `AI_PROVIDER_API_KEY`: requerida para el advisor con IA (`lib/ai/`). API key de Anthropic (Claude). Sin ella, `generateAiGamePlan()` tira error al primer llamado — no rompe nada más de la app porque no se invoca en el sync ni en el render de páginas.
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
+- `STEAMGRIDDB_API_KEY`: opcional. Fallback de `lib/covers` cuando RAWG no encuentra la carátula (o falta `RAWG_API_KEY`). Sin ninguna de las dos, el sync sigue funcionando igual con los íconos que trae PSN.

@@ -216,9 +216,17 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
           })}
         </section>
 
-        <Link href={`/juegos/${gameId}`} className="text-sm text-blue-400 hover:underline">
-          ← Volver a {game.name}
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link href={`/juegos/${gameId}`} className="text-sm text-blue-400 hover:underline">
+            ← Volver a {game.name}
+          </Link>
+          <Link
+            href={`/juegos/${gameId}/enlaces`}
+            className="text-sm text-blue-400 hover:underline"
+          >
+            Ver enlaces externos →
+          </Link>
+        </div>
       </div>
     </div>
   );
