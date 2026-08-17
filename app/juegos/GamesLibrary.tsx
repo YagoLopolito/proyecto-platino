@@ -22,6 +22,7 @@ export type LibraryGame = {
 };
 
 type SortOption = "recent" | "name" | "percent";
+type SortDirection = "asc" | "desc";
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "recent", label: "Jugados recientemente" },
@@ -29,23 +30,37 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "percent", label: "% completado" },
 ];
 
-function sortGames(games: LibraryGame[], sort: SortOption): LibraryGame[] {
-  return [...games].sort((a, b) => {
-    if (sort === "name") return a.name.localeCompare(b.name);
-    if (sort === "percent") return b.percent - a.percent;
+/** Orden de cada criterio cuando la dirección es "desc" (la que muestra el botón al elegirlo por primera vez). */
+function compareDescending(a: LibraryGame, b: LibraryGame, sort: SortOption): number {
+  if (sort === "name") return b.name.localeCompare(a.name);
+  if (sort === "percent") return b.percent - a.percent;
 
-    const aTime = a.lastPlayedAt ? new Date(a.lastPlayedAt).getTime() : null;
-    const bTime = b.lastPlayedAt ? new Date(b.lastPlayedAt).getTime() : null;
-    if (aTime !== null && bTime !== null) return bTime - aTime;
-    if (aTime !== null) return -1;
-    if (bTime !== null) return 1;
-    return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
-  });
+  const aTime = a.lastPlayedAt ? new Date(a.lastPlayedAt).getTime() : null;
+  const bTime = b.lastPlayedAt ? new Date(b.lastPlayedAt).getTime() : null;
+  if (aTime !== null && bTime !== null) return bTime - aTime;
+  if (aTime !== null) return -1;
+  if (bTime !== null) return 1;
+  return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
+}
+
+function sortGames(games: LibraryGame[], sort: SortOption, direction: SortDirection): LibraryGame[] {
+  const sorted = [...games].sort((a, b) => compareDescending(a, b, sort));
+  return direction === "asc" ? sorted.reverse() : sorted;
 }
 
 export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
   const [sort, setSort] = useState<SortOption>("recent");
-  const sortedGames = useMemo(() => sortGames(games, sort), [games, sort]);
+  const [direction, setDirection] = useState<SortDirection>("desc");
+  const sortedGames = useMemo(() => sortGames(games, sort, direction), [games, sort, direction]);
+
+  function handleSortClick(option: SortOption) {
+    if (option === sort) {
+      setDirection((prev) => (prev === "desc" ? "asc" : "desc"));
+    } else {
+      setSort(option);
+      setDirection("desc");
+    }
+  }
 
   return (
     <section className="space-y-3">
@@ -60,14 +75,15 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setSort(option.value)}
-                className={`rounded-full border px-3 py-1 ${
+                onClick={() => handleSortClick(option.value)}
+                className={`flex items-center gap-1 rounded-full border px-3 py-1 ${
                   sort === option.value
                     ? "border-blue-500 bg-blue-500/10 text-blue-400"
                     : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
                 }`}
               >
                 {option.label}
+                {sort === option.value && <span>{direction === "desc" ? "↓" : "↑"}</span>}
               </button>
             ))}
           </div>

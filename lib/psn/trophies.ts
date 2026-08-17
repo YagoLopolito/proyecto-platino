@@ -54,22 +54,58 @@ async function fetchAllTitles(authorization: AuthorizationPayload): Promise<Trop
   return titles;
 }
 
+/**
+ * Ambos endpoints de PSN paginan igual que `getUserTitles`: con títulos de
+ * muchos trofeos (DLC incluido vía "all"), una sola página se corta antes de
+ * llegar a `totalItemCount` -- típicamente dejando afuera los últimos
+ * bronces. Sin este loop, juegos viejos con muchos DLC quedaban con
+ * trofeos ya desbloqueados marcados como no obtenidos.
+ */
+async function fetchAllPages<T>(
+  fetchPage: (limit: number, offset: number) => Promise<{ trophies: T[]; totalItemCount: number }>,
+): Promise<T[]> {
+  const items: T[] = [];
+  const limit = 100;
+  let offset = 0;
+
+  for (;;) {
+    const page = await fetchPage(limit, offset);
+    items.push(...page.trophies);
+    if (page.trophies.length < limit || items.length >= page.totalItemCount) {
+      break;
+    }
+    offset += limit;
+  }
+
+  return items;
+}
+
 async function fetchTrophiesForTitle(
   authorization: AuthorizationPayload,
   title: TrophyTitle,
 ): Promise<FetchedTrophy[]> {
   const npServiceName = npServiceNameFor(title.trophyTitlePlatform);
 
-  const [definitions, earnedStatus] = await Promise.all([
-    getTitleTrophies(authorization, title.npCommunicationId, "all", { npServiceName }),
-    getUserTrophiesEarnedForTitle(authorization, "me", title.npCommunicationId, "all", {
-      npServiceName,
-    }),
+  const [definitions, earnedTrophies] = await Promise.all([
+    fetchAllPages((limit, offset) =>
+      getTitleTrophies(authorization, title.npCommunicationId, "all", {
+        npServiceName,
+        limit,
+        offset,
+      }),
+    ),
+    fetchAllPages((limit, offset) =>
+      getUserTrophiesEarnedForTitle(authorization, "me", title.npCommunicationId, "all", {
+        npServiceName,
+        limit,
+        offset,
+      }),
+    ),
   ]);
 
-  const earnedByTrophyId = new Map(earnedStatus.trophies.map((t) => [t.trophyId, t]));
+  const earnedByTrophyId = new Map(earnedTrophies.map((t) => [t.trophyId, t]));
 
-  return definitions.trophies.map((trophy, index) => {
+  return definitions.map((trophy, index) => {
     const earned = earnedByTrophyId.get(trophy.trophyId);
     return {
       npTrophyId: trophy.trophyId,
@@ -98,7 +134,13 @@ export async function fetchUserTitlesWithTrophies(
       name: title.trophyTitleName,
       iconUrl: title.trophyTitleIconUrl ?? null,
       platform: mapPsnPlatformToLocal(title.trophyTitlePlatform),
-      lastPlayedAt: title.lastUpdatedDateTime ?? null,
+      // PSN a veces devuelve lastUpdatedDateTime como string vacío para
+      // juegos sin actividad; eso rompe el upsert a un timestamptz, así
+      // que se descarta cualquier valor que no sea una fecha válida.
+      lastPlayedAt:
+        title.lastUpdatedDateTime && !Number.isNaN(Date.parse(title.lastUpdatedDateTime))
+          ? title.lastUpdatedDateTime
+          : null,
       trophies,
     };
   });
