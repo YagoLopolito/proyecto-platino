@@ -70,7 +70,10 @@ async function syncTitle(
 
   await supabase
     .from("user_games")
-    .upsert({ user_id: userId, game_id: gameId }, { onConflict: "user_id,game_id", ignoreDuplicates: true });
+    .upsert(
+      { user_id: userId, game_id: gameId, last_played_at: title.lastPlayedAt },
+      { onConflict: "user_id,game_id" },
+    );
 
   if (title.trophies.length === 0) {
     return { titleSynced: true, trophiesSynced: 0 };

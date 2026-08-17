@@ -26,7 +26,8 @@ export default async function JuegosPage() {
 
   const { data: library, error } = await supabase
     .from("user_games")
-    .select("added_at, games (id, name, platform, cover_url)")
+    .select("added_at, last_played_at, games (id, name, platform, cover_url)")
+    .order("last_played_at", { ascending: false, nullsFirst: false })
     .order("added_at", { ascending: false });
 
   const gameIds = (library ?? []).map((row) => row.games?.id).filter((id): id is string => !!id);
@@ -34,10 +35,22 @@ export default async function JuegosPage() {
   const statsByGame = new Map<string, GameStats>();
 
   if (gameIds.length > 0) {
-    const [{ data: trophies }, { data: userTrophies }] = await Promise.all([
-      supabase.from("trophies").select("id, game_id, type").in("game_id", gameIds),
-      supabase.from("user_trophies").select("trophy_id").eq("user_id", user.id),
-    ]);
+    const PAGE_SIZE = 1000;
+    const trophies: { id: string; game_id: string; type: string }[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data: page } = await supabase
+        .from("trophies")
+        .select("id, game_id, type")
+        .in("game_id", gameIds)
+        .range(from, from + PAGE_SIZE - 1);
+      trophies.push(...(page ?? []));
+      if (!page || page.length < PAGE_SIZE) break;
+    }
+
+    const { data: userTrophies } = await supabase
+      .from("user_trophies")
+      .select("trophy_id")
+      .eq("user_id", user.id);
 
     const obtainedIds = new Set((userTrophies ?? []).map((row) => row.trophy_id));
 
@@ -54,11 +67,12 @@ export default async function JuegosPage() {
       const stats = statsByGame.get(trophy.game_id);
       if (!stats) continue;
       stats.total += 1;
-      if (trophy.type in stats.counts) {
-        stats.counts[trophy.type as TrophyType] += 1;
-      }
-      if (obtainedIds.has(trophy.id)) {
+      const obtained = obtainedIds.has(trophy.id);
+      if (obtained) {
         stats.obtained += 1;
+        if (trophy.type in stats.counts) {
+          stats.counts[trophy.type as TrophyType] += 1;
+        }
       }
     }
 
