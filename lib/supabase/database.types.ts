@@ -63,34 +63,48 @@ export type Database = {
         Row: {
           cover_url: string | null
           created_at: string
+          created_by: string | null
           icon_url: string | null
           id: string
           name: string
-          np_comm_id: string
+          np_comm_id: string | null
           platform: string | null
+          source: string
           updated_at: string
         }
         Insert: {
           cover_url?: string | null
           created_at?: string
+          created_by?: string | null
           icon_url?: string | null
           id?: string
           name: string
-          np_comm_id: string
+          np_comm_id?: string | null
           platform?: string | null
+          source?: string
           updated_at?: string
         }
         Update: {
           cover_url?: string | null
           created_at?: string
+          created_by?: string | null
           icon_url?: string | null
           id?: string
           name?: string
-          np_comm_id?: string
+          np_comm_id?: string | null
           platform?: string | null
+          source?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "games_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guide_steps: {
         Row: {
@@ -232,43 +246,92 @@ export type Database = {
       trophies: {
         Row: {
           created_at: string
+          created_by: string | null
           description: string | null
           game_id: string
           hidden: boolean
           icon_url: string | null
           id: string
           name: string
-          trophy_id: string
+          sort_order: number | null
+          trophy_id: string | null
           type: string
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           description?: string | null
           game_id: string
           hidden?: boolean
           icon_url?: string | null
           id?: string
           name: string
-          trophy_id: string
+          sort_order?: number | null
+          trophy_id?: string | null
           type: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           description?: string | null
           game_id?: string
           hidden?: boolean
           icon_url?: string | null
           id?: string
           name?: string
-          trophy_id?: string
+          sort_order?: number | null
+          trophy_id?: string | null
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trophies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trophies_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_games: {
+        Row: {
+          added_at: string
+          game_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          game_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          game_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_games_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_games_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
