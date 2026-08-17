@@ -88,7 +88,7 @@ Igual patrón que `lib/psn/`: toda llamada al LLM vive acá, nunca directo en co
 4. Sync automático (cron) + manejo de expiración de token. ✅ (`app/api/cron/sync/`, ver detalle abajo). El disparo manual (`/api/psn/sync`) sigue existiendo para el primer sync y para reconectar tras un NPSSO vencido.
 5. Guías propias (CRUD simple) ligadas a juegos/trofeos. ✅ (`app/juegos/[id]/guias/`)
 6. Checklist de guía cruzada con trofeos ya obtenidos. ✅ (`toggleStepProgress` + auto-tilde si el trofeo ya sincronizó)
-7. Enlaces a guías externas curadas. ✅ como campo (`external_url`/`source`) dentro de una guía; falta la vista dedicada de "enlaces por juego" de la Fase 9 del `PRODUCT_SPEC.md`.
+7. Enlaces a guías externas curadas. ✅ campo (`external_url`/`source`) dentro de una guía + vista dedicada de "enlaces por juego" (`app/juegos/[id]/enlaces/`), Fase 9 completa.
 8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema + endpoint + UI del panel + guardado versionado en `ai_game_plans`. ✅ Fase 6 completa.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-10), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
@@ -102,10 +102,12 @@ SUPABASE_SERVICE_ROLE_KEY=
 PSN_TOKEN_ENCRYPTION_KEY=
 AI_PROVIDER_API_KEY=
 RAWG_API_KEY=
+STEAMGRIDDB_API_KEY=
 CRON_SECRET=
 ```
 
 - `PSN_TOKEN_ENCRYPTION_KEY`: requerida para conectar cuentas PSN (cifra el NPSSO en reposo). 32 bytes en base64 — generar con `openssl rand -base64 32`.
 - `AI_PROVIDER_API_KEY`: requerida para el advisor con IA (`lib/ai/`). API key de Anthropic (Claude). Sin ella, `generateAiGamePlan()` tira error al primer llamado — no rompe nada más de la app porque no se invoca en el sync ni en el render de páginas.
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
+- `STEAMGRIDDB_API_KEY`: opcional. Fallback de `lib/covers` cuando RAWG no encuentra la carátula (o falta `RAWG_API_KEY`). Sin ninguna de las dos, el sync sigue funcionando igual con los íconos que trae PSN.
 - `CRON_SECRET`: requerida para que `/api/cron/sync` acepte invocaciones. Vercel la agrega sola como header en las llamadas que dispara desde `vercel.json` si está seteada en el proyecto — sin ella el cron queda deshabilitado (401 siempre) pero el sync manual (`/api/psn/sync`) no se ve afectado.
