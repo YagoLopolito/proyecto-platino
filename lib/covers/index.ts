@@ -15,7 +15,7 @@ export async function findCoverUrl(gameName: string): Promise<string | null> {
     url.searchParams.set("search", gameName);
     url.searchParams.set("page_size", "1");
 
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
     if (!response.ok) return null;
 
     const data: unknown = await response.json();

@@ -6,7 +6,11 @@ import {
   type AuthorizationPayload,
   type TrophyTitle,
 } from "psn-api";
+import { mapWithConcurrency } from "./concurrency";
 import { mapPsnPlatformToLocal, type Platform } from "./platform";
+
+/** Cuántos títulos se procesan en simultáneo. Ni tan bajo que el sync tarde minutos con bibliotecas grandes, ni tan alto que parezca polling agresivo. */
+const TITLE_FETCH_CONCURRENCY = 5;
 
 export type FetchedTrophy = {
   npTrophyId: number;
@@ -86,17 +90,14 @@ export async function fetchUserTitlesWithTrophies(
 ): Promise<FetchedTitle[]> {
   const titles = await fetchAllTitles(authorization);
 
-  const results: FetchedTitle[] = [];
-  for (const title of titles) {
+  return mapWithConcurrency(titles, TITLE_FETCH_CONCURRENCY, async (title) => {
     const trophies = await fetchTrophiesForTitle(authorization, title);
-    results.push({
+    return {
       npCommId: title.npCommunicationId,
       name: title.trophyTitleName,
       iconUrl: title.trophyTitleIconUrl ?? null,
       platform: mapPsnPlatformToLocal(title.trophyTitlePlatform),
       trophies,
-    });
-  }
-
-  return results;
+    };
+  });
 }
