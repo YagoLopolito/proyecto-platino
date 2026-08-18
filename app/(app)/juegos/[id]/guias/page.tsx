@@ -6,6 +6,7 @@ import AddStepForm from "./AddStepForm";
 import EditGuideForm from "./EditGuideForm";
 import EditStepForm from "./EditStepForm";
 import { deleteGuide, deleteStep, toggleStepProgress } from "./actions";
+import GameBreadcrumb from "@/components/GameBreadcrumb";
 
 export default async function GameGuidesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: gameId } = await params;
@@ -68,6 +69,8 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
+        <GameBreadcrumb gameId={gameId} gameName={game.name} current="Guías" />
+
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">Guías de {game.name}</h1>
           <p className="text-sm text-zinc-400">
@@ -228,10 +231,7 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
           })}
         </section>
 
-        <div className="flex items-center justify-between">
-          <Link href={`/juegos/${gameId}`} className="text-sm text-blue-400 hover:underline">
-            ← Volver a {game.name}
-          </Link>
+        <div className="flex items-center justify-end">
           <Link
             href={`/juegos/${gameId}/enlaces`}
             className="text-sm text-blue-400 hover:underline"

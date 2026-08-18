@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import FindExternalGuidesButton from "./FindExternalGuidesButton";
+import GameBreadcrumb from "@/components/GameBreadcrumb";
 
 /**
  * El botón "Buscar guías externas" invoca findExternalGuides (actions.ts),
@@ -74,6 +75,8 @@ export default async function GameExternalLinksPage({
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
+        <GameBreadcrumb gameId={gameId} gameName={game.name} current="Enlaces externos" />
+
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">Enlaces externos de {game.name}</h1>
           <p className="text-sm text-zinc-400">
@@ -113,10 +116,7 @@ export default async function GameExternalLinksPage({
           ))}
         </section>
 
-        <div className="flex items-center justify-between">
-          <Link href={`/juegos/${gameId}/guias`} className="text-sm text-blue-400 hover:underline">
-            ← Volver a guías
-          </Link>
+        <div className="flex items-center justify-end">
           <Link href={`/juegos/${gameId}`} className="text-sm text-blue-400 hover:underline">
             Ver juego →
           </Link>

@@ -6,6 +6,7 @@ import { markTrophyObtained, unmarkTrophyObtained } from "./actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
 import AiAdvisorPanel from "./AiAdvisorPanel";
 import type { AiGamePlan } from "@/lib/ai";
+import GameBreadcrumb from "@/components/GameBreadcrumb";
 
 /**
  * El botón "Generar plan" invoca generateAiPlan (ai-actions.ts), que llama a
@@ -94,6 +95,8 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
+        <GameBreadcrumb gameId={gameId} gameName={game.name} />
+
         <div className="flex items-center gap-4">
           {game.cover_url ?? game.icon_url ? (
             <Image
@@ -207,10 +210,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           cachedPlan={cachedPlan}
         />
 
-        <div className="flex items-center justify-between">
-          <Link href="/juegos" className="text-sm text-blue-400 hover:underline">
-            ← Volver a mi biblioteca
-          </Link>
+        <div className="flex items-center justify-end">
           <Link href={`/juegos/${gameId}/guias`} className="text-sm text-blue-400 hover:underline">
             Ver guías →
           </Link>

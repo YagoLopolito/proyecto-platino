@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import ConnectPsnForm from "./ConnectPsnForm";
 import SyncButton from "./SyncButton";
@@ -57,10 +56,6 @@ export default async function PsnPage() {
         )}
 
         <ConnectPsnForm />
-
-        <Link href="/perfil" className="block text-sm text-blue-400 hover:underline">
-          ← Volver al perfil
-        </Link>
       </div>
     </div>
   );

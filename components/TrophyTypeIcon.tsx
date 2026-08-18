@@ -1,10 +1,10 @@
 export type TrophyType = "bronze" | "silver" | "gold" | "platinum";
 
 const COLOR: Record<TrophyType, string> = {
-  bronze: "#CD7F32",
-  silver: "#C0C0C0",
-  gold: "#FFD700",
-  platinum: "#B9D3E8",
+  bronze: "var(--color-trophy-bronze)",
+  silver: "var(--color-trophy-silver)",
+  gold: "var(--color-trophy-gold)",
+  platinum: "var(--color-trophy-platinum)",
 };
 
 const LABEL: Record<TrophyType, string> = {
