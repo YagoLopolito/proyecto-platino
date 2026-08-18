@@ -1,32 +1,37 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { AiProviderError, AiSchemaValidationError } from "./errors";
 import { AI_PLAN_SYSTEM_PROMPT, buildAiPlanUserPrompt, type AiPlanInput } from "./prompt";
 import { parseAiGamePlan, type AiGamePlan } from "./schema";
 
-const MODEL = "claude-sonnet-4-5";
+/** Modelo gratuito de Groq (free tier, sin tarjeta) usado para generar el plan en JSON. */
+const MODEL = "openai/gpt-oss-120b";
 
-function getClient(): Anthropic {
+function getClient(): Groq {
   const apiKey = process.env.AI_PROVIDER_API_KEY;
   if (!apiKey) {
     throw new AiProviderError(new Error("Falta la variable de entorno AI_PROVIDER_API_KEY."));
   }
-  return new Anthropic({ apiKey });
+  return new Groq({ apiKey });
 }
 
-async function requestPlanCompletion(client: Anthropic, userPrompt: string): Promise<string> {
+async function requestPlanCompletion(client: Groq, userPrompt: string): Promise<string> {
   try {
-    const response = await client.messages.create({
+    const response = await client.chat.completions.create({
       model: MODEL,
       max_tokens: 4096,
-      system: AI_PLAN_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
+      response_format: { type: "json_object" },
+      reasoning_effort: "low",
+      messages: [
+        { role: "system", content: AI_PLAN_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
     });
-    const block = response.content.find((c) => c.type === "text");
-    if (!block || block.type !== "text") {
+    const text = response.choices[0]?.message?.content;
+    if (!text) {
       throw new Error("La respuesta del modelo no trajo contenido de texto.");
     }
-    return block.text;
+    return text;
   } catch (cause) {
     throw new AiProviderError(cause);
   }
