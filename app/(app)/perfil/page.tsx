@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
+import { ProgressBar } from "@/components/ProgressBar";
 
 const TROPHY_TYPES: TrophyType[] = ["platinum", "gold", "silver", "bronze"];
 
@@ -103,9 +104,7 @@ export default async function PerfilPage() {
             <span className="text-sm text-zinc-400">Nivel de trofeos</span>
             <span className="text-lg font-semibold">{level}</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
-            <div className="h-full bg-blue-600" style={{ width: `${progressPercent}%` }} />
-          </div>
+          <ProgressBar percent={progressPercent} />
 
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-400">Juegos en biblioteca</span>

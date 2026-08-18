@@ -4,6 +4,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { markTrophyObtained, unmarkTrophyObtained } from "./actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
+import { ErrorState } from "@/components/ErrorState";
+import { EmptyState } from "@/components/EmptyState";
+import { ProgressBar } from "@/components/ProgressBar";
+import { PlatinumBadge } from "@/components/PlatinumBadge";
 import AiAdvisorPanel from "./AiAdvisorPanel";
 import type { AiGamePlan } from "@/lib/ai";
 import GameBreadcrumb from "@/components/GameBreadcrumb";
@@ -91,6 +95,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const total = trophies?.length ?? 0;
   const obtainedCount = trophies?.filter((t) => obtained.has(t.id)).length ?? 0;
   const percent = total > 0 ? Math.round((obtainedCount / total) * 100) : 0;
+  const isPlatinumed = (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
@@ -113,7 +118,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold">{game.name}</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-semibold">
+              {game.name}
+              {isPlatinumed && <PlatinumBadge />}
+            </h1>
             <p className="text-sm text-zinc-400">{game.platform}</p>
           </div>
         </div>
@@ -125,24 +133,18 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               {obtainedCount}/{total} ({percent}%)
             </span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800">
-            <div className="h-full bg-blue-600" style={{ width: `${percent}%` }} />
-          </div>
+          <ProgressBar percent={percent} className="mt-2 h-2" />
         </div>
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Trofeos {total > 0 && `(${total})`}</h2>
 
           {trophiesError && (
-            <p role="alert" className="text-sm text-red-400">
-              No se pudieron cargar los trofeos: {trophiesError.message}
-            </p>
+            <ErrorState message={`No se pudieron cargar los trofeos: ${trophiesError.message}`} />
           )}
 
           {!trophiesError && total === 0 && (
-            <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-              Todavía no cargaste trofeos para este juego.
-            </p>
+            <EmptyState title="Todavía no cargaste trofeos para este juego." />
           )}
 
           <ul className="space-y-2">
