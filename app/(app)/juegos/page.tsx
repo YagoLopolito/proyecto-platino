@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import GamesLibrary, { type LibraryGame } from "./GamesLibrary";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
+import { ErrorState } from "@/components/ErrorState";
 
 type GameStats = {
   total: number;
@@ -123,11 +124,7 @@ export default async function JuegosPage() {
           </p>
         </div>
 
-        {error && (
-          <p role="alert" className="text-sm text-red-400">
-            No se pudo cargar la biblioteca: {error.message}
-          </p>
-        )}
+        {error && <ErrorState message={`No se pudo cargar la biblioteca: ${error.message}`} />}
 
         {!error && <GamesLibrary games={games} />}
       </div>
