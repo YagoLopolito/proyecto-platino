@@ -9,7 +9,7 @@ import {
   type AiGamePlan,
 } from "@/lib/ai";
 
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = "openai/gpt-oss-120b";
 
 export type AiPlanActionState = {
   plan: AiGamePlan | null;

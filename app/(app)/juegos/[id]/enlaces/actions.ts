@@ -27,7 +27,13 @@ export async function findExternalGuides(
     return { inserted: null, errors: ["Tenés que iniciar sesión."] };
   }
 
-  const result = await populateExternalGuidesForGame(gameId, gameName);
-  revalidatePath(`/juegos/${gameId}/enlaces`);
-  return result;
+  try {
+    const result = await populateExternalGuidesForGame(gameId, gameName);
+    revalidatePath(`/juegos/${gameId}/enlaces`);
+    return result;
+  } catch (cause) {
+    console.error("findExternalGuides failed:", cause);
+    const message = cause instanceof Error ? cause.message : "Falló la búsqueda de enlaces externos.";
+    return { inserted: null, errors: [message] };
+  }
 }
