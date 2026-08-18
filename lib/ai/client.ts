@@ -1,7 +1,14 @@
 import "server-only";
 import Groq from "groq-sdk";
 import { AiProviderError, AiSchemaValidationError } from "./errors";
-import { AI_PLAN_SYSTEM_PROMPT, buildAiPlanUserPrompt, type AiPlanInput } from "./prompt";
+import {
+  AI_PLAN_SYSTEM_PROMPT,
+  buildAiPlanUserPrompt,
+  TROPHY_HINT_SYSTEM_PROMPT,
+  buildTrophyHintUserPrompt,
+  type AiPlanInput,
+  type TrophyHintInput,
+} from "./prompt";
 import { parseAiGamePlan, type AiGamePlan } from "./schema";
 
 /** Modelo gratuito de Groq (free tier, sin tarjeta) usado para generar el plan en JSON. */
@@ -58,5 +65,32 @@ export async function generateAiGamePlan(input: AiPlanInput): Promise<AiGamePlan
     } catch (secondError) {
       throw new AiSchemaValidationError({ firstError, secondError });
     }
+  }
+}
+
+/**
+ * Explicación puntual de un solo trofeo (texto plano, no JSON): más barata y
+ * rápida que regenerar el plan completo del juego, útil cuando la
+ * descripción oficial de PSN es ambigua o insuficiente.
+ */
+export async function generateTrophyHint(input: TrophyHintInput): Promise<string> {
+  const client = getClient();
+  try {
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      max_tokens: 300,
+      reasoning_effort: "low",
+      messages: [
+        { role: "system", content: TROPHY_HINT_SYSTEM_PROMPT },
+        { role: "user", content: buildTrophyHintUserPrompt(input) },
+      ],
+    });
+    const text = response.choices[0]?.message?.content?.trim();
+    if (!text) {
+      throw new Error("La respuesta del modelo no trajo contenido de texto.");
+    }
+    return text;
+  } catch (cause) {
+    throw new AiProviderError(cause);
   }
 }
