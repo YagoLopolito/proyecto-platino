@@ -48,6 +48,7 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
           .from("user_trophies")
           .select("trophy_id")
           .eq("user_id", user.id)
+          .order("id")
           .range(from, from + PAGE_SIZE - 1);
         userTrophies.push(...(page ?? []));
         if (!page || page.length < PAGE_SIZE) break;
