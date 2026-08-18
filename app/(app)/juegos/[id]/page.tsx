@@ -99,8 +99,20 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const isPlatinumed = (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
+    <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
+      <div className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-2">
+          <p className="truncate text-sm text-zinc-400">{game.name}</p>
+          <a
+            href="#advisor"
+            className="flex shrink-0 items-center gap-1.5 rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-sm text-blue-300 hover:border-blue-500"
+          >
+            ✨ Advisor con IA
+          </a>
+        </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-4 py-8">
         <GameBreadcrumb gameId={gameId} gameName={game.name} />
 
         <div className="flex items-center gap-4">
@@ -209,16 +221,23 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
         <AiAdvisorPanel
           gameId={gameId}
-          trophies={(trophies ?? []).map((t) => ({ id: t.id, name: t.name, type: t.type }))}
+          trophies={(trophies ?? []).map((t) => ({
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            type: t.type as TrophyType,
+            obtained: obtained.has(t.id),
+          }))}
           cachedPlan={cachedPlan}
         />
-
-        <div className="flex items-center justify-end">
-          <Link href={`/juegos/${gameId}/guias`} className="text-sm text-blue-400 hover:underline">
-            Ver guías →
-          </Link>
-        </div>
       </div>
+
+      <Link
+        href={`/juegos/${gameId}/enlaces`}
+        className="fixed bottom-5 right-5 z-20 flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-medium text-zinc-50 shadow-lg hover:border-blue-500 hover:text-blue-300"
+      >
+        📖 Ver guías
+      </Link>
     </div>
   );
 }
