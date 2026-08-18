@@ -152,7 +152,7 @@ export default function AiAdvisorPanel({
 
       {state.error && (
         <p role="alert" className="text-sm text-red-400">
-          No se pudo generar el plan: {state.error}
+          {state.error}
         </p>
       )}
 

@@ -130,10 +130,6 @@ export default async function JuegosPage() {
         )}
 
         {!error && <GamesLibrary games={games} />}
-
-        <Link href="/perfil" className="text-sm text-blue-400 hover:underline">
-          ← Volver al perfil
-        </Link>
       </div>
     </div>
   );

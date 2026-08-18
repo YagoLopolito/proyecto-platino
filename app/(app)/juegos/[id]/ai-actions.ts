@@ -9,7 +9,7 @@ import {
   type AiGamePlan,
 } from "@/lib/ai";
 
-const MODEL = "claude-sonnet-4-5";
+const MODEL = "llama-3.3-70b-versatile";
 
 export type AiPlanActionState = {
   plan: AiGamePlan | null;
@@ -100,6 +100,7 @@ export async function generateAiPlan(
     revalidatePath(`/juegos/${gameId}`);
     return { plan, error: null };
   } catch (cause) {
+    console.error("generateAiPlan failed:", cause);
     await supabase.from("ai_game_plans").insert({
       game_id: gameId,
       user_id: user.id,
