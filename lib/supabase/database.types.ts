@@ -292,6 +292,7 @@ export type Database = {
           id: string
           name: string
           sort_order: number | null
+          trophy_group_id: string | null
           trophy_id: string | null
           type: string
         }
@@ -305,6 +306,7 @@ export type Database = {
           id?: string
           name: string
           sort_order?: number | null
+          trophy_group_id?: string | null
           trophy_id?: string | null
           type: string
         }
@@ -318,6 +320,7 @@ export type Database = {
           id?: string
           name?: string
           sort_order?: number | null
+          trophy_group_id?: string | null
           trophy_id?: string | null
           type?: string
         }

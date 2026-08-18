@@ -22,6 +22,8 @@ export type FetchedTrophy = {
   sortOrder: number;
   earned: boolean;
   earnedAt: string | null;
+  /** "default" para el juego base, "001"/"002"/etc. para DLC/expansiones (ver psn-api). */
+  groupId: string;
 };
 
 export type FetchedTitle = {
@@ -117,6 +119,7 @@ async function fetchTrophiesForTitle(
       sortOrder: index,
       earned: earned?.earned ?? false,
       earnedAt: earned?.earnedDateTime ?? null,
+      groupId: trophy.trophyGroupId ?? "default",
     };
   });
 }

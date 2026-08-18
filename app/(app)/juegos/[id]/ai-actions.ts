@@ -50,8 +50,18 @@ export async function generateAiPlan(
 
   const { data: trophies } = await supabase
     .from("trophies")
-    .select("id, name, description, type, hidden")
+    .select("id, name, description, type, hidden, trophy_group_id")
     .eq("game_id", gameId);
+
+  // Excluye trofeos de DLC/expansiones (trophy_group_id distinto de "default")
+  // del prompt: no cuentan para el platino del juego base y en títulos con
+  // mucho contenido descargable inflan el prompt hasta pasar el límite de
+  // tokens del proveedor de IA. Los trofeos sincronizados antes de que
+  // existiera esta columna quedan con trophy_group_id null -- se incluyen
+  // igual para no perder cobertura hasta que se vuelvan a sincronizar.
+  const basePlanTrophies = (trophies ?? []).filter(
+    (t) => t.trophy_group_id === null || t.trophy_group_id === "default",
+  );
 
   const PAGE_SIZE = 1000;
   const userTrophies: { trophy_id: string }[] = [];
@@ -76,7 +86,7 @@ export async function generateAiPlan(
     const plan = await generateAiGamePlan({
       gameName: game.name,
       platform: game.platform ?? "",
-      trophies: (trophies ?? []).map((t) => ({
+      trophies: basePlanTrophies.map((t) => ({
         id: t.id,
         name: t.name,
         description: t.description,
