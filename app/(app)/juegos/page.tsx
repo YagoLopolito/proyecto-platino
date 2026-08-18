@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import GamesLibrary, { type LibraryGame } from "./GamesLibrary";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
 import { ErrorState } from "@/components/ErrorState";
+import { SyncStatusBadge, type SyncTokenStatus } from "@/components/SyncStatusBadge";
 
 type GameStats = {
   total: number;
@@ -21,6 +22,12 @@ export default async function JuegosPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const { data: psnAccount } = await supabase
+    .from("psn_accounts")
+    .select("token_status, last_synced_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   const { data: library, error } = await supabase
     .from("user_games")
@@ -115,14 +122,36 @@ export default async function JuegosPage() {
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Mi biblioteca</h1>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold">Mi biblioteca</h1>
+            {psnAccount && <SyncStatusBadge status={psnAccount.token_status as SyncTokenStatus} />}
+          </div>
           <p className="text-sm text-zinc-400">
-            Tus juegos y trofeos se traen automáticamente desde tu cuenta PSN.{" "}
-            <Link href="/psn" className="text-blue-400 hover:underline">
-              Sincronizar ahora
-            </Link>
-            .
+            {psnAccount ? (
+              <>
+                {psnAccount.last_synced_at
+                  ? `Última sincronización: ${new Date(psnAccount.last_synced_at).toLocaleString("es-AR")}.`
+                  : "Todavía no se sincronizó ningún juego."}{" "}
+                {psnAccount.token_status !== "valid" && (
+                  <>
+                    Reconectá tu cuenta para seguir sincronizando.{" "}
+                  </>
+                )}
+                <Link href="/psn" className="text-blue-400 hover:underline">
+                  {psnAccount.token_status === "valid" ? "Sincronizar ahora" : "Reconectar cuenta PSN"}
+                </Link>
+                .
+              </>
+            ) : (
+              <>
+                Tus juegos y trofeos se traen automáticamente desde tu cuenta PSN.{" "}
+                <Link href="/psn" className="text-blue-400 hover:underline">
+                  Conectar cuenta
+                </Link>
+                .
+              </>
+            )}
           </p>
         </div>
 

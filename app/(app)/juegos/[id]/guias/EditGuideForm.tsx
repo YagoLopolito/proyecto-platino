@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { updateGuide, type GuideActionState } from "./actions";
+import { Input, Textarea, Label } from "@/components/Input";
+import { Button } from "@/components/Button";
+import { FormError } from "@/components/FormError";
 
 const initialState: GuideActionState = { error: null, success: null };
 
@@ -47,13 +50,9 @@ export default function EditGuideForm({
               </a>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="shrink-0 rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-400 hover:border-blue-500 hover:text-blue-400"
-          >
+          <Button type="button" variant="secondary" onClick={() => setEditing(true)} className="shrink-0 text-xs">
             Editar
-          </button>
+          </Button>
         </div>
         {guide.content_markdown && (
           <pre className="whitespace-pre-wrap rounded border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-300">
@@ -70,83 +69,71 @@ export default function EditGuideForm({
       <input type="hidden" name="gameId" value={gameId} />
 
       <div className="space-y-1">
-        <label htmlFor={`edit-title-${guide.id}`} className="text-xs text-zinc-400">
+        <Label htmlFor={`edit-title-${guide.id}`} className="text-xs">
           Título
-        </label>
-        <input
+        </Label>
+        <Input
           id={`edit-title-${guide.id}`}
           name="title"
           type="text"
           required
           maxLength={200}
           defaultValue={guide.title}
-          className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-50"
+          className="text-sm"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor={`edit-content-${guide.id}`} className="text-xs text-zinc-400">
+        <Label htmlFor={`edit-content-${guide.id}`} className="text-xs">
           Contenido en markdown
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           id={`edit-content-${guide.id}`}
           name="contentMarkdown"
           rows={5}
           defaultValue={guide.content_markdown ?? ""}
-          className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-50"
+          className="font-mono text-sm"
         />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <label htmlFor={`edit-url-${guide.id}`} className="text-xs text-zinc-400">
+          <Label htmlFor={`edit-url-${guide.id}`} className="text-xs">
             Link externo
-          </label>
-          <input
+          </Label>
+          <Input
             id={`edit-url-${guide.id}`}
             name="externalUrl"
             type="url"
             maxLength={500}
             defaultValue={guide.external_url ?? ""}
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-50"
+            className="text-sm"
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor={`edit-source-${guide.id}`} className="text-xs text-zinc-400">
+          <Label htmlFor={`edit-source-${guide.id}`} className="text-xs">
             Fuente
-          </label>
-          <input
+          </Label>
+          <Input
             id={`edit-source-${guide.id}`}
             name="source"
             type="text"
             maxLength={100}
             defaultValue={guide.source ?? ""}
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-50"
+            className="text-sm"
           />
         </div>
       </div>
 
-      {state.error && (
-        <p role="alert" className="text-sm text-red-400">
-          {state.error}
-        </p>
-      )}
+      <FormError>{state.error}</FormError>
 
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-        >
+        <Button type="submit" disabled={pending} className="text-xs">
           {pending ? "Guardando..." : "Guardar"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditing(false)}
-          className="rounded border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200"
-        >
+        </Button>
+        <Button type="button" variant="secondary" onClick={() => setEditing(false)} className="text-xs">
           Cancelar
-        </button>
+        </Button>
       </div>
     </form>
   );

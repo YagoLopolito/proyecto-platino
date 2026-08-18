@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
 import { ProgressBar } from "@/components/ProgressBar";
+import { StatCard } from "@/components/StatCard";
+import { Button } from "@/components/Button";
 
 const TROPHY_TYPES: TrophyType[] = ["platinum", "gold", "silver", "bronze"];
 
@@ -92,66 +94,60 @@ export default async function PerfilPage() {
   const { level, progressPercent } = levelFromPoints(totalPoints);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-950 px-4 py-16 text-zinc-50">
-      <div className="w-full max-w-sm space-y-6 rounded-lg border border-zinc-800 bg-zinc-900 p-8">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold">Perfil</h1>
-          <p className="text-sm text-zinc-400">Sesión iniciada como:</p>
-          <p className="font-mono text-sm">{user.email}</p>
+    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
+      <div className="mx-auto w-full max-w-3xl space-y-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold">Perfil</h1>
+            <p className="font-mono text-sm text-zinc-400">{user.email}</p>
+          </div>
+          <form action={logout}>
+            <Button type="submit" variant="secondary">
+              Cerrar sesión
+            </Button>
+          </form>
         </div>
 
-        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-400">Nivel de trofeos</span>
-            <span className="text-lg font-semibold">{level}</span>
-          </div>
-          <ProgressBar percent={progressPercent} />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard label="Nivel de trofeos" value={level} className="col-span-2 sm:col-span-2">
+            <ProgressBar percent={progressPercent} />
+          </StatCard>
+          <StatCard label="Juegos en biblioteca" value={gamesCount ?? 0} />
+          <StatCard label="Trofeos totales" value={totalTrophies} />
+        </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-400">Juegos en biblioteca</span>
-            <span className="font-medium">{gamesCount ?? 0}</span>
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-400">Trofeos totales</span>
-            <span className="font-medium">{totalTrophies}</span>
-          </div>
-
-          <div className="grid grid-cols-4 gap-2 pt-1 text-center">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <h2 className="text-sm font-semibold text-zinc-200">Trofeos por tipo</h2>
+          <div className="grid grid-cols-4 gap-2 text-center">
             {TROPHY_TYPES.map((type) => (
-              <div key={type} className="flex flex-col items-center gap-1">
-                <TrophyTypeIcon type={type} className="h-5 w-5" />
-                <span className="text-sm font-medium">{counts[type]}</span>
-              </div>
+              <StatCard
+                key={type}
+                label={type[0].toUpperCase() + type.slice(1)}
+                value={counts[type]}
+                icon={<TrophyTypeIcon type={type} className="h-5 w-5" />}
+              />
             ))}
           </div>
-
           <p className="pt-1 text-xs text-zinc-600">
             La rareza de cada trofeo depende de estadísticas globales de PSN que todavía no
             sincronizamos; por ahora sólo mostramos tus totales.
           </p>
         </div>
 
-        <Link
-          href="/juegos"
-          className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-medium text-white hover:bg-blue-500"
-        >
-          Mi biblioteca
-        </Link>
-        <Link
-          href="/psn"
-          className="block w-full rounded border border-zinc-700 px-4 py-2 text-center font-medium text-zinc-50 hover:border-blue-500"
-        >
-          {psnAccount ? `PSN conectada: ${psnAccount.online_id}` : "Conectar cuenta PSN"}
-        </Link>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="w-full rounded bg-zinc-800 px-4 py-2 font-medium text-zinc-50 hover:bg-zinc-700"
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Link
+            href="/juegos"
+            className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-medium text-white hover:bg-blue-500"
           >
-            Cerrar sesión
-          </button>
-        </form>
+            Mi biblioteca
+          </Link>
+          <Link
+            href="/psn"
+            className="block w-full rounded border border-zinc-700 px-4 py-2 text-center font-medium text-zinc-50 hover:border-blue-500"
+          >
+            {psnAccount ? `PSN conectada: ${psnAccount.online_id}` : "Conectar cuenta PSN"}
+          </Link>
+        </div>
       </div>
     </div>
   );
