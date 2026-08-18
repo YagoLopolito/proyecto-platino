@@ -1,6 +1,6 @@
 import "server-only";
 
-export { generateAiGamePlan } from "./client";
+export { generateAiGamePlan, generateTrophyHint } from "./client";
 export { AiProviderError, AiSchemaValidationError } from "./errors";
 export { aiGamePlanSchema, parseAiGamePlan, type AiGamePlan } from "./schema";
 export {
@@ -9,4 +9,5 @@ export {
   type AiPlanInput,
   type AiPlanTrophyInput,
   type AiPlanGuideInput,
+  type TrophyHintInput,
 } from "./prompt";

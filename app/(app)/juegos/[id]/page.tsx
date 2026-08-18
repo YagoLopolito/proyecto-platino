@@ -2,13 +2,13 @@ import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { markTrophyObtained, unmarkTrophyObtained } from "./actions";
-import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
+import type { TrophyType } from "@/components/TrophyTypeIcon";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 import { ProgressBar } from "@/components/ProgressBar";
 import { PlatinumBadge } from "@/components/PlatinumBadge";
 import AiAdvisorPanel from "./AiAdvisorPanel";
+import TrophyItem from "./TrophyItem";
 import type { AiGamePlan } from "@/lib/ai";
 import GameBreadcrumb from "@/components/GameBreadcrumb";
 
@@ -20,13 +20,6 @@ import GameBreadcrumb from "@/components/GameBreadcrumb";
  * https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#maxduration).
  */
 export const maxDuration = 60;
-
-const TYPE_LABEL: Record<string, string> = {
-  bronze: "Bronce",
-  silver: "Plata",
-  gold: "Oro",
-  platinum: "Platino",
-};
 
 export default async function GameDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: gameId } = await params;
@@ -99,8 +92,20 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const isPlatinumed = (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
+    <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
+      <div className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-2">
+          <p className="truncate text-sm text-zinc-400">{game.name}</p>
+          <a
+            href="#advisor"
+            className="flex shrink-0 items-center gap-1.5 rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-sm text-blue-300 hover:border-blue-500"
+          >
+            ✨ Advisor con IA
+          </a>
+        </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-4 py-8">
         <GameBreadcrumb gameId={gameId} gameName={game.name} />
 
         <div className="flex items-center gap-4">
@@ -149,76 +154,41 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           )}
 
           <ul className="space-y-2">
-            {trophies?.map((trophy) => {
-              const isObtained = obtained.has(trophy.id);
-              return (
-                <li
-                  key={trophy.id}
-                  className="flex items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    {trophy.icon_url ? (
-                      <Image
-                        src={trophy.icon_url}
-                        alt=""
-                        width={40}
-                        height={40}
-                        unoptimized
-                        className="h-10 w-10 shrink-0 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-zinc-800">
-                        <TrophyTypeIcon type={trophy.type as TrophyType} className="h-5 w-5" />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {trophy.name}
-                        {trophy.hidden && (
-                          <span className="ml-2 text-xs text-zinc-500">(oculto)</span>
-                        )}
-                      </p>
-                      {trophy.description && (
-                        <p className="truncate text-xs text-zinc-500">{trophy.description}</p>
-                      )}
-                      <p className="flex items-center gap-1 text-xs text-zinc-500">
-                        <TrophyTypeIcon type={trophy.type as TrophyType} className="h-3.5 w-3.5" />
-                        {TYPE_LABEL[trophy.type] ?? trophy.type}
-                      </p>
-                    </div>
-                  </div>
-                  <form action={isObtained ? unmarkTrophyObtained : markTrophyObtained}>
-                    <input type="hidden" name="trophyId" value={trophy.id} />
-                    <input type="hidden" name="gameId" value={gameId} />
-                    <button
-                      type="submit"
-                      className={
-                        isObtained
-                          ? "shrink-0 rounded border border-green-700 bg-green-900/30 px-3 py-1 text-sm text-green-400 hover:border-red-500 hover:text-red-400"
-                          : "shrink-0 rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-400 hover:border-blue-500 hover:text-blue-400"
-                      }
-                    >
-                      {isObtained ? "Obtenido ✓" : "Marcar obtenido"}
-                    </button>
-                  </form>
-                </li>
-              );
-            })}
+            {trophies?.map((trophy) => (
+              <TrophyItem
+                key={trophy.id}
+                gameId={gameId}
+                trophyId={trophy.id}
+                name={trophy.name}
+                description={trophy.description}
+                type={trophy.type}
+                hidden={trophy.hidden}
+                iconUrl={trophy.icon_url}
+                isObtained={obtained.has(trophy.id)}
+              />
+            ))}
           </ul>
         </section>
 
         <AiAdvisorPanel
           gameId={gameId}
-          trophies={(trophies ?? []).map((t) => ({ id: t.id, name: t.name, type: t.type }))}
+          trophies={(trophies ?? []).map((t) => ({
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            type: t.type as TrophyType,
+            obtained: obtained.has(t.id),
+          }))}
           cachedPlan={cachedPlan}
         />
-
-        <div className="flex items-center justify-end">
-          <Link href={`/juegos/${gameId}/guias`} className="text-sm text-blue-400 hover:underline">
-            Ver guías →
-          </Link>
-        </div>
       </div>
+
+      <Link
+        href={`/juegos/${gameId}/enlaces`}
+        className="fixed bottom-5 right-5 z-20 flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-medium text-zinc-50 shadow-lg hover:border-blue-500 hover:text-blue-300"
+      >
+        📖 Ver guías
+      </Link>
     </div>
   );
 }

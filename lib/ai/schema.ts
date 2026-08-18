@@ -26,6 +26,14 @@ export const aiGamePlanSchema = z.object({
   ),
   orden_sugerido: z.array(z.string()),
   tips_generales: z.array(z.string()),
+  modos: z
+    .array(
+      z.object({
+        modo: z.string().min(1),
+        trofeos_relacionados: z.array(z.string()),
+      }),
+    )
+    .default([]),
 });
 
 export type AiGamePlan = z.infer<typeof aiGamePlanSchema>;

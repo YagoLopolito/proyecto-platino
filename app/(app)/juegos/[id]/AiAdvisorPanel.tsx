@@ -1,77 +1,125 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { generateAiPlan, type AiPlanActionState } from "./ai-actions";
+import { TrophyTypeIcon, type TrophyType, trophyTypeLabel } from "@/components/TrophyTypeIcon";
 import type { AiGamePlan } from "@/lib/ai";
 
 const initialAiPlanState: AiPlanActionState = { plan: null, error: null };
 
-const TYPE_LABEL: Record<string, string> = {
-  bronze: "Bronce",
-  silver: "Plata",
-  gold: "Oro",
-  platinum: "Platino",
+export type AdvisorTrophy = {
+  id: string;
+  name: string;
+  description: string | null;
+  type: TrophyType;
+  obtained: boolean;
 };
 
-function trophyLabel(trophies: { id: string; name: string; type: string }[], trophyId: string) {
-  const trophy = trophies.find((t) => t.id === trophyId);
-  return trophy ? `${trophy.name} (${TYPE_LABEL[trophy.type] ?? trophy.type})` : trophyId;
+function findTrophy(trophies: AdvisorTrophy[], trophyId: string) {
+  return trophies.find((t) => t.id === trophyId);
 }
 
-function PlanView({
-  plan,
-  trophies,
+/** Chip de trofeo: nombre + tipo, tachado/atenuado si ya se obtuvo, con la
+ * descripción (cómo desbloquearlo) como tooltip nativo al hacer hover. */
+function TrophyChip({ trophies, trophyId }: { trophies: AdvisorTrophy[]; trophyId: string }) {
+  const trophy = findTrophy(trophies, trophyId);
+  if (!trophy) {
+    return <span className="text-zinc-400">{trophyId}</span>;
+  }
+
+  return (
+    <span
+      title={trophy.description ?? "Sin descripción cargada."}
+      className={`inline-flex cursor-help items-center gap-1 rounded border px-1.5 py-0.5 ${
+        trophy.obtained
+          ? "border-green-800 bg-green-950/30 text-green-500 line-through decoration-green-700"
+          : "border-zinc-700 bg-zinc-950 text-zinc-200"
+      }`}
+    >
+      <TrophyTypeIcon type={trophy.type} className="h-3 w-3 shrink-0" />
+      {trophy.name}
+      <span className="text-[10px] text-zinc-500">({trophyTypeLabel(trophy.type)})</span>
+      {trophy.obtained && <span className="text-green-500">✓</span>}
+    </span>
+  );
+}
+
+function SectionCard({
+  icon,
+  title,
+  accent,
+  children,
 }: {
-  plan: AiGamePlan;
-  trophies: { id: string; name: string; type: string }[];
+  icon: string;
+  title: string;
+  accent: string;
+  children: ReactNode;
 }) {
   return (
-    <div className="space-y-4 text-sm text-zinc-200">
-      <p>{plan.resumen}</p>
+    <div className={`rounded-lg border border-zinc-800 border-l-4 ${accent} bg-zinc-950 p-3`}>
+      <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        <span aria-hidden="true">{icon}</span>
+        {title}
+      </h4>
+      {children}
+    </div>
+  );
+}
 
-      <div className="rounded border border-zinc-800 bg-zinc-950 p-3">
-        <p className="font-medium text-zinc-100">
-          {plan.puede_platinar_en_una_run
-            ? "Se puede platinar en una sola partida"
-            : "Necesita más de una partida"}
-        </p>
-        {plan.notas_run_unica && (
-          <p className="mt-1 text-xs text-zinc-400">{plan.notas_run_unica}</p>
+function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTrophy[] }) {
+  const pendingCount = trophies.filter((t) => !t.obtained).length;
+
+  return (
+    <div className="space-y-4 text-sm text-zinc-200">
+      <p className="leading-relaxed text-zinc-300">{plan.resumen}</p>
+
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-blue-800/50 bg-blue-950/20 p-3">
+        <span className="text-xl">{plan.puede_platinar_en_una_run ? "🏆" : "🔁"}</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-zinc-100">
+            {plan.puede_platinar_en_una_run
+              ? "Se puede platinar en una sola partida"
+              : "Necesita más de una partida"}
+          </p>
+          {plan.notas_run_unica && (
+            <p className="mt-0.5 text-xs text-zinc-400">{plan.notas_run_unica}</p>
+          )}
+        </div>
+        {pendingCount > 0 && (
+          <span className="shrink-0 rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+            Te faltan {pendingCount}
+          </span>
         )}
       </div>
 
       {plan.grupos_de_partidas.length > 0 && (
-        <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Grupos de partidas
-          </h4>
+        <SectionCard icon="🕹️" title="Grupos de partidas" accent="border-l-blue-600">
           <ul className="space-y-2">
             {plan.grupos_de_partidas.map((grupo) => (
-              <li key={grupo.run} className="rounded border border-zinc-800 p-3">
-                <p className="font-medium">Run {grupo.run}</p>
+              <li key={grupo.run} className="rounded border border-zinc-800 bg-zinc-900 p-2.5">
+                <p className="font-medium text-zinc-100">Run {grupo.run}</p>
                 <p className="text-xs text-zinc-400">{grupo.objetivo}</p>
                 {grupo.trofeos_relacionados.length > 0 && (
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {grupo.trofeos_relacionados
-                      .map((id) => trophyLabel(trophies, id))
-                      .join(", ")}
-                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {grupo.trofeos_relacionados.map((id) => (
+                      <TrophyChip key={id} trophies={trophies} trophyId={id} />
+                    ))}
+                  </div>
                 )}
               </li>
             ))}
           </ul>
-        </div>
+        </SectionCard>
       )}
 
       {plan.missables.length > 0 && (
-        <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Trofeos perdibles (missables)
-          </h4>
+        <SectionCard icon="⚠️" title="Trofeos perdibles (missables)" accent="border-l-amber-600">
           <ul className="space-y-2">
             {plan.missables.map((m, i) => (
-              <li key={`${m.trofeo_id}-${i}`} className="rounded border border-amber-900/50 bg-amber-950/20 p-3">
-                <p className="font-medium text-amber-200">{trophyLabel(trophies, m.trofeo_id)}</p>
+              <li key={`${m.trofeo_id}-${i}`} className="rounded border border-amber-900/50 bg-amber-950/20 p-2.5">
+                <div className="mb-1">
+                  <TrophyChip trophies={trophies} trophyId={m.trofeo_id} />
+                </div>
                 <p className="text-xs text-zinc-400">{m.motivo}</p>
                 {m.momento_limite && (
                   <p className="mt-1 text-xs text-amber-400">Límite: {m.momento_limite}</p>
@@ -79,33 +127,49 @@ function PlanView({
               </li>
             ))}
           </ul>
-        </div>
+        </SectionCard>
+      )}
+
+      {(plan.modos ?? []).length > 0 && (
+        <SectionCard icon="🎮" title="Modos de juego" accent="border-l-teal-600">
+          <ul className="space-y-2">
+            {(plan.modos ?? []).map((grupo, i) => (
+              <li key={`${grupo.modo}-${i}`} className="rounded border border-zinc-800 bg-zinc-900 p-2.5">
+                <p className="font-medium text-teal-300">{grupo.modo}</p>
+                {grupo.trofeos_relacionados.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {grupo.trofeos_relacionados.map((id) => (
+                      <TrophyChip key={id} trophies={trophies} trophyId={id} />
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
       )}
 
       {plan.orden_sugerido.length > 0 && (
-        <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Orden sugerido
-          </h4>
-          <ol className="list-decimal space-y-1 pl-5 text-xs text-zinc-300">
-            {plan.orden_sugerido.map((id) => (
-              <li key={id}>{trophyLabel(trophies, id)}</li>
+        <SectionCard icon="📋" title="Orden sugerido" accent="border-l-zinc-500">
+          <ol className="space-y-1.5">
+            {plan.orden_sugerido.map((id, i) => (
+              <li key={id} className="flex items-center gap-2">
+                <span className="w-4 shrink-0 text-right text-xs text-zinc-500">{i + 1}.</span>
+                <TrophyChip trophies={trophies} trophyId={id} />
+              </li>
             ))}
           </ol>
-        </div>
+        </SectionCard>
       )}
 
       {plan.tips_generales.length > 0 && (
-        <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Tips generales
-          </h4>
-          <ul className="list-disc space-y-1 pl-5 text-xs text-zinc-300">
+        <SectionCard icon="💡" title="Tips generales" accent="border-l-purple-600">
+          <ul className="list-disc space-y-1 pl-4 text-xs text-zinc-300">
             {plan.tips_generales.map((tip, i) => (
               <li key={i}>{tip}</li>
             ))}
           </ul>
-        </div>
+        </SectionCard>
       )}
     </div>
   );
@@ -117,7 +181,7 @@ export default function AiAdvisorPanel({
   cachedPlan,
 }: {
   gameId: string;
-  trophies: { id: string; name: string; type: string }[];
+  trophies: AdvisorTrophy[];
   cachedPlan: AiGamePlan | null;
 }) {
   const [state, formAction, pending] = useActionState<AiPlanActionState, FormData>(
@@ -129,13 +193,18 @@ export default function AiAdvisorPanel({
   const hasPlan = plan !== null;
 
   return (
-    <section className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-      <div className="flex items-center justify-between gap-3">
+    <section
+      id="advisor"
+      className="scroll-mt-20 space-y-3 rounded-lg border border-blue-900/40 bg-gradient-to-b from-blue-950/20 to-zinc-900 p-4"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Advisor con IA</h2>
+          <h2 className="flex items-center gap-1.5 text-lg font-semibold">
+            <span aria-hidden="true">✨</span> Advisor con IA
+          </h2>
           <p className="text-xs text-zinc-500">
             Contenido generado por IA: puede tener errores, verificá contra la guía oficial si el
-            trofeo es importante.
+            trofeo es importante. Pasá el mouse sobre un trofeo para ver cómo desbloquearlo.
           </p>
         </div>
         <form action={formAction}>
