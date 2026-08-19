@@ -88,14 +88,16 @@ async function syncTitle(
     icon_url: trophy.iconUrl,
     hidden: trophy.hidden,
     sort_order: trophy.sortOrder,
+    trophy_group_id: trophy.groupId,
     created_by: userId,
   }));
 
-  // ON CONFLICT DO NOTHING: si otro usuario ya sincronizó este juego, sus
-  // filas quedan tal cual (RLS igual lo impediría) y sólo insertamos las que faltan.
-  await supabase
-    .from("trophies")
-    .upsert(rows, { onConflict: "game_id,trophy_id", ignoreDuplicates: true });
+  // ON CONFLICT DO UPDATE (no ignoreDuplicates): permite que un re-sync
+  // backfillee columnas nuevas (ej. trophy_group_id) en filas ya sincronizadas
+  // por el mismo usuario. Si el juego lo sincronizó otro usuario antes, la
+  // policy "trophies_update_own" bloquea la escritura sobre esas filas
+  // silenciosamente (RLS), así que no rompe nada -- sus filas quedan tal cual.
+  await supabase.from("trophies").upsert(rows, { onConflict: "game_id,trophy_id" });
 
   const { data: allTrophies } = await supabase
     .from("trophies")

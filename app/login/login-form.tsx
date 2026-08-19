@@ -3,6 +3,9 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { login, type AuthActionState } from "./actions";
+import { Input, Label } from "@/components/Input";
+import { Button } from "@/components/Button";
+import { FormError } from "@/components/FormError";
 
 export default function LoginForm({ confirmError }: { confirmError: boolean }) {
   const initialState: AuthActionState = {
@@ -19,46 +22,20 @@ export default function LoginForm({ confirmError }: { confirmError: boolean }) {
         <h1 className="text-xl font-semibold text-zinc-50">Iniciar sesión</h1>
 
         <div className="space-y-1">
-          <label htmlFor="email" className="text-sm text-zinc-400">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-50"
-          />
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" required autoComplete="email" />
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="password" className="text-sm text-zinc-400">
-            Contraseña
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-50"
-          />
+          <Label htmlFor="password">Contraseña</Label>
+          <Input id="password" name="password" type="password" required autoComplete="current-password" />
         </div>
 
-        {state.error && (
-          <p role="alert" className="text-sm text-red-400">
-            {state.error}
-          </p>
-        )}
+        <FormError>{state.error}</FormError>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
-        >
+        <Button type="submit" disabled={pending} className="w-full">
           {pending ? "Ingresando..." : "Ingresar"}
-        </button>
+        </Button>
 
         <p className="text-sm text-zinc-400">
           ¿No tenés cuenta?{" "}

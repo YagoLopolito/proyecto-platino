@@ -2,6 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { updateStep, type GuideActionState } from "./actions";
+import { Input, Select } from "@/components/Input";
+import { Button } from "@/components/Button";
+import { FormError } from "@/components/FormError";
 
 const initialState: GuideActionState = { error: null, success: null };
 
@@ -29,13 +32,9 @@ export default function EditStepForm({
 
   if (!editing) {
     return (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="shrink-0 text-xs text-zinc-500 hover:text-blue-400"
-      >
+      <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="shrink-0 p-0 text-xs">
         Editar
-      </button>
+      </Button>
     );
   }
 
@@ -48,50 +47,34 @@ export default function EditStepForm({
       <input type="hidden" name="guideId" value={guideId} />
       <input type="hidden" name="gameId" value={gameId} />
 
-      <input
+      <Input
         name="content"
         type="text"
         required
         maxLength={500}
         defaultValue={step.content}
-        className="min-w-[12rem] flex-1 rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-50"
+        className="min-w-[12rem] flex-1 py-1.5 text-sm"
       />
 
       {trophies.length > 0 && (
-        <select
-          name="trophyId"
-          defaultValue={step.trophy_id ?? ""}
-          className="rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-50"
-        >
+        <Select name="trophyId" defaultValue={step.trophy_id ?? ""} className="py-1.5 text-sm">
           <option value="">Sin trofeo asociado</option>
           {trophies.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>
           ))}
-        </select>
+        </Select>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="shrink-0 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pending} className="shrink-0">
         {pending ? "..." : "Guardar"}
-      </button>
-      <button
-        type="button"
-        onClick={() => setEditing(false)}
-        className="shrink-0 rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200"
-      >
+      </Button>
+      <Button type="button" variant="secondary" onClick={() => setEditing(false)} className="shrink-0">
         Cancelar
-      </button>
+      </Button>
 
-      {state.error && (
-        <p role="alert" className="w-full text-xs text-red-400">
-          {state.error}
-        </p>
-      )}
+      <FormError className="w-full text-xs">{state.error}</FormError>
     </form>
   );
 }

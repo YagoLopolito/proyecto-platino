@@ -2,6 +2,9 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { createGuide, type GuideActionState } from "./actions";
+import { Input, Textarea, Label } from "@/components/Input";
+import { Button } from "@/components/Button";
+import { FormError, FormSuccess } from "@/components/FormError";
 
 const initialState: GuideActionState = { error: null, success: null };
 
@@ -23,78 +26,54 @@ export default function AddGuideForm({ gameId }: { gameId: string }) {
       <h3 className="text-sm font-semibold text-zinc-200">Nueva guía</h3>
 
       <div className="space-y-1">
-        <label htmlFor="title" className="text-xs text-zinc-400">
+        <Label htmlFor="title" className="text-xs">
           Título
-        </label>
-        <input
-          id="title"
-          name="title"
-          type="text"
-          required
-          maxLength={200}
-          className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-50"
-        />
+        </Label>
+        <Input id="title" name="title" type="text" required maxLength={200} className="text-sm" />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="contentMarkdown" className="text-xs text-zinc-400">
+        <Label htmlFor="contentMarkdown" className="text-xs">
           Contenido en markdown (opcional si pegás un link externo)
-        </label>
-        <textarea
-          id="contentMarkdown"
-          name="contentMarkdown"
-          rows={5}
-          className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-50"
-        />
+        </Label>
+        <Textarea id="contentMarkdown" name="contentMarkdown" rows={5} className="font-mono text-sm" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <label htmlFor="externalUrl" className="text-xs text-zinc-400">
+          <Label htmlFor="externalUrl" className="text-xs">
             Link externo (opcional)
-          </label>
-          <input
+          </Label>
+          <Input
             id="externalUrl"
             name="externalUrl"
             type="url"
             maxLength={500}
             placeholder="https://..."
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-50"
+            className="text-sm"
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor="source" className="text-xs text-zinc-400">
+          <Label htmlFor="source" className="text-xs">
             Fuente (opcional)
-          </label>
-          <input
+          </Label>
+          <Input
             id="source"
             name="source"
             type="text"
             maxLength={100}
             placeholder="PowerPyx, PSNProfiles..."
-            className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-50"
+            className="text-sm"
           />
         </div>
       </div>
 
-      {state.error && (
-        <p role="alert" className="text-sm text-red-400">
-          {state.error}
-        </p>
-      )}
-      {state.success && (
-        <p role="status" className="text-sm text-green-400">
-          {state.success}
-        </p>
-      )}
+      <FormError>{state.error}</FormError>
+      <FormSuccess>{state.success}</FormSuccess>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Creando..." : "Crear guía"}
-      </button>
+      </Button>
     </form>
   );
 }

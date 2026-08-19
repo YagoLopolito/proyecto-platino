@@ -2,6 +2,9 @@
 
 import { useActionState } from "react";
 import { connectPsnAccount, type PsnActionState } from "./actions";
+import { Textarea, Label } from "@/components/Input";
+import { Button } from "@/components/Button";
+import { FormError, FormSuccess } from "@/components/FormError";
 
 const initialState: PsnActionState = { error: null, success: null };
 
@@ -41,37 +44,23 @@ export default function ConnectPsnForm() {
       </ol>
 
       <div className="space-y-1">
-        <label htmlFor="npsso" className="text-sm text-zinc-400">
-          NPSSO
-        </label>
-        <textarea
+        <Label htmlFor="npsso">NPSSO</Label>
+        <Textarea
           id="npsso"
           name="npsso"
           required
           rows={3}
           placeholder="Pegá acá tu NPSSO"
-          className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 font-mono text-sm text-zinc-50"
+          className="font-mono text-sm"
         />
       </div>
 
-      {state.error && (
-        <p role="alert" className="text-sm text-red-400">
-          {state.error}
-        </p>
-      )}
-      {state.success && (
-        <p role="status" className="text-sm text-green-400">
-          {state.success}
-        </p>
-      )}
+      <FormError>{state.error}</FormError>
+      <FormSuccess>{state.success}</FormSuccess>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Conectando..." : "Conectar"}
-      </button>
+      </Button>
     </form>
   );
 }
