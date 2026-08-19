@@ -47,20 +47,38 @@ Reglas:
 - Agrupá los trofeos pendientes por modo de juego en "modos" cuando el juego tenga más de un modo relevante para trofeos (ej.: "Modo historia" / "Campaña" vs "Modo online" vs modos especiales propios del juego, como "Modo Mercenarios" en Resident Evil, "Modo horda", "Multijugador competitivo", DLC, etc.). Inferilo de los nombres/descripciones de los trofeos (menciones a "online", "multiplayer", "co-op", el nombre de un modo especial, etc.).
 - Cada entrada de "modos" agrupa los "trofeos_relacionados" (ids) de ESE modo específico. Un trofeo puede aparecer en un solo modo. Si todos los trofeos pendientes son de un único modo (ej. solo campaña), dejá "modos" vacío: no tiene sentido separar si no hay nada que separar.`;
 
-/** Arma el prompt de usuario con los datos del juego, trofeos y guías propias existentes. */
+const MAX_TROPHY_DESCRIPTION_CHARS = 110;
+const MAX_GUIDE_CHARS = 500;
+
+function truncate(text: string, maxChars: number): string {
+  return text.length > maxChars ? `${text.slice(0, maxChars)}…` : text;
+}
+
+/**
+ * Arma el prompt de usuario con los datos del juego, trofeos y guías propias
+ * existentes. Trunca descripciones largas: con juegos de 70-80+ trofeos
+ * (ej. The Witcher 3), el texto completo de cada descripción hace que el
+ * prompt supere el límite de tokens por minuto del free tier de Groq (8000
+ * TPM) y el proveedor devuelve 413. El filtro de trofeos de DLC en
+ * ai-actions.ts ayuda, pero sólo tiene efecto en juegos re-sincronizados
+ * después de agregarse `trophy_group_id` -- esta truncación es la defensa
+ * que funciona siempre, sin depender de un re-sync.
+ */
 export function buildAiPlanUserPrompt(input: AiPlanInput): string {
   const trophyLines = input.trophies.map((t) =>
     JSON.stringify({
       id: t.id,
       nombre: t.name,
-      descripcion: t.description ?? "",
+      descripcion: truncate(t.description ?? "", MAX_TROPHY_DESCRIPTION_CHARS),
       tipo: t.type,
       oculto: t.hidden,
       ya_obtenido: t.obtained,
     }),
   );
 
-  const guideLines = input.guides.map((g) => `### ${g.title}\n${g.contentMarkdown ?? ""}`);
+  const guideLines = input.guides.map(
+    (g) => `### ${g.title}\n${truncate(g.contentMarkdown ?? "", MAX_GUIDE_CHARS)}`,
+  );
 
   return [
     `Juego: ${input.gameName} (${input.platform})`,
