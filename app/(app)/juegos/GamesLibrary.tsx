@@ -5,6 +5,7 @@ import Link from "next/link";
 import { removeGame } from "./actions";
 import { GameCard } from "@/components/GameCard";
 import { EmptyState } from "@/components/EmptyState";
+import { Button } from "@/components/Button";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
 
 export type LibraryGame = {
@@ -93,7 +94,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                 key={option.value}
                 type="button"
                 onClick={() => handleSortClick(option.value)}
-                className={`flex items-center gap-1 rounded-full border px-3 py-1 ${
+                className={`flex items-center gap-1 rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                   sort === option.value
                     ? "border-blue-500 bg-blue-500/10 text-blue-400"
                     : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
@@ -114,7 +115,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
               key={option.value}
               type="button"
               onClick={() => setFilter(option.value)}
-              className={`rounded-full border px-3 py-1 ${
+              className={`rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                 filter === option.value
                   ? "border-blue-500 bg-blue-500/10 text-blue-400"
                   : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
@@ -152,12 +153,9 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
             actions={
               <form action={removeGame}>
                 <input type="hidden" name="gameId" value={game.id} />
-                <button
-                  type="submit"
-                  className="rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-400 hover:border-red-500 hover:text-red-400"
-                >
+                <Button type="submit" variant="danger">
                   Quitar
-                </button>
+                </Button>
               </form>
             }
           />

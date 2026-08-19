@@ -12,7 +12,11 @@ export default function ConnectPsnForm() {
   const [state, formAction, pending] = useActionState(connectPsnAccount, initialState);
 
   return (
-    <form action={formAction} className="space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+    <form
+      id="reconectar-psn"
+      action={formAction}
+      className="space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-6"
+    >
       <h2 className="text-lg font-semibold text-zinc-50">Conectar cuenta PSN</h2>
 
       <ol className="list-inside list-decimal space-y-1 text-sm text-zinc-400">

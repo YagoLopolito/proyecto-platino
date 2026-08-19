@@ -6,6 +6,7 @@ import { login, type AuthActionState } from "./actions";
 import { Input, Label } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
+import { AuthBrandMark } from "@/components/AuthBrandMark";
 
 export default function LoginForm({ confirmError }: { confirmError: boolean }) {
   const initialState: AuthActionState = {
@@ -15,35 +16,39 @@ export default function LoginForm({ confirmError }: { confirmError: boolean }) {
 
   return (
     <div className="flex flex-1 items-center justify-center bg-zinc-950 px-4 py-16">
-      <form
-        action={formAction}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-8"
-      >
-        <h1 className="text-xl font-semibold text-zinc-50">Iniciar sesión</h1>
+      <div className="w-full max-w-sm">
+        <AuthBrandMark />
 
-        <div className="space-y-1">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" required autoComplete="email" />
-        </div>
+        <form
+          action={formAction}
+          className="w-full space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-8"
+        >
+          <h1 className="text-xl font-semibold text-zinc-50">Iniciar sesión</h1>
 
-        <div className="space-y-1">
-          <Label htmlFor="password">Contraseña</Label>
-          <Input id="password" name="password" type="password" required autoComplete="current-password" />
-        </div>
+          <div className="space-y-1">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" required autoComplete="email" />
+          </div>
 
-        <FormError>{state.error}</FormError>
+          <div className="space-y-1">
+            <Label htmlFor="password">Contraseña</Label>
+            <Input id="password" name="password" type="password" required autoComplete="current-password" />
+          </div>
 
-        <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Ingresando..." : "Ingresar"}
-        </Button>
+          <FormError>{state.error}</FormError>
 
-        <p className="text-sm text-zinc-400">
-          ¿No tenés cuenta?{" "}
-          <Link href="/registro" className="text-blue-400 hover:underline">
-            Registrate
-          </Link>
-        </p>
-      </form>
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? "Ingresando..." : "Ingresar"}
+          </Button>
+
+          <p className="text-sm text-zinc-400">
+            ¿No tenés cuenta?{" "}
+            <Link href="/registro" className="text-blue-400 hover:underline">
+              Registrate
+            </Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }
