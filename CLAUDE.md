@@ -67,6 +67,18 @@ Igual patrón que `lib/psn/`: toda llamada al LLM vive acá, nunca directo en co
 - **Estado actual: Fase 6 completa.** `app/juegos/[id]/ai-actions.ts` (`generateAiPlan`, Server Action — no API route, porque depende de la sesión de cookies del usuario igual que las guías) arma el input desde trofeos + `user_trophies` + guías propias, llama `generateAiGamePlan()` y siempre inserta una fila nueva en `ai_game_plans` (versionado: nunca pisa la anterior, `status` `ok`/`error`). `app/juegos/[id]/AiAdvisorPanel.tsx` (Client Component) muestra el último plan `ok` cacheado y expone el botón "Generar plan"/"Regenerar plan"; el label de "contenido generado por IA" está siempre visible en el panel, no solo en el resultado.
 - Requiere `AI_PROVIDER_API_KEY` (API key de Groq, gratis en console.groq.com sin tarjeta) server-side, nunca `NEXT_PUBLIC_`. El free tier tiene rate limit bajo (30 req/min, 14.4k req/día a nivel organización) — si el advisor empieza a fallar con error 429, es eso, no un bug.
 
+## Performance: lag general de la app
+
+Diagnóstico (2026-08-19) sobre por qué la app se sentía lenta "en todos lados", no solo en el sync de PSN:
+
+- **`middleware.ts` corría en cada request de toda la app** (matcher original excluía solo estáticos), haciendo `supabase.auth.getUser()` — un round-trip a Supabase Auth — antes de renderizar cualquier página, incluidas públicas. Ahora el `matcher` está acotado a las rutas que realmente dependen de sesión: `/perfil`, `/juegos`, `/psn`, `/login`, `/registro`, `/auth`. El resto de la app no paga ese costo. Cada página protegida sigue validando su propia sesión server-side además del middleware (redundante a propósito, no se tocó — ver convención de doble capa de autoría en guías).
+- **Queries a Supabase en serie que no dependían entre sí**: `app/juegos/[id]/page.tsx` encadenaba con `await` game → trophies → user_trophies → plan de IA cacheado (solo dependen de la `membership` ya confirmada); `app/juegos/page.tsx` encadenaba psnAccount → library, y por separado trophies → user_trophies. Se pasaron a `Promise.all` donde no había dependencia real. `app/perfil/page.tsx` ya usaba `Promise.all` para su primer par de queries — quedó como estaba.
+- **`next/image` con `unoptimized`** en `GameCard.tsx`, `TrophyItem.tsx` y `juegos/[id]/page.tsx`: estaba puesto porque `next.config.ts` no tenía `images.remotePatterns` configurado (Next rechaza hosts no whitelisteados). Se agregaron patterns para los hosts reales de donde vienen las imágenes (`*.playstation.com`, `*.rawg.io`, `*.steamgriddb.com`) y se sacó `unoptimized` — ahora Next sirve las carátulas/íconos resizeadas y en WebP/AVIF vía su optimizador, en vez del archivo original.
+- Faltaba `loading.tsx` en `app/psn/` (sí existía en `/juegos`, `/juegos/[id]`, `/perfil`) — se agregó, mismo patrón que las demás rutas (`LoadingState`).
+- **Pendiente, no implementado todavía**: `juegos/page.tsx`, `juegos/[id]/page.tsx` y `perfil/page.tsx` traen *todas* las filas de `trophies`/`user_trophies` del usuario a memoria del servidor (paginado manual de a 1000) y agregan en JS. Con backlogs grandes esto sigue siendo caro. La solución de fondo es una vista materializada o función RPC en Postgres que agregue con `GROUP BY` del lado de la base — requiere migración, se dejó fuera de esta pasada de fixes.
+
+Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos tocados; se levantó el dev server y se confirmó con `curl` que `/juegos`, `/psn` y `/perfil` siguen devolviendo 307 a `/login` sin sesión (el middleware acotado sigue protegiendo esas rutas), y que rutas públicas (`/`, `/registro`) cargan sin pasar por el middleware.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).

@@ -32,11 +32,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   if (!user) {
     redirect("/login");
   }
+  const userId = user.id;
 
   const { data: membership } = await supabase
     .from("user_games")
     .select("game_id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("game_id", gameId)
     .maybeSingle();
 
@@ -44,45 +45,52 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
-  const { data: game, error: gameError } = await supabase
-    .from("games")
-    .select("id, name, platform, cover_url, icon_url")
-    .eq("id", gameId)
-    .single();
+  async function fetchAllUserTrophies() {
+    const PAGE_SIZE = 1000;
+    const rows: { trophy_id: string; unlocked_at: string | null }[] = [];
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data: page } = await supabase
+        .from("user_trophies")
+        .select("trophy_id, unlocked_at")
+        .eq("user_id", userId)
+        .order("id")
+        .range(from, from + PAGE_SIZE - 1);
+      rows.push(...(page ?? []));
+      if (!page || page.length < PAGE_SIZE) break;
+    }
+    return rows;
+  }
+
+  // Estas 4 queries solo dependen de la membership ya confirmada arriba, no entre sí.
+  const [
+    { data: game, error: gameError },
+    { data: trophies, error: trophiesError },
+    userTrophies,
+    { data: cachedPlanRow },
+  ] = await Promise.all([
+    supabase.from("games").select("id, name, platform, cover_url, icon_url").eq("id", gameId).single(),
+    supabase
+      .from("trophies")
+      .select("id, name, description, type, hidden, icon_url")
+      .eq("game_id", gameId)
+      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true }),
+    fetchAllUserTrophies(),
+    supabase
+      .from("ai_game_plans")
+      .select("payload_json")
+      .eq("game_id", gameId)
+      .eq("user_id", userId)
+      .eq("status", "ok")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (gameError || !game) {
     notFound();
   }
 
-  const { data: trophies, error: trophiesError } = await supabase
-    .from("trophies")
-    .select("id, name, description, type, hidden, icon_url")
-    .eq("game_id", gameId)
-    .order("sort_order", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: true });
-
-  const PAGE_SIZE = 1000;
-  const userTrophies: { trophy_id: string; unlocked_at: string | null }[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data: page } = await supabase
-      .from("user_trophies")
-      .select("trophy_id, unlocked_at")
-      .eq("user_id", user.id)
-      .order("id")
-      .range(from, from + PAGE_SIZE - 1);
-    userTrophies.push(...(page ?? []));
-    if (!page || page.length < PAGE_SIZE) break;
-  }
-
-  const { data: cachedPlanRow } = await supabase
-    .from("ai_game_plans")
-    .select("payload_json")
-    .eq("game_id", gameId)
-    .eq("user_id", user.id)
-    .eq("status", "ok")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
   const cachedPlan = (cachedPlanRow?.payload_json as AiGamePlan | undefined) ?? null;
 
   const obtained = new Map(userTrophies.map((row) => [row.trophy_id, row.unlocked_at]));
@@ -136,7 +144,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 alt={game.name}
                 width={64}
                 height={64}
-                unoptimized
                 className="h-16 w-16 shrink-0 rounded object-cover"
               />
             ) : (
