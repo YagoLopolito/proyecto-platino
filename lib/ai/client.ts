@@ -26,7 +26,7 @@ async function requestPlanCompletion(client: Groq, userPrompt: string): Promise<
   try {
     const response = await client.chat.completions.create({
       model: MODEL,
-      max_tokens: 2200,
+      max_tokens: 2800,
       response_format: { type: "json_object" },
       reasoning_effort: "low",
       messages: [

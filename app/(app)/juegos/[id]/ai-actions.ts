@@ -82,12 +82,27 @@ export async function generateAiPlan(
     .select("title, content_markdown")
     .eq("game_id", gameId);
 
+  // El modelo referencia cada trofeo por id en varios arrays de la respuesta
+  // (orden_sugerido, missables, modos, grupos_de_partidas). Un uuid completo
+  // (36 caracteres) repetido decenas de veces infla el output y, en juegos
+  // con muchos trofeos pendientes, puede truncar el JSON antes de que
+  // termine de generarse -- eso dispara el reintento de generateAiGamePlan
+  // y duplica la latencia, arriesgando el timeout de la función serverless.
+  // Un id corto ("t1", "t2", ...) es prácticamente gratis en tokens; se
+  // mapea de vuelta al uuid real antes de guardar el plan.
+  const shortIdByRealId = new Map(basePlanTrophies.map((t, i) => [t.id, `t${i + 1}`]));
+  const realIdByShortId = new Map(basePlanTrophies.map((t, i) => [`t${i + 1}`, t.id]));
+
+  function remapTrophyId(shortId: string): string {
+    return realIdByShortId.get(shortId) ?? shortId;
+  }
+
   try {
-    const plan = await generateAiGamePlan({
+    const rawPlan = await generateAiGamePlan({
       gameName: game.name,
       platform: game.platform ?? "",
       trophies: basePlanTrophies.map((t) => ({
-        id: t.id,
+        id: shortIdByRealId.get(t.id)!,
         name: t.name,
         description: t.description,
         type: t.type as "bronze" | "silver" | "gold" | "platinum",
@@ -99,6 +114,20 @@ export async function generateAiPlan(
         contentMarkdown: g.content_markdown,
       })),
     });
+
+    const plan: AiGamePlan = {
+      ...rawPlan,
+      grupos_de_partidas: rawPlan.grupos_de_partidas.map((grupo) => ({
+        ...grupo,
+        trofeos_relacionados: grupo.trofeos_relacionados.map(remapTrophyId),
+      })),
+      missables: rawPlan.missables.map((m) => ({ ...m, trofeo_id: remapTrophyId(m.trofeo_id) })),
+      orden_sugerido: rawPlan.orden_sugerido.map(remapTrophyId),
+      modos: (rawPlan.modos ?? []).map((grupo) => ({
+        ...grupo,
+        trofeos_relacionados: grupo.trofeos_relacionados.map(remapTrophyId),
+      })),
+    };
 
     await supabase.from("ai_game_plans").insert({
       game_id: gameId,
