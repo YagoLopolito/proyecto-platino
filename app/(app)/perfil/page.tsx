@@ -61,32 +61,23 @@ export default async function PerfilPage() {
     redirect("/login");
   }
 
-  const [{ data: psnAccount }, { count: gamesCount }] = await Promise.all([
+  // get_library_trophy_stats agrega por juego con GROUP BY en Postgres (ver migración
+  // 20260820020000); acá se suman esas filas (como mucho una por juego en la
+  // biblioteca) en vez de paginar manualmente por TODOS los user_trophies de la
+  // cuenta (con backlogs grandes eran varios round-trips seriales de a 1000 filas
+  // solo para totalizar 4 números).
+  const [{ data: psnAccount }, { count: gamesCount }, { data: statsRows }] = await Promise.all([
     supabase.from("psn_accounts").select("online_id").eq("user_id", user.id).maybeSingle(),
     supabase.from("user_games").select("game_id", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.rpc("get_library_trophy_stats"),
   ]);
 
-  // Supabase corta las consultas sin `range` en 1000 filas -- con usuarios que
-  // superan esa cantidad de trofeos desbloqueados, el conteo quedaba trunco.
-  const PAGE_SIZE = 1000;
-  const userTrophies: { trophy_id: string; trophies: { type: string } | null }[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data: page } = await supabase
-      .from("user_trophies")
-      .select("trophy_id, trophies (type)")
-      .eq("user_id", user.id)
-      .order("id")
-      .range(from, from + PAGE_SIZE - 1);
-    userTrophies.push(...(page ?? []));
-    if (!page || page.length < PAGE_SIZE) break;
-  }
-
   const counts: Record<TrophyType, number> = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
-  for (const row of userTrophies) {
-    const type = row.trophies?.type as TrophyType | undefined;
-    if (type && type in counts) {
-      counts[type] += 1;
-    }
+  for (const row of statsRows ?? []) {
+    counts.platinum += row.platinum;
+    counts.gold += row.gold;
+    counts.silver += row.silver;
+    counts.bronze += row.bronze;
   }
 
   const totalTrophies = Object.values(counts).reduce((sum, n) => sum + n, 0);

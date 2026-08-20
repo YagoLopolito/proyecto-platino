@@ -45,27 +45,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
-  async function fetchAllUserTrophies() {
-    const PAGE_SIZE = 1000;
-    const rows: { trophy_id: string; unlocked_at: string | null }[] = [];
-    for (let from = 0; ; from += PAGE_SIZE) {
-      const { data: page } = await supabase
-        .from("user_trophies")
-        .select("trophy_id, unlocked_at")
-        .eq("user_id", userId)
-        .order("id")
-        .range(from, from + PAGE_SIZE - 1);
-      rows.push(...(page ?? []));
-      if (!page || page.length < PAGE_SIZE) break;
-    }
-    return rows;
-  }
-
-  // Estas 4 queries solo dependen de la membership ya confirmada arriba, no entre sí.
+  // Estas 3 queries solo dependen de la membership ya confirmada arriba, no entre sí.
   const [
     { data: game, error: gameError },
     { data: trophies, error: trophiesError },
-    userTrophies,
     { data: cachedPlanRow },
   ] = await Promise.all([
     supabase.from("games").select("id, name, platform, cover_url, icon_url").eq("id", gameId).single(),
@@ -75,7 +58,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       .eq("game_id", gameId)
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
-    fetchAllUserTrophies(),
     supabase
       .from("ai_game_plans")
       .select("payload_json")
@@ -91,9 +73,20 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
+  // Filtrada por los trofeos de este juego en vez de traer TODOS los user_trophies
+  // de la cuenta (podían ser miles, con paginado manual serial -- ver CLAUDE.md).
+  const trophyIds = (trophies ?? []).map((t) => t.id);
+  const { data: userTrophies } = trophyIds.length
+    ? await supabase
+        .from("user_trophies")
+        .select("trophy_id, unlocked_at")
+        .eq("user_id", userId)
+        .in("trophy_id", trophyIds)
+    : { data: [] as { trophy_id: string; unlocked_at: string | null }[] };
+
   const cachedPlan = (cachedPlanRow?.payload_json as AiGamePlan | undefined) ?? null;
 
-  const obtained = new Map(userTrophies.map((row) => [row.trophy_id, row.unlocked_at]));
+  const obtained = new Map((userTrophies ?? []).map((row) => [row.trophy_id, row.unlocked_at]));
   const total = trophies?.length ?? 0;
   const obtainedCount = trophies?.filter((t) => obtained.has(t.id)).length ?? 0;
   const percent = total > 0 ? Math.round((obtainedCount / total) * 100) : 0;

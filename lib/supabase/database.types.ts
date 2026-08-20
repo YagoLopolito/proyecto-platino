@@ -487,7 +487,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_library_trophy_stats: {
+        Args: never
+        Returns: {
+          bronze: number
+          game_id: string
+          gold: number
+          obtained: number
+          platinum: number
+          silver: number
+          total: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
