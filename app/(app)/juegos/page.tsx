@@ -24,82 +24,28 @@ export default async function JuegosPage() {
   }
   const userId = user.id;
 
-  const [{ data: psnAccount }, { data: library, error }] = await Promise.all([
+  // get_library_trophy_stats agrega total/obtenidos por juego con GROUP BY en Postgres
+  // (ver migración 20260820020000) en vez de traer miles de filas de trophies/
+  // user_trophies a memoria del servidor y sumar en JS con paginado manual -- con
+  // bibliotecas grandes eso eran más de 10 round-trips seriales solo para esta página.
+  const [{ data: psnAccount }, { data: library, error }, { data: statsRows }] = await Promise.all([
     supabase.from("psn_accounts").select("token_status, last_synced_at").eq("user_id", userId).maybeSingle(),
     supabase
       .from("user_games")
       .select("added_at, last_played_at, games (id, name, platform, cover_url, icon_url)")
       .order("last_played_at", { ascending: false, nullsFirst: false })
       .order("added_at", { ascending: false }),
+    supabase.rpc("get_library_trophy_stats"),
   ]);
 
-  const gameIds = (library ?? []).map((row) => row.games?.id).filter((id): id is string => !!id);
-
   const statsByGame = new Map<string, GameStats>();
-
-  if (gameIds.length > 0) {
-    const PAGE_SIZE = 1000;
-
-    async function fetchAllTrophies() {
-      const rows: { id: string; game_id: string; type: string }[] = [];
-      for (let from = 0; ; from += PAGE_SIZE) {
-        const { data: page } = await supabase
-          .from("trophies")
-          .select("id, game_id, type")
-          .in("game_id", gameIds)
-          .order("id")
-          .range(from, from + PAGE_SIZE - 1);
-        rows.push(...(page ?? []));
-        if (!page || page.length < PAGE_SIZE) break;
-      }
-      return rows;
-    }
-
-    async function fetchAllUserTrophies() {
-      const rows: { trophy_id: string }[] = [];
-      for (let from = 0; ; from += PAGE_SIZE) {
-        const { data: page } = await supabase
-          .from("user_trophies")
-          .select("trophy_id")
-          .eq("user_id", userId)
-          .order("id")
-          .range(from, from + PAGE_SIZE - 1);
-        rows.push(...(page ?? []));
-        if (!page || page.length < PAGE_SIZE) break;
-      }
-      return rows;
-    }
-
-    // Independientes entre sí: se piden en paralelo en vez de esperar una tras otra.
-    const [trophies, userTrophies] = await Promise.all([fetchAllTrophies(), fetchAllUserTrophies()]);
-
-    const obtainedIds = new Set(userTrophies.map((row) => row.trophy_id));
-
-    for (const gameId of gameIds) {
-      statsByGame.set(gameId, {
-        total: 0,
-        obtained: 0,
-        percent: 0,
-        counts: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
-      });
-    }
-
-    for (const trophy of trophies ?? []) {
-      const stats = statsByGame.get(trophy.game_id);
-      if (!stats) continue;
-      stats.total += 1;
-      const obtained = obtainedIds.has(trophy.id);
-      if (obtained) {
-        stats.obtained += 1;
-        if (trophy.type in stats.counts) {
-          stats.counts[trophy.type as TrophyType] += 1;
-        }
-      }
-    }
-
-    for (const stats of statsByGame.values()) {
-      stats.percent = stats.total > 0 ? Math.round((stats.obtained / stats.total) * 100) : 0;
-    }
+  for (const row of statsRows ?? []) {
+    statsByGame.set(row.game_id, {
+      total: row.total,
+      obtained: row.obtained,
+      percent: row.total > 0 ? Math.round((row.obtained / row.total) * 100) : 0,
+      counts: { platinum: row.platinum, gold: row.gold, silver: row.silver, bronze: row.bronze },
+    });
   }
 
   const games: LibraryGame[] = (library ?? [])
