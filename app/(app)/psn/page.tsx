@@ -2,12 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ConnectPsnForm from "./ConnectPsnForm";
 import SyncButton from "./SyncButton";
-
-const TOKEN_STATUS_LABEL: Record<string, string> = {
-  valid: "Activa",
-  expired: "Expirada -- reconectá con un NPSSO nuevo",
-  invalid: "Inválida -- reconectá con un NPSSO nuevo",
-};
+import { SyncStatusBadge, type SyncTokenStatus } from "@/components/SyncStatusBadge";
+import { ErrorState } from "@/components/ErrorState";
 
 export default async function PsnPage() {
   const supabase = await createClient();
@@ -32,13 +28,13 @@ export default async function PsnPage() {
 
         {account ? (
           <div className="space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-            <div className="space-y-1 text-sm">
-              <p className="text-zinc-400">
-                Conectado como <span className="font-mono text-zinc-50">{account.online_id}</span>
-              </p>
-              <p className="text-zinc-400">
-                Estado: {TOKEN_STATUS_LABEL[account.token_status] ?? account.token_status}
-              </p>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <p className="text-zinc-400">
+                  Conectado como <span className="font-mono text-zinc-50">{account.online_id}</span>
+                </p>
+                <SyncStatusBadge status={account.token_status as SyncTokenStatus} />
+              </div>
               <p className="text-zinc-400">
                 Última sincronización:{" "}
                 {account.last_synced_at
@@ -46,6 +42,17 @@ export default async function PsnPage() {
                   : "todavía no se sincronizó"}
               </p>
             </div>
+
+            {account.token_status !== "valid" && (
+              <ErrorState
+                message={
+                  account.token_status === "expired"
+                    ? "Tu NPSSO venció. Pegá uno nuevo abajo para volver a sincronizar."
+                    : "La última conexión con PSN falló. Pegá un NPSSO nuevo abajo para reconectar."
+                }
+              />
+            )}
+
             <SyncButton />
           </div>
         ) : (

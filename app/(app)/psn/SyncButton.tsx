@@ -2,11 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/Button";
+import { FormError, FormSuccess } from "@/components/FormError";
+
+type SyncMessage =
+  | { kind: "success"; text: string }
+  | { kind: "expired"; text: string }
+  | { kind: "error"; text: string };
 
 export default function SyncButton() {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
+  const [message, setMessage] = useState<SyncMessage | null>(null);
 
   async function handleClick() {
     setPending(true);
@@ -15,20 +22,32 @@ export default function SyncButton() {
       const response = await fetch("/api/psn/sync", { method: "POST" });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        setMessage({
-          text: body?.error ?? "No se pudo sincronizar.",
-          isError: true,
-        });
+        if (response.status === 409) {
+          setMessage({
+            kind: "expired",
+            text: body?.error ?? "Tu NPSSO venció. Reconectá tu cuenta con uno nuevo.",
+          });
+        } else {
+          setMessage({
+            kind: "error",
+            text:
+              body?.error ??
+              "No se pudo sincronizar. Puede ser un error transitorio de PSN, probá de nuevo en unos minutos.",
+          });
+        }
         return;
       }
       const body = await response.json();
       setMessage({
+        kind: "success",
         text: `Sincronizado: ${body.titlesSynced} juegos, ${body.trophiesSynced} trofeos.`,
-        isError: false,
       });
       router.refresh();
     } catch {
-      setMessage({ text: "No se pudo conectar con el servidor.", isError: true });
+      setMessage({
+        kind: "error",
+        text: "No se pudo conectar con el servidor. Revisá tu conexión y probá de nuevo.",
+      });
     } finally {
       setPending(false);
     }
@@ -36,19 +55,25 @@ export default function SyncButton() {
 
   return (
     <div className="space-y-2">
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={pending}
-        className="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-      >
+      <Button type="button" onClick={handleClick} disabled={pending} className="w-full">
         {pending ? "Sincronizando..." : "Sincronizar ahora"}
-      </button>
-      {message && (
-        <p role={message.isError ? "alert" : "status"} className={message.isError ? "text-sm text-red-400" : "text-sm text-green-400"}>
-          {message.text}
-        </p>
+      </Button>
+
+      {message?.kind === "success" && <FormSuccess>{message.text}</FormSuccess>}
+
+      {message?.kind === "expired" && (
+        <div className="space-y-1">
+          <FormError>{message.text}</FormError>
+          <a
+            href="#reconectar-psn"
+            className="rounded text-sm text-blue-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
+          >
+            Reconectar cuenta PSN ↓
+          </a>
+        </div>
       )}
+
+      {message?.kind === "error" && <FormError>{message.text}</FormError>}
     </div>
   );
 }
