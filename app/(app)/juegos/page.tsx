@@ -22,18 +22,16 @@ export default async function JuegosPage() {
   if (!user) {
     redirect("/login");
   }
+  const userId = user.id;
 
-  const { data: psnAccount } = await supabase
-    .from("psn_accounts")
-    .select("token_status, last_synced_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  const { data: library, error } = await supabase
-    .from("user_games")
-    .select("added_at, last_played_at, games (id, name, platform, cover_url, icon_url)")
-    .order("last_played_at", { ascending: false, nullsFirst: false })
-    .order("added_at", { ascending: false });
+  const [{ data: psnAccount }, { data: library, error }] = await Promise.all([
+    supabase.from("psn_accounts").select("token_status, last_synced_at").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("user_games")
+      .select("added_at, last_played_at, games (id, name, platform, cover_url, icon_url)")
+      .order("last_played_at", { ascending: false, nullsFirst: false })
+      .order("added_at", { ascending: false }),
+  ]);
 
   const gameIds = (library ?? []).map((row) => row.games?.id).filter((id): id is string => !!id);
 
@@ -41,29 +39,39 @@ export default async function JuegosPage() {
 
   if (gameIds.length > 0) {
     const PAGE_SIZE = 1000;
-    const trophies: { id: string; game_id: string; type: string }[] = [];
-    for (let from = 0; ; from += PAGE_SIZE) {
-      const { data: page } = await supabase
-        .from("trophies")
-        .select("id, game_id, type")
-        .in("game_id", gameIds)
-        .order("id")
-        .range(from, from + PAGE_SIZE - 1);
-      trophies.push(...(page ?? []));
-      if (!page || page.length < PAGE_SIZE) break;
+
+    async function fetchAllTrophies() {
+      const rows: { id: string; game_id: string; type: string }[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data: page } = await supabase
+          .from("trophies")
+          .select("id, game_id, type")
+          .in("game_id", gameIds)
+          .order("id")
+          .range(from, from + PAGE_SIZE - 1);
+        rows.push(...(page ?? []));
+        if (!page || page.length < PAGE_SIZE) break;
+      }
+      return rows;
     }
 
-    const userTrophies: { trophy_id: string }[] = [];
-    for (let from = 0; ; from += PAGE_SIZE) {
-      const { data: page } = await supabase
-        .from("user_trophies")
-        .select("trophy_id")
-        .eq("user_id", user.id)
-        .order("id")
-        .range(from, from + PAGE_SIZE - 1);
-      userTrophies.push(...(page ?? []));
-      if (!page || page.length < PAGE_SIZE) break;
+    async function fetchAllUserTrophies() {
+      const rows: { trophy_id: string }[] = [];
+      for (let from = 0; ; from += PAGE_SIZE) {
+        const { data: page } = await supabase
+          .from("user_trophies")
+          .select("trophy_id")
+          .eq("user_id", userId)
+          .order("id")
+          .range(from, from + PAGE_SIZE - 1);
+        rows.push(...(page ?? []));
+        if (!page || page.length < PAGE_SIZE) break;
+      }
+      return rows;
     }
+
+    // Independientes entre sí: se piden en paralelo en vez de esperar una tras otra.
+    const [trophies, userTrophies] = await Promise.all([fetchAllTrophies(), fetchAllUserTrophies()]);
 
     const obtainedIds = new Set(userTrophies.map((row) => row.trophy_id));
 

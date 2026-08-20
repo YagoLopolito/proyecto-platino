@@ -66,7 +66,6 @@ export default function TrophyItem({
               alt=""
               width={40}
               height={40}
-              unoptimized
               className="h-10 w-10 shrink-0 rounded object-cover"
             />
           ) : (

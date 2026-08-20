@@ -30,7 +30,6 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
             alt={game.name}
             width={56}
             height={56}
-            unoptimized
             className="h-14 w-14 rounded object-cover"
           />
         ) : (
