@@ -71,7 +71,7 @@ Igual patrón que `lib/psn/`: toda llamada al LLM vive acá, nunca directo en co
 
 Diagnóstico (2026-08-19) sobre por qué la app se sentía lenta "en todos lados", no solo en el sync de PSN:
 
-- **`middleware.ts` corría en cada request de toda la app** (matcher original excluía solo estáticos), haciendo `supabase.auth.getUser()` — un round-trip a Supabase Auth — antes de renderizar cualquier página, incluidas públicas. Ahora el `matcher` está acotado a las rutas que realmente dependen de sesión: `/perfil`, `/juegos`, `/psn`, `/login`, `/registro`, `/auth`. El resto de la app no paga ese costo. Cada página protegida sigue validando su propia sesión server-side además del middleware (redundante a propósito, no se tocó — ver convención de doble capa de autoría en guías).
+- **`middleware.ts` corría en cada request de toda la app** (matcher original excluía solo estáticos), haciendo `supabase.auth.getUser()` — un round-trip a Supabase Auth — antes de renderizar cualquier página, incluidas públicas. Ahora el `matcher` está acotado a las rutas que realmente dependen de sesión: `/perfil`, `/juegos`, `/psn`, `/diario`, `/login`, `/registro`, `/auth`. El resto de la app no paga ese costo. Cada página protegida sigue validando su propia sesión server-side además del middleware (redundante a propósito, no se tocó — ver convención de doble capa de autoría en guías).
 - **Queries a Supabase en serie que no dependían entre sí**: `app/juegos/[id]/page.tsx` encadenaba con `await` game → trophies → user_trophies → plan de IA cacheado (solo dependen de la `membership` ya confirmada); `app/juegos/page.tsx` encadenaba psnAccount → library, y por separado trophies → user_trophies. Se pasaron a `Promise.all` donde no había dependencia real. `app/perfil/page.tsx` ya usaba `Promise.all` para su primer par de queries — quedó como estaba.
 - **`next/image` con `unoptimized`** en `GameCard.tsx`, `TrophyItem.tsx` y `juegos/[id]/page.tsx`: estaba puesto porque `next.config.ts` no tenía `images.remotePatterns` configurado (Next rechaza hosts no whitelisteados). Se agregaron patterns para los hosts reales de donde vienen las imágenes (`*.playstation.com`, `*.rawg.io`, `*.steamgriddb.com`) y se sacó `unoptimized` — ahora Next sirve las carátulas/íconos resizeadas y en WebP/AVIF vía su optimizador, en vez del archivo original.
 - Faltaba `loading.tsx` en `app/psn/` (sí existía en `/juegos`, `/juegos/[id]`, `/perfil`) — se agregó, mismo patrón que las demás rutas (`LoadingState`).
@@ -111,6 +111,26 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   migración. `security_invoker = true` (misma convención que `get_library_trophy_stats`).
 - `games.source` ahora incluye `'catalog'` (juegos agregados desde la búsqueda de RAWG, no
   sincronizados por PSN ni cargados a mano) y `games.external_catalog_id` guarda el id de RAWG.
+- **Los juegos `source='catalog'` no se listan en la biblioteca** (`/juegos`) ni cuentan en
+  "Juegos en biblioteca" del perfil: viven solo en el diario. Se siguen vinculando en
+  `user_games` (por eso `/juegos/[id]` los abre igual, que es lo que necesita el diario), el
+  filtro es de presentación, no de datos.
+- `/diario` (issue #93) es el timeline cronológico propio del usuario: `lib/diary/queries.ts`
+  (`getUserDiaryEntries`, server-only) trae las entradas con el juego, y
+  `components/diary/DiaryTimeline.tsx` agrupa por mes/año y filtra por año/plataforma/rating
+  **client-side** (el diario propio es un dataset chico; así no hay round-trip por filtro).
+  El badge de platino no sale de la tabla — `game_diary_entries` no tiene `is_platinum` — se
+  deriva de los trofeos sincronizados, así una entrada de un juego de catálogo simplemente
+  queda sin badge.
+- El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
+  `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
+  vez del promedio, para que un voto solo no defina el score de un juego (issue #92).
+- El buscador de "Marcar como terminado" (`CatalogSearchCombobox`) dispara solo con debounce a
+  partir de `MIN_QUERY_LENGTH` (`lib/catalog/constants.ts`, 3 caracteres) — la constante vive
+  fuera de `lib/catalog/actions.ts` porque un módulo `"use server"` solo puede exportar
+  funciones async. Cuando el query queda por debajo del mínimo, los resultados viejos se
+  ocultan **derivándolos durante el render**, no con un `setState` dentro del effect (regla
+  `react-hooks/set-state-in-effect`, ver Convenciones de código).
 
 ## `lib/covers/`: búsqueda de catálogo (`searchCatalogGames`)
 
@@ -162,7 +182,7 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
 6. Checklist de guía cruzada con trofeos ya obtenidos. ✅ (`toggleStepProgress` + auto-tilde si el trofeo ya sincronizó)
 7. Enlaces a guías externas curadas. ✅ campo (`external_url`/`source`) dentro de una guía + vista dedicada de "enlaces por juego" (`app/juegos/[id]/enlaces/`), Fase 9 completa.
 8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema + endpoint + UI del panel + guardado versionado en `ai_game_plans`. ✅ Fase 6 completa.
-9. Letterbox de juegos: diario público de partidas terminadas con rating, buscador de catálogo (RAWG) para loguear cualquier juego de PSN aunque no esté sincronizado. ✅ Fase 12 completa (issues #88-91: `game_diary_entries`/`game_scores`, `lib/covers` búsqueda multi-resultado, `lib/catalog/` alta de juegos, CRUD en `app/juegos/[id]/diario/`).
+9. Letterbox de juegos: diario público de partidas terminadas con rating, buscador de catálogo (RAWG) para loguear cualquier juego de PSN aunque no esté sincronizado. ✅ Fase 12 completa (issues #88-93: `game_diary_entries`/`game_scores`, `lib/covers` búsqueda multi-resultado, `lib/catalog/` alta de juegos, CRUD en `app/juegos/[id]/diario/`, timeline en `/diario`, score comunitario con umbral de 3 votos).
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-10), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

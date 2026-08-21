@@ -8,5 +8,5 @@ export async function middleware(request: NextRequest) {
 export const config = {
   // Solo rutas que dependen de sesión (protegidas o de auth). El resto de la app
   // (landing, estáticos, etc.) no necesita el round-trip a Supabase Auth en cada request.
-  matcher: ["/perfil/:path*", "/juegos/:path*", "/psn/:path*", "/login", "/registro", "/auth/:path*"],
+  matcher: ["/perfil/:path*", "/juegos/:path*", "/psn/:path*", "/diario/:path*", "/login", "/registro", "/auth/:path*"],
 };

@@ -1,26 +1,50 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { searchCatalog, addCatalogGame, type AddCatalogGameState } from "@/lib/catalog/actions";
+import { MIN_QUERY_LENGTH } from "@/lib/catalog/constants";
 import type { CombinedSearchResult } from "@/lib/catalog/dedup";
 import { Input, Label } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
 
 const addInitialState: AddCatalogGameState = { error: null, success: null };
+const DEBOUNCE_MS = 300;
+
+/** Carátula del resultado, con placeholder cuando el juego no tiene imagen. */
+function ResultCover({ url, name }: { url: string | null; name: string }) {
+  if (!url) {
+    return (
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+        Sin img
+      </div>
+    );
+  }
+  return (
+    <Image
+      src={url}
+      alt={name}
+      width={56}
+      height={56}
+      className="h-14 w-14 shrink-0 rounded object-cover"
+    />
+  );
+}
 
 /**
  * Búsqueda de catálogo para el flujo global "Marcar como terminado": combina
  * juegos ya existentes en la biblioteca con resultados de lib/catalog
- * (RAWG vía lib/covers). Al elegir un juego, lo da de alta (si hace falta) y
+ * (RAWG vía lib/covers). Busca sola (debounce) a partir de MIN_QUERY_LENGTH
+ * caracteres, sin botón. Al elegir un juego, lo da de alta (si hace falta) y
  * redirige a su diario.
  */
 export default function CatalogSearchCombobox() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CombinedSearchResult[]>([]);
-  const [searchStatus, setSearchStatus] = useState<"idle" | "missing_api_key" | "error" | "">("");
+  const [searchStatus, setSearchStatus] = useState<"idle" | "missing_api_key" | "error">("idle");
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
   const [isSearching, startSearch] = useTransition();
   const [pendingDuplicate, setPendingDuplicate] = useState<CombinedSearchResult | null>(null);
@@ -35,62 +59,97 @@ export default function CatalogSearchCombobox() {
     }
   }, [addState, router]);
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    startSearch(async () => {
-      const outcome = await searchCatalog(query);
-      if (outcome.status === "missing_api_key") {
-        setSearchStatus("missing_api_key");
-        setSearchMessage(
-          "La búsqueda de catálogo externo no está disponible (falta configurar RAWG_API_KEY). Mostrando solo juegos ya conocidos.",
-        );
-        setResults(outcome.results);
-      } else if (outcome.status === "error") {
-        setSearchStatus("error");
-        setSearchMessage(outcome.message);
-        setResults([]);
-      } else {
-        setSearchStatus("idle");
-        setSearchMessage(null);
-        setResults(outcome.results);
-      }
-    });
-  }
+  // Búsqueda automática con debounce: pedido a la Server Action (efecto
+  // externo), no sincronización de estado -- los setState pasan dentro del
+  // callback async del timer, no durante el render del efecto.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < MIN_QUERY_LENGTH) {
+      // Los resultados viejos se ocultan derivándolos del query durante el
+      // render (ver `active` más abajo), no limpiando el estado acá: un
+      // setState sincrónico dentro de un effect dispara el lint
+      // react-hooks/set-state-in-effect (ver convenciones en CLAUDE.md).
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      startSearch(async () => {
+        const outcome = await searchCatalog(trimmed);
+        if (cancelled) return;
+        if (outcome.status === "missing_api_key") {
+          setSearchStatus("missing_api_key");
+          setSearchMessage(
+            "La búsqueda de catálogo externo no está disponible (falta configurar RAWG_API_KEY). Mostrando solo juegos ya conocidos.",
+          );
+          setResults(outcome.results);
+        } else if (outcome.status === "error") {
+          setSearchStatus("error");
+          setSearchMessage(outcome.message);
+          setResults([]);
+        } else {
+          setSearchStatus("idle");
+          setSearchMessage(null);
+          setResults(outcome.results);
+        }
+      });
+    }, DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   function selectLibraryGame(gameId: string) {
     router.push(`/juegos/${gameId}/diario`);
   }
 
+  // Mientras el query es más corto que el mínimo no se muestra nada de la
+  // búsqueda anterior -- derivado, no estado.
+  const trimmedQuery = query.trim();
+  const active = trimmedQuery.length >= MIN_QUERY_LENGTH;
+  const visibleResults = active ? results : [];
+  const visibleMessage = active ? searchMessage : null;
+  const tooShort = trimmedQuery.length > 0 && !active;
+
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSearch} className="flex items-end gap-2">
-        <div className="flex-1 space-y-1">
-          <Label htmlFor="catalog-query" className="text-xs">
-            Buscar juego
-          </Label>
-          <Input
-            id="catalog-query"
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nombre del juego..."
-            className="text-sm"
-          />
-        </div>
-        <Button type="submit" disabled={isSearching || query.trim().length < 2}>
-          {isSearching ? "Buscando..." : "Buscar"}
-        </Button>
-      </form>
+      <div className="space-y-1">
+        <Label htmlFor="catalog-query" className="text-xs">
+          Buscar juego
+        </Label>
+        <Input
+          id="catalog-query"
+          type="search"
+          autoComplete="off"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Nombre del juego..."
+          className="text-sm"
+        />
+        <p className="text-xs text-zinc-500" aria-live="polite">
+          {tooShort
+            ? `Escribí al menos ${MIN_QUERY_LENGTH} caracteres.`
+            : isSearching
+              ? "Buscando..."
+              : " "}
+        </p>
+      </div>
 
-      {searchMessage && (
+      {visibleMessage && (
         <p role={searchStatus === "error" ? "alert" : "status"} className="text-sm text-zinc-400">
-          {searchMessage}
+          {visibleMessage}
         </p>
       )}
 
-      {results.length > 0 && (
+      {active && !isSearching && !visibleMessage && visibleResults.length === 0 && (
+        <p className="text-sm text-zinc-500">No encontramos juegos con ese nombre.</p>
+      )}
+
+      {visibleResults.length > 0 && (
         <ul className="space-y-2">
-          {results.map((result) => {
+          {visibleResults.map((result) => {
             const key = result.gameId ?? result.externalId ?? result.name;
             const isDuplicatePending = pendingDuplicate?.name === result.name;
             return (
@@ -98,7 +157,10 @@ export default function CatalogSearchCombobox() {
                 key={key}
                 className="flex items-center justify-between gap-3 rounded border border-zinc-800 bg-zinc-900 p-3"
               >
-                <span className="min-w-0 truncate text-sm text-zinc-200">{result.name}</span>
+                <div className="flex min-w-0 items-center gap-3">
+                  <ResultCover url={result.coverUrl} name={result.name} />
+                  <span className="min-w-0 truncate text-sm text-zinc-200">{result.name}</span>
+                </div>
 
                 {result.source === "library" && result.gameId && (
                   <Button

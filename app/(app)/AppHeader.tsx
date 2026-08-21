@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/auth/actions";
 
-const NAV_LINKS = [
+const NAV_LINKS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/juegos", label: "Biblioteca" },
   { href: "/perfil", label: "Perfil" },
   { href: "/psn", label: "PSN" },
+  // exact: /diario no debe quedar activo cuando estás en /diario/nuevo.
+  { href: "/diario", label: "Diario", exact: true },
   { href: "/diario/nuevo", label: "✓ Marcar terminado" },
 ];
 
@@ -24,7 +26,9 @@ export default function AppHeader() {
 
         <nav className="flex items-center gap-1 text-sm">
           {NAV_LINKS.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const active = link.exact
+              ? pathname === link.href
+              : pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link
                 key={link.href}
