@@ -33,7 +33,7 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
             className="h-24 w-24 rounded-lg object-cover"
           />
         ) : (
-          <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-zinc-800 text-xs text-zinc-500">
+          <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-zinc-800 text-xs text-zinc-400">
             Sin img
           </div>
         )}
@@ -45,7 +45,7 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
             <span className="truncate">{game.name}</span>
             {isPlatinumed && <PlatinumBadge className="shrink-0" />}
           </p>
-          <p className="text-sm text-zinc-500">{game.platform}</p>
+          <p className="text-sm text-zinc-400">{game.platform}</p>
         </Link>
 
         {game.total > 0 ? (
@@ -66,8 +66,8 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
             </div>
           </>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-500">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-500" />
+          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-500 px-2 py-0.5 text-xs text-zinc-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
             Pendiente de sincronizar trofeos
           </span>
         )}
