@@ -12,6 +12,13 @@ const TYPE_LABEL: Record<string, string> = {
   platinum: "Platino",
 };
 
+/** 0=ultra rara .. 3=común, tal cual `TrophyRarity` de psn-api. */
+const RARITY_LABEL: Record<number, string> = {
+  0: "Ultra rara",
+  1: "Muy rara",
+  2: "Rara",
+};
+
 export default function TrophyItem({
   gameId,
   trophyId,
@@ -21,6 +28,9 @@ export default function TrophyItem({
   hidden,
   iconUrl,
   isObtained,
+  rarity,
+  earnedRate,
+  progressTarget,
 }: {
   gameId: string;
   trophyId: string;
@@ -30,6 +40,9 @@ export default function TrophyItem({
   hidden: boolean;
   iconUrl: string | null;
   isObtained: boolean;
+  rarity: number | null;
+  earnedRate: number | null;
+  progressTarget: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
@@ -80,9 +93,16 @@ export default function TrophyItem({
               {isObtained && <span className="ml-2 text-xs text-green-500">Obtenido ✓</span>}
             </p>
             {description && <p className="truncate text-xs text-zinc-500">{description}</p>}
-            <p className="flex items-center gap-1 text-xs text-zinc-500">
-              <TrophyTypeIcon type={type as TrophyType} className="h-3.5 w-3.5" />
-              {TYPE_LABEL[type] ?? type}
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500">
+              <span className="flex items-center gap-1">
+                <TrophyTypeIcon type={type as TrophyType} className="h-3.5 w-3.5" />
+                {TYPE_LABEL[type] ?? type}
+              </span>
+              {rarity !== null && rarity in RARITY_LABEL && (
+                <span className="text-amber-500">{RARITY_LABEL[rarity]}</span>
+              )}
+              {earnedRate !== null && <span>{earnedRate}% lo desbloqueó</span>}
+              {progressTarget && <span>Objetivo: {progressTarget}</span>}
             </p>
           </div>
         </div>

@@ -240,6 +240,7 @@ export type Database = {
       psn_accounts: {
         Row: {
           account_id: string
+          avatar_url: string | null
           created_at: string
           id: string
           last_synced_at: string | null
@@ -251,6 +252,7 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          avatar_url?: string | null
           created_at?: string
           id?: string
           last_synced_at?: string | null
@@ -262,6 +264,7 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          avatar_url?: string | null
           created_at?: string
           id?: string
           last_synced_at?: string | null
@@ -286,11 +289,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          earned_rate: number | null
           game_id: string
           hidden: boolean
           icon_url: string | null
           id: string
           name: string
+          progress_target: string | null
+          rarity: number | null
           sort_order: number | null
           trophy_group_id: string | null
           trophy_id: string | null
@@ -300,11 +306,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          earned_rate?: number | null
           game_id: string
           hidden?: boolean
           icon_url?: string | null
           id?: string
           name: string
+          progress_target?: string | null
+          rarity?: number | null
           sort_order?: number | null
           trophy_group_id?: string | null
           trophy_id?: string | null
@@ -314,11 +323,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          earned_rate?: number | null
           game_id?: string
           hidden?: boolean
           icon_url?: string | null
           id?: string
           name?: string
+          progress_target?: string | null
+          rarity?: number | null
           sort_order?: number | null
           trophy_group_id?: string | null
           trophy_id?: string | null
@@ -334,6 +346,51 @@ export type Database = {
           },
           {
             foreignKeyName: "trophies_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trophy_groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          game_id: string
+          group_id: string
+          icon_url: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          game_id: string
+          group_id: string
+          icon_url?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          game_id?: string
+          group_id?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trophy_groups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trophy_groups_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"

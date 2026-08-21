@@ -1,6 +1,7 @@
 import "server-only";
 import {
   getTitleTrophies,
+  getTitleTrophyGroups,
   getUserTitles,
   getUserTrophiesEarnedForTitle,
   type AuthorizationPayload,
@@ -24,6 +25,21 @@ export type FetchedTrophy = {
   earnedAt: string | null;
   /** "default" para el juego base, "001"/"002"/etc. para DLC/expansiones (ver psn-api). */
   groupId: string;
+  /** 0=ultra rara .. 3=común, tal cual `TrophyRarity` de psn-api. */
+  rarity: number | null;
+  /** % de jugadores que lo desbloqueó, como string numérico (ej. "23.50"). */
+  earnedRate: string | null;
+  /**
+   * Objetivo de trofeos con contador (ej. "8" coleccionables). La API de PSN
+   * no expone el progreso *actual* del usuario en ese contador, solo el total.
+   */
+  progressTarget: string | null;
+};
+
+export type FetchedTrophyGroup = {
+  groupId: string;
+  name: string;
+  iconUrl: string | null;
 };
 
 export type FetchedTitle = {
@@ -33,6 +49,7 @@ export type FetchedTitle = {
   platform: Platform | null;
   lastPlayedAt: string | null;
   trophies: FetchedTrophy[];
+  groups: FetchedTrophyGroup[];
 };
 
 function npServiceNameFor(trophyTitlePlatform: string): "trophy" | "trophy2" {
@@ -120,8 +137,29 @@ async function fetchTrophiesForTitle(
       earned: earned?.earned ?? false,
       earnedAt: earned?.earnedDateTime ?? null,
       groupId: trophy.trophyGroupId ?? "default",
+      // Rareza/tasa/objetivo de progreso solo vienen en la respuesta de trofeos
+      // ganados (UserThinTrophy), no en la de definiciones (TitleThinTrophy).
+      rarity: earned?.trophyRare ?? null,
+      earnedRate: earned?.trophyEarnedRate ?? null,
+      progressTarget: earned?.trophyProgressTargetValue ?? null,
     };
   });
+}
+
+async function fetchTrophyGroupsForTitle(
+  authorization: AuthorizationPayload,
+  title: TrophyTitle,
+): Promise<FetchedTrophyGroup[]> {
+  const npServiceName = npServiceNameFor(title.trophyTitlePlatform);
+  const response = await getTitleTrophyGroups(authorization, title.npCommunicationId, {
+    npServiceName,
+  });
+
+  return response.trophyGroups.map((group) => ({
+    groupId: group.trophyGroupId,
+    name: group.trophyGroupName,
+    iconUrl: group.trophyGroupIconUrl ?? null,
+  }));
 }
 
 /** Trae todos los juegos jugados por el usuario autenticado, con su lista completa de trofeos y progreso. */
@@ -132,6 +170,13 @@ export async function fetchUserTitlesWithTrophies(
 
   return mapWithConcurrency(titles, TITLE_FETCH_CONCURRENCY, async (title) => {
     const trophies = await fetchTrophiesForTitle(authorization, title);
+
+    // La mayoría de los juegos tienen un solo grupo ("default", sin DLC) --
+    // en ese caso no vale la pena el round-trip extra a getTitleTrophyGroups,
+    // total no hay nada que mostrar separado del juego base.
+    const hasMultipleGroups = new Set(trophies.map((t) => t.groupId)).size > 1;
+    const groups = hasMultipleGroups ? await fetchTrophyGroupsForTitle(authorization, title) : [];
+
     return {
       npCommId: title.npCommunicationId,
       name: title.trophyTitleName,
@@ -145,6 +190,7 @@ export async function fetchUserTitlesWithTrophies(
           ? title.lastUpdatedDateTime
           : null,
       trophies,
+      groups,
     };
   });
 }

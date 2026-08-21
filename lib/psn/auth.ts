@@ -4,11 +4,32 @@ import {
   exchangeNpssoForAccessCode,
   getProfileFromAccountId,
   getUserTrophyProfileSummary,
+  type AuthorizationPayload,
   type AuthTokensResponse,
 } from "psn-api";
 import { NpssoExpiredError } from "./errors";
 
-export type PsnIdentity = { accountId: string; onlineId: string };
+export type PsnIdentity = { accountId: string; onlineId: string; avatarUrl: string | null };
+
+/** De los tamaños que devuelve PSN (`xs`, `s`, `m`, `l`, `xl`), el más grande disponible. */
+const AVATAR_SIZE_PRIORITY = ["xl", "l", "m", "s", "xs"];
+
+function pickLargestAvatar(avatars: { size: string; url: string }[]): string | null {
+  for (const size of AVATAR_SIZE_PRIORITY) {
+    const match = avatars.find((avatar) => avatar.size === size);
+    if (match) return match.url;
+  }
+  return avatars[0]?.url ?? null;
+}
+
+/** Trae solo el avatar de una cuenta ya autorizada -- se usa para refrescarlo en cada sync. */
+export async function getPsnAvatarUrl(
+  authorization: AuthorizationPayload,
+  accountId: string,
+): Promise<string | null> {
+  const profile = await getProfileFromAccountId(authorization, accountId);
+  return pickLargestAvatar(profile.avatars);
+}
 
 /** Cambia el NPSSO del usuario por tokens de acceso/refresh de la API de PSN. */
 export async function getAuthorizationFromNpsso(npsso: string): Promise<AuthTokensResponse> {
@@ -36,5 +57,9 @@ export async function getPsnIdentityFromNpsso(npsso: string): Promise<PsnIdentit
   const trophySummary = await getUserTrophyProfileSummary(authorization, "me");
   const profile = await getProfileFromAccountId(authorization, trophySummary.accountId);
 
-  return { accountId: trophySummary.accountId, onlineId: profile.onlineId };
+  return {
+    accountId: trophySummary.accountId,
+    onlineId: profile.onlineId,
+    avatarUrl: pickLargestAvatar(profile.avatars),
+  };
 }

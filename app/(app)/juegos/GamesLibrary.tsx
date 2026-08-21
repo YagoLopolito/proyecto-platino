@@ -2,10 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { removeGame } from "./actions";
 import { GameCard } from "@/components/GameCard";
 import { EmptyState } from "@/components/EmptyState";
-import { Button } from "@/components/Button";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
 
 export type LibraryGame = {
@@ -65,11 +63,19 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
   const [sort, setSort] = useState<SortOption>("recent");
   const [direction, setDirection] = useState<SortDirection>("desc");
   const [filter, setFilter] = useState<FilterOption>("all");
+  const [hidePlatinum, setHidePlatinum] = useState(false);
+  const [hideUnstarted, setHideUnstarted] = useState(false);
 
   const visibleGames = useMemo(() => {
     const filtered = filterGames(games, filter);
-    return sortGames(filtered, sort, direction);
-  }, [games, sort, direction, filter]);
+    const withoutPlatinum = hidePlatinum
+      ? filtered.filter((game) => game.counts.platinum === 0)
+      : filtered;
+    const withoutUnstarted = hideUnstarted
+      ? withoutPlatinum.filter((game) => game.percent > 0)
+      : withoutPlatinum;
+    return sortGames(withoutUnstarted, sort, direction);
+  }, [games, sort, direction, filter, hidePlatinum, hideUnstarted]);
 
   function handleSortClick(option: SortOption) {
     if (option === sort) {
@@ -109,21 +115,45 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
       </div>
 
       {games.length > 1 && (
-        <div className="flex items-center gap-1 text-xs">
-          {FILTER_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setFilter(option.value)}
-              className={`rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
-                filter === option.value
-                  ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                  : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1 text-xs">
+            {FILTER_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setFilter(option.value)}
+                className={`rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                  filter === option.value
+                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                    : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-xs text-zinc-400">
+              <input
+                type="checkbox"
+                checked={hidePlatinum}
+                onChange={(event) => setHidePlatinum(event.target.checked)}
+                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              />
+              Ocultar platinados
+            </label>
+
+            <label className="flex items-center gap-2 text-xs text-zinc-400">
+              <input
+                type="checkbox"
+                checked={hideUnstarted}
+                onChange={(event) => setHideUnstarted(event.target.checked)}
+                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              />
+              Ocultar en 0%
+            </label>
+          </div>
         </div>
       )}
 
@@ -147,18 +177,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
 
       <ul className="space-y-3">
         {visibleGames.map((game) => (
-          <GameCard
-            key={game.id}
-            game={game}
-            actions={
-              <form action={removeGame}>
-                <input type="hidden" name="gameId" value={game.id} />
-                <Button type="submit" variant="danger">
-                  Quitar
-                </Button>
-              </form>
-            }
-          />
+          <GameCard key={game.id} game={game} />
         ))}
       </ul>
     </section>

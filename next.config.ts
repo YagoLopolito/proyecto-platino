@@ -5,7 +5,12 @@ const nextConfig: NextConfig = {
     // Hosts conocidos de donde vienen las carátulas/íconos (PSN, RAWG, SteamGridDB).
     // Sin esto, next/image rechaza el host y forzaba `unoptimized` en todos lados.
     remotePatterns: [
+      // next/image sólo matchea un nivel de subdominio con "*.", por eso van
+      // los hosts reales completos (verificados en la tabla `games`/`trophies`)
+      // en vez de "*.playstation.com" / "*.playstation.net".
       { protocol: "https", hostname: "*.playstation.com" },
+      { protocol: "https", hostname: "image.api.playstation.com" },
+      { protocol: "https", hostname: "psnobj.prod.dl.playstation.net" },
       { protocol: "https", hostname: "*.rawg.io" },
       { protocol: "https", hostname: "*.steamgriddb.com" },
     ],

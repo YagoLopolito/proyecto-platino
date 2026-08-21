@@ -45,19 +45,21 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     notFound();
   }
 
-  // Estas 3 queries solo dependen de la membership ya confirmada arriba, no entre sí.
+  // Estas 4 queries solo dependen de la membership ya confirmada arriba, no entre sí.
   const [
     { data: game, error: gameError },
     { data: trophies, error: trophiesError },
+    { data: trophyGroups },
     { data: cachedPlanRow },
   ] = await Promise.all([
     supabase.from("games").select("id, name, platform, cover_url, icon_url").eq("id", gameId).single(),
     supabase
       .from("trophies")
-      .select("id, name, description, type, hidden, icon_url")
+      .select("id, name, description, type, hidden, icon_url, trophy_group_id, rarity, earned_rate, progress_target")
       .eq("game_id", gameId)
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
+    supabase.from("trophy_groups").select("group_id, name, icon_url").eq("game_id", gameId),
     supabase
       .from("ai_game_plans")
       .select("payload_json")
@@ -91,6 +93,27 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const obtainedCount = trophies?.filter((t) => obtained.has(t.id)).length ?? 0;
   const percent = total > 0 ? Math.round((obtainedCount / total) * 100) : 0;
   const isPlatinumed = (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
+
+  // Si el juego tiene DLC/expansiones, PSN los trae como grupos de trofeos
+  // aparte del "default" (juego base) -- se separan visualmente para poder
+  // ver el % de completitud de cada uno por separado.
+  const groupNameById = new Map((trophyGroups ?? []).map((g) => [g.group_id, g.name]));
+  const trophyGroupOrder = Array.from(new Set((trophies ?? []).map((t) => t.trophy_group_id ?? "default")));
+  const hasMultipleGroups = trophyGroupOrder.length > 1;
+
+  const groupedTrophies = trophyGroupOrder.map((groupId) => {
+    const groupTrophies = (trophies ?? []).filter((t) => (t.trophy_group_id ?? "default") === groupId);
+    const groupObtainedCount = groupTrophies.filter((t) => obtained.has(t.id)).length;
+    return {
+      groupId,
+      name: groupId === "default" ? "Juego base" : (groupNameById.get(groupId) ?? `DLC ${groupId}`),
+      trophies: groupTrophies,
+      obtainedCount: groupObtainedCount,
+      total: groupTrophies.length,
+      percent:
+        groupTrophies.length > 0 ? Math.round((groupObtainedCount / groupTrophies.length) * 100) : 0,
+    };
+  });
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
@@ -177,21 +200,56 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             <EmptyState title="Todavía no cargaste trofeos para este juego." />
           )}
 
-          <ul className="space-y-2">
-            {trophies?.map((trophy) => (
-              <TrophyItem
-                key={trophy.id}
-                gameId={gameId}
-                trophyId={trophy.id}
-                name={trophy.name}
-                description={trophy.description}
-                type={trophy.type}
-                hidden={trophy.hidden}
-                iconUrl={trophy.icon_url}
-                isObtained={obtained.has(trophy.id)}
-              />
-            ))}
-          </ul>
+          {hasMultipleGroups
+            ? groupedTrophies.map((group) => (
+                <div key={group.groupId} className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 pt-2">
+                    <h3 className="text-sm font-medium text-zinc-300">{group.name}</h3>
+                    <span className="text-xs text-zinc-500">
+                      {group.obtainedCount}/{group.total} ({group.percent}%)
+                    </span>
+                  </div>
+                  <ProgressBar percent={group.percent} className="h-1.5" />
+                  <ul className="space-y-2">
+                    {group.trophies.map((trophy) => (
+                      <TrophyItem
+                        key={trophy.id}
+                        gameId={gameId}
+                        trophyId={trophy.id}
+                        name={trophy.name}
+                        description={trophy.description}
+                        type={trophy.type}
+                        hidden={trophy.hidden}
+                        iconUrl={trophy.icon_url}
+                        isObtained={obtained.has(trophy.id)}
+                        rarity={trophy.rarity}
+                        earnedRate={trophy.earned_rate}
+                        progressTarget={trophy.progress_target}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))
+            : (
+                <ul className="space-y-2">
+                  {trophies?.map((trophy) => (
+                    <TrophyItem
+                      key={trophy.id}
+                      gameId={gameId}
+                      trophyId={trophy.id}
+                      name={trophy.name}
+                      description={trophy.description}
+                      type={trophy.type}
+                      hidden={trophy.hidden}
+                      iconUrl={trophy.icon_url}
+                      isObtained={obtained.has(trophy.id)}
+                      rarity={trophy.rarity}
+                      earnedRate={trophy.earned_rate}
+                      progressTarget={trophy.progress_target}
+                    />
+                  ))}
+                </ul>
+              )}
         </section>
 
         <section id="advisor" className="scroll-mt-16 space-y-3 border-t border-zinc-800 pt-8">
