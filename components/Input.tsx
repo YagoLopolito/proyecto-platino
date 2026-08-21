@@ -1,7 +1,9 @@
 import { forwardRef, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
+// border-zinc-500 (no zinc-700) porque zinc-700 no llega a 3:1 contra el
+// fondo del campo, el mínimo WCAG para el borde de un control interactivo.
 const fieldClassName =
-  "w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-50 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900";
+  "w-full rounded border border-zinc-500 bg-zinc-800 px-3 py-2 text-zinc-50 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className = "", ...props }, ref) {

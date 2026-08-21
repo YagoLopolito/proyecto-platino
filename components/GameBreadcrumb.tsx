@@ -17,12 +17,12 @@ export default function GameBreadcrumb({
 }) {
   return (
     <nav aria-label="breadcrumb" className="flex flex-wrap items-center gap-1 text-sm text-zinc-400">
-      <Link href="/juegos" className="hover:text-accent hover:underline">
+      <Link href="/juegos" className="hover:text-[var(--color-accent-hover)] hover:underline">
         Biblioteca
       </Link>
       <span aria-hidden="true">/</span>
       {current ? (
-        <Link href={`/juegos/${gameId}`} className="hover:text-accent hover:underline">
+        <Link href={`/juegos/${gameId}`} className="hover:text-[var(--color-accent-hover)] hover:underline">
           {gameName}
         </Link>
       ) : (

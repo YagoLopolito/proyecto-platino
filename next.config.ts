@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.playstation.com" },
       { protocol: "https", hostname: "image.api.playstation.com" },
       { protocol: "https", hostname: "psnobj.prod.dl.playstation.net" },
+      // Avatares: PSN los sirve por http (no https) desde este host.
+      { protocol: "http", hostname: "static-resource.np.community.playstation.net" },
       { protocol: "https", hostname: "*.rawg.io" },
       { protocol: "https", hostname: "*.steamgriddb.com" },
     ],
