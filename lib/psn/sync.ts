@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { findCoverUrl } from "@/lib/covers";
-import { getAuthorizationFromNpsso } from "./auth";
+import { getAuthorizationFromNpsso, getPsnAvatarUrl } from "./auth";
 import { mapWithConcurrency } from "./concurrency";
 import { decryptSecret } from "./crypto";
 import { NpssoExpiredError } from "./errors";
@@ -12,6 +12,12 @@ export type SyncResult = { titlesSynced: number; trophiesSynced: number };
 
 /** Cuántos títulos se procesan en simultáneo contra la base. */
 const TITLE_WRITE_CONCURRENCY = 3;
+
+function parseEarnedRate(value: string | null): number | null {
+  if (value === null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 async function resolveGameId(
   supabase: SupabaseClient<Database>,
@@ -75,6 +81,17 @@ async function syncTitle(
       { onConflict: "user_id,game_id" },
     );
 
+  if (title.groups.length > 0) {
+    const groupRows = title.groups.map((group) => ({
+      game_id: gameId,
+      group_id: group.groupId,
+      name: group.name,
+      icon_url: group.iconUrl,
+      created_by: userId,
+    }));
+    await supabase.from("trophy_groups").upsert(groupRows, { onConflict: "game_id,group_id" });
+  }
+
   if (title.trophies.length === 0) {
     return { titleSynced: true, trophiesSynced: 0 };
   }
@@ -89,6 +106,9 @@ async function syncTitle(
     hidden: trophy.hidden,
     sort_order: trophy.sortOrder,
     trophy_group_id: trophy.groupId,
+    rarity: trophy.rarity,
+    earned_rate: parseEarnedRate(trophy.earnedRate),
+    progress_target: trophy.progressTarget,
     created_by: userId,
   }));
 
@@ -140,7 +160,7 @@ export async function syncTrophiesForUser(
 ): Promise<SyncResult> {
   const { data: account, error: accountError } = await supabase
     .from("psn_accounts")
-    .select("npsso_encrypted")
+    .select("npsso_encrypted, account_id")
     .eq("user_id", userId)
     .single();
 
@@ -151,8 +171,9 @@ export async function syncTrophiesForUser(
   const npsso = decryptSecret(account.npsso_encrypted);
 
   let titles;
+  let authorization;
   try {
-    const authorization = await getAuthorizationFromNpsso(npsso);
+    authorization = await getAuthorizationFromNpsso(npsso);
     titles = await fetchUserTitlesWithTrophies(authorization);
   } catch (cause) {
     await supabase.from("psn_accounts").update({ token_status: "expired" }).eq("user_id", userId);
@@ -164,9 +185,18 @@ export async function syncTrophiesForUser(
     syncTitle(supabase, userId, title),
   );
 
+  // El avatar puede cambiar en PSN sin que el usuario reconecte la cuenta; se
+  // refresca acá para no depender de un flujo aparte. Si falla, no aborta el
+  // sync -- es un dato secundario, no se pierde nada si queda desactualizado.
+  const avatarUrl = await getPsnAvatarUrl(authorization, account.account_id).catch(() => undefined);
+
   await supabase
     .from("psn_accounts")
-    .update({ token_status: "valid", last_synced_at: new Date().toISOString() })
+    .update({
+      token_status: "valid",
+      last_synced_at: new Date().toISOString(),
+      ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+    })
     .eq("user_id", userId);
 
   return {

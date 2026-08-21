@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
@@ -67,7 +68,11 @@ export default async function PerfilPage() {
   // cuenta (con backlogs grandes eran varios round-trips seriales de a 1000 filas
   // solo para totalizar 4 números).
   const [{ data: psnAccount }, { count: gamesCount }, { data: statsRows }] = await Promise.all([
-    supabase.from("psn_accounts").select("online_id").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("psn_accounts")
+      .select("online_id, avatar_url")
+      .eq("user_id", user.id)
+      .maybeSingle(),
     supabase.from("user_games").select("game_id", { count: "exact", head: true }).eq("user_id", user.id),
     supabase.rpc("get_library_trophy_stats"),
   ]);
@@ -88,9 +93,24 @@ export default async function PerfilPage() {
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-3xl space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold">Perfil</h1>
-            <p className="font-mono text-sm text-zinc-400">{user.email}</p>
+          <div className="flex items-center gap-4">
+            {psnAccount?.avatar_url ? (
+              <Image
+                src={psnAccount.avatar_url}
+                alt={psnAccount.online_id}
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800 text-xs text-zinc-500">
+                Sin avatar
+              </div>
+            )}
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold">Perfil</h1>
+              <p className="font-mono text-sm text-zinc-400">{user.email}</p>
+            </div>
           </div>
           <form action={logout}>
             <Button type="submit" variant="secondary">

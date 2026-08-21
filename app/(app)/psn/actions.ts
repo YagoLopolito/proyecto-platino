@@ -38,6 +38,7 @@ export async function connectPsnAccount(
       user_id: user.id,
       online_id: identity.onlineId,
       account_id: identity.accountId,
+      avatar_url: identity.avatarUrl,
       npsso_encrypted: encryptSecret(npsso),
       token_status: "valid",
     },
