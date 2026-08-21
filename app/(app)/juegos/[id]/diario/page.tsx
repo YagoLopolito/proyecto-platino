@@ -4,6 +4,7 @@ import AddDiaryEntryForm from "@/components/diary/AddDiaryEntryForm";
 import EditDiaryEntryForm from "@/components/diary/EditDiaryEntryForm";
 import GameBreadcrumb from "@/components/GameBreadcrumb";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
+import { GameScore } from "@/components/diary/GameScore";
 
 export default async function GameDiaryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: gameId } = await params;
@@ -51,14 +52,8 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
           <p className="text-sm text-zinc-400">
             Registro público de partidas terminadas. Podés agregar rejugadas y editar o borrar
             tus propias entradas.
-            {score && (score.rating_count ?? 0) > 0 && score.average_rating !== null && (
-              <span className="ml-1 inline-flex items-center gap-1.5">
-                Rating promedio:
-                <StarRatingDisplay rating={score.average_rating} />
-                ({score.rating_count} {score.rating_count === 1 ? "voto" : "votos"}).
-              </span>
-            )}
           </p>
+          <GameScore score={score} />
         </div>
 
         <AddDiaryEntryForm gameId={gameId} />

@@ -11,6 +11,7 @@ import AiAdvisorPanel from "./AiAdvisorPanel";
 import TrophyItem from "./TrophyItem";
 import type { AiGamePlan } from "@/lib/ai";
 import GameBreadcrumb from "@/components/GameBreadcrumb";
+import { GameScore } from "@/components/diary/GameScore";
 
 /**
  * El botón "Generar plan" invoca generateAiPlan (ai-actions.ts), que llama a
@@ -51,6 +52,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     { data: trophies, error: trophiesError },
     { data: trophyGroups },
     { data: cachedPlanRow },
+    { data: score },
   ] = await Promise.all([
     supabase.from("games").select("id, name, platform, cover_url, icon_url").eq("id", gameId).single(),
     supabase
@@ -68,6 +70,11 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       .eq("status", "ok")
       .order("created_at", { ascending: false })
       .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("game_scores")
+      .select("average_rating, rating_count")
+      .eq("game_id", gameId)
       .maybeSingle(),
   ]);
 
@@ -179,6 +186,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 {isPlatinumed && <PlatinumBadge />}
               </h1>
               <p className="text-sm text-zinc-400">{game.platform}</p>
+              <GameScore score={score} />
             </div>
           </div>
 

@@ -73,7 +73,13 @@ export default async function PerfilPage() {
       .select("online_id, avatar_url")
       .eq("user_id", user.id)
       .maybeSingle(),
-    supabase.from("user_games").select("game_id", { count: "exact", head: true }).eq("user_id", user.id),
+    // Mismo criterio que /juegos: los juegos de catálogo (alta desde "Marcar
+    // como terminado") no cuentan como parte de la biblioteca.
+    supabase
+      .from("user_games")
+      .select("game_id, games!inner (source)", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .neq("games.source", "catalog"),
     supabase.rpc("get_library_trophy_stats"),
   ]);
 

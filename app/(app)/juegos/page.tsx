@@ -32,7 +32,7 @@ export default async function JuegosPage() {
     supabase.from("psn_accounts").select("token_status, last_synced_at").eq("user_id", userId).maybeSingle(),
     supabase
       .from("user_games")
-      .select("added_at, last_played_at, games (id, name, platform, cover_url, icon_url)")
+      .select("added_at, last_played_at, games (id, name, platform, cover_url, icon_url, source)")
       .order("last_played_at", { ascending: false, nullsFirst: false })
       .order("added_at", { ascending: false }),
     supabase.rpc("get_library_trophy_stats"),
@@ -48,8 +48,11 @@ export default async function JuegosPage() {
     });
   }
 
+  // Los juegos dados de alta desde "Marcar como terminado" (source='catalog') viven
+  // solo en el diario: no son parte de la biblioteca de PSN y no tienen trofeos, así
+  // que no se listan acá (decisión de producto).
   const games: LibraryGame[] = (library ?? [])
-    .filter((row) => row.games)
+    .filter((row) => row.games && row.games.source !== "catalog")
     .map((row) => {
       const game = row.games!;
       const stats = statsByGame.get(game.id) ?? {

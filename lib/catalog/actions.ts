@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { searchCatalogGames } from "@/lib/covers";
 import { dedupeAndFlag, type CombinedSearchResult } from "@/lib/catalog/dedup";
+import { MIN_QUERY_LENGTH } from "@/lib/catalog/constants";
 
 export type SearchCatalogOutcome =
   | { status: "ok"; results: CombinedSearchResult[] }
@@ -17,7 +18,7 @@ export type SearchCatalogOutcome =
  * vez de fallar en silencio.
  */
 export async function searchCatalog(query: string): Promise<SearchCatalogOutcome> {
-  const parsed = z.string().trim().min(2).max(100).safeParse(query);
+  const parsed = z.string().trim().min(MIN_QUERY_LENGTH).max(100).safeParse(query);
   if (!parsed.success) {
     return { status: "ok", results: [] };
   }
@@ -25,7 +26,7 @@ export async function searchCatalog(query: string): Promise<SearchCatalogOutcome
   const supabase = await createClient();
   const { data: existingGames } = await supabase
     .from("games")
-    .select("id, name, cover_url")
+    .select("id, name, cover_url, icon_url")
     .ilike("name", `%${parsed.data}%`)
     .limit(20);
 
@@ -33,7 +34,7 @@ export async function searchCatalog(query: string): Promise<SearchCatalogOutcome
     source: "library",
     gameId: game.id,
     name: game.name,
-    coverUrl: game.cover_url,
+    coverUrl: game.cover_url ?? game.icon_url,
   }));
 
   const catalogOutcome = await searchCatalogGames(parsed.data);
