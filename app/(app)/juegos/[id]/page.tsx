@@ -145,6 +145,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             >
               🔗 Enlaces
             </Link>
+            <Link
+              href={`/juegos/${gameId}/diario`}
+              className="rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+            >
+              📔 Diario
+            </Link>
           </nav>
         </div>
       </div>

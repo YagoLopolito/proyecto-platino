@@ -16,6 +16,8 @@
 
   --color-accent: #0070d1;
   --color-accent-hover: #2e8cef;
+  /* Rosa del botón ○ (Circle) de PlayStation, para distinguir "noob" de "Platino". */
+  --color-accent-2: #e6007a;
 
   --color-trophy-bronze: #cd7f32;
   --color-trophy-silver: #c0c0c0;
@@ -33,6 +35,7 @@
 
   --color-accent: var(--color-accent);
   --color-accent-hover: var(--color-accent-hover);
+  --color-accent-2: var(--color-accent-2);
 
   --color-trophy-bronze: var(--color-trophy-bronze);
   --color-trophy-silver: var(--color-trophy-silver);

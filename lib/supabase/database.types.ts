@@ -59,6 +59,57 @@ export type Database = {
           },
         ]
       }
+      game_diary_entries: {
+        Row: {
+          created_at: string
+          finished_on: string
+          game_id: string
+          id: string
+          playthrough_number: number
+          rating: number | null
+          review: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          finished_on: string
+          game_id: string
+          id?: string
+          playthrough_number?: number
+          rating?: number | null
+          review?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          finished_on?: string
+          game_id?: string
+          id?: string
+          playthrough_number?: number
+          rating?: number | null
+          review?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_diary_entries_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_diary_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_external_guides: {
         Row: {
           created_at: string
@@ -102,6 +153,7 @@ export type Database = {
           cover_url: string | null
           created_at: string
           created_by: string | null
+          external_catalog_id: string | null
           icon_url: string | null
           id: string
           name: string
@@ -114,6 +166,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
+          external_catalog_id?: string | null
           icon_url?: string | null
           id?: string
           name: string
@@ -126,6 +179,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
+          external_catalog_id?: string | null
           icon_url?: string | null
           id?: string
           name?: string
@@ -541,7 +595,22 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      game_scores: {
+        Row: {
+          average_rating: number | null
+          game_id: string | null
+          rating_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_diary_entries_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_library_trophy_stats: {

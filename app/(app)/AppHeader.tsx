@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { href: "/juegos", label: "Biblioteca" },
   { href: "/perfil", label: "Perfil" },
   { href: "/psn", label: "PSN" },
+  { href: "/diario/nuevo", label: "✓ Marcar terminado" },
 ];
 
 export default function AppHeader() {
@@ -17,7 +18,8 @@ export default function AppHeader() {
     <header className="border-b border-zinc-800 bg-zinc-950">
       <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/juegos" className="text-sm font-semibold tracking-wide text-zinc-50">
-          Proyecto <span className="text-accent">Platino</span>
+          <span className="text-accent">Platino</span>
+          <span className="text-accent-2">noob</span>
         </Link>
 
         <nav className="flex items-center gap-1 text-sm">

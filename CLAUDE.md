@@ -90,6 +90,56 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
 - `guide_steps` — pasos de una guía, opcionalmente ligados a un `trophy_id`.
 - `user_guide_progress` — checklist de pasos completados por el usuario, independiente de si el trofeo ya sincronizó.
 - `ai_game_plans` — planes generados por el advisor de IA por juego (`payload_json` con la estructura de `lib/ai/schema.ts`, `user_id` nullable si el plan es genérico/compartible). Ver `PRODUCT_SPEC.md` sección 6 para el detalle de columnas y RLS.
+- `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
+
+## Letterbox: diario de partidas (`game_diary_entries`, `game_scores`)
+
+- Diario **público** a diferencia de `user_trophies` (privado) — decisión de producto: cualquier
+  usuario puede leer el diario de cualquier otro, pero solo el dueño (`user_id = auth.uid()`)
+  puede insertar/editar/borrar sus propias filas (RLS en
+  `supabase/migrations/20260821000000_letterbox_diary.sql`).
+- Múltiples entradas por usuario+juego (rejugadas), vía `playthrough_number` autoincremental
+  (`unique(user_id, game_id, playthrough_number)`). El cálculo del siguiente número
+  (`nextPlaythroughNumber` en `app/juegos/[id]/diario/actions.ts`) no es 100% race-safe bajo doble
+  submit simultáneo — se apoya en ese `unique` y en capturar el error `23505` con un mensaje
+  pidiendo reintentar, no en un lock explícito.
+- `finished_on` es una columna `date` (sin hora/timezone) que recibe tal cual el string de un
+  `<input type="date">` (fecha local del usuario) — nunca pasar por `new Date().toISOString()`,
+  correría a UTC y podría desplazar el día.
+- Vista `game_scores` promedia el **último** rating de cada usuario por juego (no todas las
+  rejugadas) — ver el `distinct on (game_id, user_id) ... order by playthrough_number desc` en la
+  migración. `security_invoker = true` (misma convención que `get_library_trophy_stats`).
+- `games.source` ahora incluye `'catalog'` (juegos agregados desde la búsqueda de RAWG, no
+  sincronizados por PSN ni cargados a mano) y `games.external_catalog_id` guarda el id de RAWG.
+
+## `lib/covers/`: búsqueda de catálogo (`searchCatalogGames`)
+
+- Además de `findCoverUrl` (carátula única, ya existente), expone `searchCatalogGames(query)`
+  para el buscador del Letterbox: varios candidatos de RAWG filtrados a plataformas PlayStation
+  (`parent_platforms[].platform.slug`), no solo el primer resultado.
+- Devuelve un status explícito `"missing_api_key"` cuando falta `RAWG_API_KEY` en vez de un
+  `null`/`[]` silencioso, para que el caller pueda avisarlo en la UI en vez de fallar en silencio.
+- Sigue siendo el único lugar que hace `fetch` a la búsqueda de RAWG (comparte el helper interno
+  `fetchRawgGames` con `findCoverUrl` para no reimplementar el cliente HTTP dos veces) — igual
+  regla de aislamiento que `lib/psn/`/`lib/ai/`.
+
+## `lib/catalog/`: alta de juegos de catálogo al diario
+
+- `searchCatalog` combina juegos ya existentes en `games` (por nombre, `ilike`) con
+  `searchCatalogGames` de `lib/covers`, deduplicados (`lib/catalog/dedup.ts`).
+- El matching de remasters/remakes (`dedupeAndFlag`) es una heurística de similitud de nombre
+  (sacando tokens como "remastered"/"remake"/"definitive edition") con confirmación manual del
+  usuario ("¿es el mismo juego?") cuando detecta un posible duplicado — no bloqueante, se puede
+  afinar después (issue #90).
+- `addCatalogGame` inserta en `games` con `source: 'catalog'` y `created_by: auth.uid()`
+  reusando `games_insert_authenticated` tal cual (sin RLS nueva), y vincula el juego en
+  `user_games` si el usuario todavía no lo tenía.
+
+## Flujo de trabajo con GitHub
+
+- Cuando se trabaja sobre un issue de GitHub, siempre actualizar el issue (comentario y/o
+  cierre) y vincular el PR correspondiente al terminar el trabajo — no dejar el issue
+  desactualizado respecto al estado real del código.
 
 ## Convenciones de código
 
@@ -112,6 +162,7 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
 6. Checklist de guía cruzada con trofeos ya obtenidos. ✅ (`toggleStepProgress` + auto-tilde si el trofeo ya sincronizó)
 7. Enlaces a guías externas curadas. ✅ campo (`external_url`/`source`) dentro de una guía + vista dedicada de "enlaces por juego" (`app/juegos/[id]/enlaces/`), Fase 9 completa.
 8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema + endpoint + UI del panel + guardado versionado en `ai_game_plans`. ✅ Fase 6 completa.
+9. Letterbox de juegos: diario público de partidas terminadas con rating, buscador de catálogo (RAWG) para loguear cualquier juego de PSN aunque no esté sincronizado. ✅ Fase 12 completa (issues #88-91: `game_diary_entries`/`game_scores`, `lib/covers` búsqueda multi-resultado, `lib/catalog/` alta de juegos, CRUD en `app/juegos/[id]/diario/`).
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-10), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
