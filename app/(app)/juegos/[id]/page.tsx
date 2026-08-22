@@ -125,36 +125,41 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
       <div className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-2">
+        {/*
+          * Igual que el header de la app: en mobile el nombre del juego va en su
+          * propia fila y la nav de secciones queda a lo ancho, scrolleable
+          * horizontalmente (5 pills no entran en 375px sin desbordar la página).
+          */}
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-1.5 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <p className="truncate text-sm text-zinc-400">{game.name}</p>
-          <nav className="flex shrink-0 items-center gap-1.5 text-sm">
+          <nav className="-mx-4 flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 text-sm sm:mx-0 sm:overflow-visible sm:px-0">
             <a
               href="#trofeos"
-              className="rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
             >
               🏆 Trofeos
             </a>
             <a
               href="#advisor"
-              className="rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-blue-300 hover:border-blue-500"
+              className="whitespace-nowrap rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-blue-300 hover:border-blue-500"
             >
               ✨ Advisor IA
             </a>
             <Link
               href={`/juegos/${gameId}/guias`}
-              className="rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
             >
               📖 Guías
             </Link>
             <Link
               href={`/juegos/${gameId}/enlaces`}
-              className="rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
             >
               🔗 Enlaces
             </Link>
             <Link
               href={`/juegos/${gameId}/diario`}
-              className="rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
             >
               📔 Diario
             </Link>
@@ -162,7 +167,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-2xl space-y-10 px-4 py-8">
+      <div className="mx-auto w-full max-w-2xl space-y-8 px-4 py-6 sm:space-y-10 sm:py-8">
         <GameBreadcrumb gameId={gameId} gameName={game.name} />
 
         <div className="space-y-4">
@@ -173,15 +178,15 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 alt={game.name}
                 width={64}
                 height={64}
-                className="h-16 w-16 shrink-0 rounded object-cover"
+                className="h-14 w-14 shrink-0 rounded object-cover sm:h-16 sm:w-16"
               />
             ) : (
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-zinc-800 text-xs text-zinc-500">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-zinc-800 text-xs text-zinc-500 sm:h-16 sm:w-16">
                 Sin img
               </div>
             )}
-            <div className="space-y-1">
-              <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <div className="min-w-0 space-y-1">
+              <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold sm:text-2xl">
                 {game.name}
                 {isPlatinumed && <PlatinumBadge />}
               </h1>
@@ -201,7 +206,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <section id="trofeos" className="scroll-mt-16 space-y-3 border-t border-zinc-800 pt-8">
+        <section id="trofeos" className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Trofeos {total > 0 && `(${total})`}
           </h2>
@@ -266,7 +271,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               )}
         </section>
 
-        <section id="advisor" className="scroll-mt-16 space-y-3 border-t border-zinc-800 pt-8">
+        <section id="advisor" className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Advisor con IA</h2>
           <AiAdvisorPanel
             gameId={gameId}

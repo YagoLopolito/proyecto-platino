@@ -105,7 +105,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
   }
 
   const selectClass =
-    "rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200";
+    "min-w-0 max-w-full flex-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200 sm:flex-none";
 
   return (
     <div className="space-y-6">

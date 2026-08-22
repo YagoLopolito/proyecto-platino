@@ -9,14 +9,14 @@ export default async function ConfirmPage({
 
   if (!token_hash || !type) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-zinc-950 px-4 py-16 text-zinc-50">
+      <div className="flex flex-1 items-center justify-center bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
         <p className="text-sm text-red-400">El link de confirmación es inválido.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-950 px-4 py-16">
+    <div className="flex flex-1 items-center justify-center bg-zinc-950 px-4 py-8 sm:py-16">
       <form
         action={confirmSignup}
         className="w-full max-w-sm space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-8 text-center"

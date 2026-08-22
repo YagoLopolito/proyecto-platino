@@ -43,7 +43,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
   const otherEntries = (entries ?? []).filter((entry) => entry.user_id !== user.id);
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
+    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
         <GameBreadcrumb gameId={gameId} gameName={game.name} current="Diario" />
 
