@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
-import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
+import { TrophyTypeIcon, trophyTypeLabel, type TrophyType } from "@/components/TrophyTypeIcon";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/Button";
@@ -70,7 +70,9 @@ export default async function PerfilPage() {
   const [{ data: psnAccount }, { count: gamesCount }, { data: statsRows }] = await Promise.all([
     supabase
       .from("psn_accounts")
-      .select("online_id, avatar_url")
+      .select(
+        "online_id, avatar_url, trophy_level, trophy_progress, trophy_tier, earned_platinum, earned_gold, earned_silver, earned_bronze",
+      )
       .eq("user_id", user.id)
       .maybeSingle(),
     // Mismo criterio que /juegos: los juegos de catálogo (alta desde "Marcar
@@ -91,9 +93,30 @@ export default async function PerfilPage() {
     counts.bronze += row.bronze;
   }
 
-  const totalTrophies = Object.values(counts).reduce((sum, n) => sum + n, 0);
-  const totalPoints = TROPHY_TYPES.reduce((sum, type) => sum + counts[type] * TROPHY_POINTS[type], 0);
-  const { level, progressPercent } = levelFromPoints(totalPoints);
+  // Los números que muestra el perfil son los que devuelve PSN
+  // (psn_accounts.trophy_*/earned_*, guardados al conectar la cuenta y en cada
+  // sync). Lo calculado a partir de la biblioteca local queda solo como
+  // fallback para cuentas que todavía no sincronizaron con esas columnas.
+  const psnCounts =
+    psnAccount?.earned_bronze !== null && psnAccount?.earned_bronze !== undefined
+      ? {
+          platinum: psnAccount.earned_platinum ?? 0,
+          gold: psnAccount.earned_gold ?? 0,
+          silver: psnAccount.earned_silver ?? 0,
+          bronze: psnAccount.earned_bronze,
+        }
+      : null;
+
+  const displayCounts = psnCounts ?? counts;
+  const totalTrophies = Object.values(displayCounts).reduce((sum, n) => sum + n, 0);
+  const totalPoints = TROPHY_TYPES.reduce(
+    (sum, type) => sum + displayCounts[type] * TROPHY_POINTS[type],
+    0,
+  );
+  const computed = levelFromPoints(totalPoints);
+  const level = psnAccount?.trophy_level ?? computed.level;
+  const progressPercent = psnAccount?.trophy_progress ?? computed.progressPercent;
+  const isRealPsnData = psnCounts !== null && psnAccount?.trophy_level !== null;
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
@@ -135,19 +158,30 @@ export default async function PerfilPage() {
 
         <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
           <h2 className="text-sm font-semibold text-zinc-200">Trofeos por tipo</h2>
-          <div className="grid grid-cols-4 gap-2 text-center">
+          {/*
+            * 2 columnas en mobile (4 no entran sin achicar el ícono a algo
+            * ilegible) y 4 a partir de sm. Dentro de cada tarjeta el ícono va
+            * al lado del número, alineados en una fila, en vez de apretado
+            * arriba a la derecha como cuando esto usaba StatCard.
+            */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {TROPHY_TYPES.map((type) => (
-              <StatCard
+              <div
                 key={type}
-                label={type[0].toUpperCase() + type.slice(1)}
-                value={counts[type]}
-                icon={<TrophyTypeIcon type={type} className="h-5 w-5" />}
-              />
+                className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 sm:flex-col sm:gap-2 sm:p-4 sm:text-center"
+              >
+                <TrophyTypeIcon type={type} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
+                <div className="min-w-0 sm:space-y-0.5">
+                  <p className="text-2xl font-semibold leading-none">{displayCounts[type]}</p>
+                  <p className="text-xs text-zinc-400">{trophyTypeLabel(type)}</p>
+                </div>
+              </div>
             ))}
           </div>
           <p className="pt-1 text-xs text-zinc-600">
-            La rareza de cada trofeo depende de estadísticas globales de PSN que todavía no
-            sincronizamos; por ahora sólo mostramos tus totales.
+            {isRealPsnData
+              ? "Nivel y totales tal cual los informa PSN para tu cuenta."
+              : "Totales calculados a partir de los juegos ya sincronizados: sincronizá tu cuenta PSN para ver tus números reales."}
           </p>
         </div>
 

@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { findCoverUrl } from "@/lib/covers";
-import { getAuthorizationFromNpsso, getPsnAvatarUrl } from "./auth";
+import { getAuthorizationFromNpsso, getPsnAvatarUrl, getPsnTrophySummary } from "./auth";
 import { mapWithConcurrency } from "./concurrency";
 import { decryptSecret } from "./crypto";
 import { NpssoExpiredError } from "./errors";
@@ -190,12 +190,30 @@ export async function syncTrophiesForUser(
   // sync -- es un dato secundario, no se pierde nada si queda desactualizado.
   const avatarUrl = await getPsnAvatarUrl(authorization, account.account_id).catch(() => undefined);
 
+  // Nivel y totales reales de PSN (no se recalculan desde user_trophies: la
+  // biblioteca local puede estar incompleta y daría otro número). Mismo
+  // criterio que el avatar: si falla, no aborta el sync.
+  const trophySummary = await getPsnTrophySummary(authorization, account.account_id).catch(
+    () => undefined,
+  );
+
   await supabase
     .from("psn_accounts")
     .update({
       token_status: "valid",
       last_synced_at: new Date().toISOString(),
       ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
+      ...(trophySummary
+        ? {
+            trophy_level: trophySummary.level,
+            trophy_progress: trophySummary.progressPercent,
+            trophy_tier: trophySummary.tier,
+            earned_platinum: trophySummary.earned.platinum,
+            earned_gold: trophySummary.earned.gold,
+            earned_silver: trophySummary.earned.silver,
+            earned_bronze: trophySummary.earned.bronze,
+          }
+        : {}),
     })
     .eq("user_id", userId);
 

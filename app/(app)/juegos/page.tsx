@@ -5,6 +5,7 @@ import GamesLibrary, { type LibraryGame } from "./GamesLibrary";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
 import { ErrorState } from "@/components/ErrorState";
 import { SyncStatusBadge, type SyncTokenStatus } from "@/components/SyncStatusBadge";
+import SyncButton from "@/components/psn/SyncButton";
 
 type GameStats = {
   total: number;
@@ -93,12 +94,12 @@ export default async function JuegosPage() {
                 {psnAccount.token_status !== "valid" && (
                   <>
                     Reconectá tu cuenta para seguir sincronizando.{" "}
+                    <Link href="/psn#reconectar-psn" className="text-blue-400 hover:underline">
+                      Reconectar cuenta PSN
+                    </Link>
+                    .
                   </>
                 )}
-                <Link href="/psn" className="text-blue-400 hover:underline">
-                  {psnAccount.token_status === "valid" ? "Sincronizar ahora" : "Reconectar cuenta PSN"}
-                </Link>
-                .
               </>
             ) : (
               <>
@@ -110,6 +111,12 @@ export default async function JuegosPage() {
               </>
             )}
           </p>
+
+          {psnAccount?.token_status === "valid" && (
+            // Sincronizar desde la propia biblioteca: antes esto era un link
+            // que te mandaba a /psn solo para apretar el botón.
+            <SyncButton reconnectHref="/psn#reconectar-psn" />
+          )}
         </div>
 
         {error && <ErrorState message={`No se pudo cargar la biblioteca: ${error.message}`} />}

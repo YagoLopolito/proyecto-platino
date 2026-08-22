@@ -8,9 +8,7 @@ const NAV_LINKS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/juegos", label: "Biblioteca" },
   { href: "/perfil", label: "Perfil" },
   { href: "/psn", label: "PSN" },
-  // exact: /diario no debe quedar activo cuando estás en /diario/nuevo.
-  { href: "/diario", label: "Diario", exact: true },
-  { href: "/diario/nuevo", label: "✓ Marcar terminado" },
+  { href: "/diario", label: "Diario" },
 ];
 
 export default function AppHeader() {
@@ -20,14 +18,16 @@ export default function AppHeader() {
     <header className="border-b border-zinc-800 bg-zinc-950">
       {/*
         * En mobile el header se parte en dos filas: arriba logo + "Cerrar sesión",
-        * abajo la nav a lo ancho y scrolleable horizontalmente (son 5 links: en
+        * abajo la nav a lo ancho y scrolleable horizontalmente (en
         * pantallas angostas no entran en la misma fila sin desbordar la página).
         * A partir de `sm` vuelve a ser una sola fila.
         */}
       <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
         <Link href="/juegos" className="mr-auto text-sm font-semibold tracking-wide text-zinc-50">
-          <span className="text-accent">Platino</span>
-          <span className="text-accent-2">noob</span>
+          {/* "Platinoob": la "n" es compartida entre "Platino" y "noob", por
+              eso el corte de color va en Platin|oob y no en Platino|noob. */}
+          <span className="text-accent">Platin</span>
+          <span className="text-accent-2">oob</span>
         </Link>
 
         <nav

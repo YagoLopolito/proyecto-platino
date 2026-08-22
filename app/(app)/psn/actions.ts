@@ -41,6 +41,15 @@ export async function connectPsnAccount(
       avatar_url: identity.avatarUrl,
       npsso_encrypted: encryptSecret(npsso),
       token_status: "valid",
+      // Nivel/totales reales de PSN desde la conexión, así el perfil ya los
+      // muestra sin esperar al primer sync.
+      trophy_level: identity.trophySummary.level,
+      trophy_progress: identity.trophySummary.progressPercent,
+      trophy_tier: identity.trophySummary.tier,
+      earned_platinum: identity.trophySummary.earned.platinum,
+      earned_gold: identity.trophySummary.earned.gold,
+      earned_silver: identity.trophySummary.earned.silver,
+      earned_bronze: identity.trophySummary.earned.bronze,
     },
     { onConflict: "user_id" },
   );
