@@ -96,7 +96,7 @@ export default async function PerfilPage() {
   const { level, progressPercent } = levelFromPoints(totalPoints);
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-16 text-zinc-50">
+    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-3xl space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">

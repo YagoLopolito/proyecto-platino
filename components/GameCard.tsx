@@ -22,7 +22,7 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
   const isPlatinumed = game.counts.platinum > 0;
 
   return (
-    <li className="flex items-center gap-5 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+    <li className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 sm:gap-5 sm:p-5">
       <Link href={`/juegos/${game.id}`} className="shrink-0">
         {game.imageUrl ? (
           <Image
@@ -30,18 +30,18 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
             alt={game.name}
             width={96}
             height={96}
-            className="h-24 w-24 rounded-lg object-cover"
+            className="h-16 w-16 rounded-lg object-cover sm:h-24 sm:w-24"
           />
         ) : (
-          <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-zinc-800 text-xs text-zinc-400">
+          <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-zinc-800 text-xs text-zinc-400 sm:h-24 sm:w-24">
             Sin img
           </div>
         )}
       </Link>
 
-      <div className="min-w-0 flex-1 space-y-3">
+      <div className="min-w-0 flex-1 space-y-2 sm:space-y-3">
         <Link href={`/juegos/${game.id}`} className="block min-w-0 hover:underline">
-          <p className="flex items-center gap-2 truncate text-lg font-medium">
+          <p className="flex items-center gap-2 truncate text-base font-medium sm:text-lg">
             <span className="truncate">{game.name}</span>
             {isPlatinumed && <PlatinumBadge className="shrink-0" />}
           </p>
@@ -51,11 +51,11 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
         {game.total > 0 ? (
           <>
             <ProgressBar percent={game.percent} />
-            <div className="flex items-center justify-between text-sm text-zinc-400">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-zinc-400 sm:text-sm">
               <span>
                 {game.obtained}/{game.total} ({game.percent}%)
               </span>
-              <span className="flex items-center gap-3">
+              <span className="flex items-center gap-2 sm:gap-3">
                 {TROPHY_TYPES.map((type) => (
                   <span key={type} className="flex items-center gap-1">
                     <TrophyTypeIcon type={type} className="h-4 w-4" />

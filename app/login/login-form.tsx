@@ -15,7 +15,7 @@ export default function LoginForm({ confirmError }: { confirmError: boolean }) {
   const [state, formAction, pending] = useActionState(login, initialState);
 
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-950 px-4 py-16">
+    <div className="flex flex-1 items-center justify-center bg-zinc-950 px-4 py-8 sm:py-16">
       <div className="w-full max-w-sm">
         <AuthBrandMark />
 

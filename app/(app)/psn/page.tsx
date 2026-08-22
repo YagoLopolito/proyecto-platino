@@ -22,7 +22,7 @@ export default async function PsnPage() {
     .maybeSingle();
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-950 px-4 py-16 text-zinc-50">
+    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
       <div className="w-full max-w-sm space-y-6">
         <h1 className="text-xl font-semibold">Cuenta PSN</h1>
 

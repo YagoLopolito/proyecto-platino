@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { DiaryTimelineEntry } from "@/lib/diary/queries";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
 import { PlatinumBadge } from "@/components/PlatinumBadge";
 import { EmptyState } from "@/components/EmptyState";
+import { text, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
 const MONTH_NAMES = [
   "Enero",
@@ -52,9 +53,13 @@ const ANY = "all";
  * y así no hace falta un round-trip por cada cambio de filtro.
  */
 export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry[] }) {
-  const [year, setYear] = useState<string>(ANY);
-  const [platform, setPlatform] = useState<string>(ANY);
-  const [minRating, setMinRating] = useState<string>(ANY);
+  // En la query string para sobrevivir al "atrás" (volver desde el diario de
+  // un juego) y al reload -- ver useUrlFilterState. Se validan contra las
+  // opciones reales más abajo, no acá: año y plataforma dependen de las
+  // entradas del usuario, así que la lista no se conoce de antemano.
+  const [year, setYear] = useUrlFilterState<string>("anio", ANY, text);
+  const [platform, setPlatform] = useUrlFilterState<string>("plataforma", ANY, text);
+  const [minRating, setMinRating] = useUrlFilterState<string>("rating", ANY, text);
 
   const years = useMemo(
     () => Array.from(new Set(entries.map((e) => parseDateParts(e.finishedOn).year))).sort().reverse(),
@@ -66,18 +71,26 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
     [entries],
   );
 
+  // Un valor que viene de la URL puede no existir entre las entradas actuales
+  // (un link viejo con `?anio=2023`, o la última entrada de ese año borrada).
+  // Se degrada a "todos" durante el render -- no con un setState en un effect,
+  // ver la regla react-hooks/set-state-in-effect en CLAUDE.md -- para que el
+  // <select> no quede en blanco ni el timeline vacío sin explicación.
+  const activeYear = year === ANY || years.includes(year) ? year : ANY;
+  const activePlatform = platform === ANY || platforms.includes(platform) ? platform : ANY;
+
   const filtered = useMemo(
     () =>
       entries.filter((entry) => {
-        if (year !== ANY && parseDateParts(entry.finishedOn).year !== year) return false;
-        if (platform !== ANY && entry.platform !== platform) return false;
+        if (activeYear !== ANY && parseDateParts(entry.finishedOn).year !== activeYear) return false;
+        if (activePlatform !== ANY && entry.platform !== activePlatform) return false;
         if (minRating !== ANY) {
           if (minRating === "none") return entry.rating === null;
           if (entry.rating === null || entry.rating < Number(minRating)) return false;
         }
         return true;
       }),
-    [entries, year, platform, minRating],
+    [entries, activeYear, activePlatform, minRating],
   );
 
   const groups = useMemo(() => {
@@ -105,7 +118,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
   }
 
   const selectClass =
-    "rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200";
+    "min-w-0 max-w-full flex-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200 sm:flex-none";
 
   return (
     <div className="space-y-6">
@@ -115,7 +128,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
         </label>
         <select
           id="diary-filter-year"
-          value={year}
+          value={activeYear}
           onChange={(e) => setYear(e.target.value)}
           className={selectClass}
         >
@@ -132,7 +145,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
         </label>
         <select
           id="diary-filter-platform"
-          value={platform}
+          value={activePlatform}
           onChange={(e) => setPlatform(e.target.value)}
           className={selectClass}
         >

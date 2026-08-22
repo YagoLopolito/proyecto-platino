@@ -67,12 +67,12 @@ export default function TrophyItem({
 
   return (
     <li
-      className={`rounded-lg border p-4 ${
+      className={`rounded-lg border p-3 sm:p-4 ${
         isObtained ? "border-green-800/60 bg-green-950/10" : "border-zinc-800 bg-zinc-900"
       }`}
     >
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {iconUrl ? (
             <Image
               src={iconUrl}
@@ -109,7 +109,7 @@ export default function TrophyItem({
         <button
           type="button"
           onClick={handleToggle}
-          className="shrink-0 rounded border border-zinc-700 px-3 py-1 text-sm text-zinc-400 hover:border-blue-500 hover:text-blue-300"
+          className="w-full shrink-0 rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:border-blue-500 hover:text-blue-300 sm:w-auto sm:py-1"
         >
           {open ? "Ocultar ayuda" : "❓ Cómo desbloquearlo"}
         </button>

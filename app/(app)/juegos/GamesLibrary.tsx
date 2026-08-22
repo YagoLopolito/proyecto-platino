@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { GameCard } from "@/components/GameCard";
 import { EmptyState } from "@/components/EmptyState";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
+import { boolean, oneOf, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
 export type LibraryGame = {
   id: string;
@@ -60,11 +61,26 @@ function filterGames(games: LibraryGame[], filter: FilterOption): LibraryGame[] 
 }
 
 export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
-  const [sort, setSort] = useState<SortOption>("recent");
-  const [direction, setDirection] = useState<SortDirection>("desc");
-  const [filter, setFilter] = useState<FilterOption>("all");
-  const [hidePlatinum, setHidePlatinum] = useState(false);
-  const [hideUnstarted, setHideUnstarted] = useState(false);
+  // Los filtros viven en la query string para sobrevivir al "atrás" del
+  // browser (volver desde el detalle de un juego) y al reload -- ver
+  // useUrlFilterState.
+  const [sort, setSort] = useUrlFilterState<SortOption>(
+    "orden",
+    "recent",
+    oneOf(SORT_OPTIONS.map((option) => option.value)),
+  );
+  const [direction, setDirection] = useUrlFilterState<SortDirection>(
+    "dir",
+    "desc",
+    oneOf(["asc", "desc"] as const),
+  );
+  const [filter, setFilter] = useUrlFilterState<FilterOption>(
+    "filtro",
+    "all",
+    oneOf(FILTER_OPTIONS.map((option) => option.value)),
+  );
+  const [hidePlatinum, setHidePlatinum] = useUrlFilterState("sinPlatino", false, boolean);
+  const [hideUnstarted, setHideUnstarted] = useUrlFilterState("sinEmpezar", false, boolean);
 
   const visibleGames = useMemo(() => {
     const filtered = filterGames(games, filter);
@@ -79,7 +95,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
 
   function handleSortClick(option: SortOption) {
     if (option === sort) {
-      setDirection((prev) => (prev === "desc" ? "asc" : "desc"));
+      setDirection(direction === "desc" ? "asc" : "desc");
     } else {
       setSort(option);
       setDirection("desc");
@@ -94,7 +110,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
         </h2>
 
         {games.length > 1 && (
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex flex-wrap items-center gap-1 text-xs">
             {SORT_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -116,7 +132,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
 
       {games.length > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex flex-wrap items-center gap-1 text-xs">
             {FILTER_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -133,7 +149,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
             ))}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <label className="flex items-center gap-2 text-xs text-zinc-400">
               <input
                 type="checkbox"

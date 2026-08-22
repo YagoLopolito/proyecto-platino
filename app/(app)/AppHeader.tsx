@@ -18,13 +18,23 @@ export default function AppHeader() {
 
   return (
     <header className="border-b border-zinc-800 bg-zinc-950">
-      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/juegos" className="text-sm font-semibold tracking-wide text-zinc-50">
+      {/*
+        * En mobile el header se parte en dos filas: arriba logo + "Cerrar sesión",
+        * abajo la nav a lo ancho y scrolleable horizontalmente (son 5 links: en
+        * pantallas angostas no entran en la misma fila sin desbordar la página).
+        * A partir de `sm` vuelve a ser una sola fila.
+        */}
+      <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+        <Link href="/juegos" className="mr-auto text-sm font-semibold tracking-wide text-zinc-50">
           <span className="text-accent">Platino</span>
           <span className="text-accent-2">noob</span>
         </Link>
 
-        <nav className="flex items-center gap-1 text-sm">
+        <nav
+          aria-label="Principal"
+          className="order-last -mx-4 w-[calc(100%+2rem)] overflow-x-auto px-4 sm:order-none sm:mx-0 sm:w-auto sm:overflow-visible sm:px-0"
+        >
+          <div className="flex items-center gap-1 text-sm">
           {NAV_LINKS.map((link) => {
             const active = link.exact
               ? pathname === link.href
@@ -33,7 +43,7 @@ export default function AppHeader() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded px-3 py-1.5 ${
+                className={`whitespace-nowrap rounded px-3 py-1.5 ${
                   active
                     ? "bg-accent/10 text-accent"
                     : "text-zinc-400 hover:text-zinc-100"
@@ -43,12 +53,13 @@ export default function AppHeader() {
               </Link>
             );
           })}
+          </div>
         </nav>
 
         <form action={logout}>
           <button
             type="submit"
-            className="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:border-red-500 hover:text-red-400"
+            className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:border-red-500 hover:text-red-400"
           >
             Cerrar sesión
           </button>
