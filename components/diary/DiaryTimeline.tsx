@@ -196,7 +196,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                 <li key={entry.id}>
                   <Link
                     href={`/juegos/${entry.gameId}/diario`}
-                    className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 hover:border-zinc-600"
+                    className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 hover:border-zinc-600"
                   >
                     <span className="w-6 shrink-0 text-center text-sm text-zinc-500">{day}</span>
                     {entry.imageUrl ? (
@@ -226,6 +226,14 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                         {entry.platform && <span>{entry.platform}</span>}
                         <StarRatingDisplay rating={entry.rating} />
                       </p>
+                      {entry.review && (
+                        // Recortada a 3 líneas: la idea es ver de un vistazo qué
+                        // dijiste de esa partida; el texto completo está en el
+                        // diario del juego, a un click de acá.
+                        <p className="line-clamp-3 whitespace-pre-line text-xs leading-relaxed text-zinc-400">
+                          {entry.review}
+                        </p>
+                      )}
                     </div>
                   </Link>
                 </li>
