@@ -79,10 +79,16 @@ export default function TrophyItem({
               alt=""
               width={40}
               height={40}
-              className="h-10 w-10 shrink-0 rounded object-cover"
+              className={`h-10 w-10 shrink-0 rounded object-cover ${
+                isObtained ? "" : "grayscale opacity-60"
+              }`}
             />
           ) : (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-zinc-800">
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded bg-zinc-800 ${
+                isObtained ? "" : "grayscale opacity-60"
+              }`}
+            >
               <TrophyTypeIcon type={type as TrophyType} className="h-5 w-5" />
             </div>
           )}
