@@ -11,6 +11,7 @@ export interface DiaryTimelineEntry {
   imageUrl: string | null;
   finishedOn: string;
   rating: number | null;
+  review: string | null;
   playthroughNumber: number;
   isPlatinum: boolean;
 }
@@ -34,7 +35,7 @@ export async function getUserDiaryEntries(
   let query = supabase
     .from("game_diary_entries")
     .select(
-      "id, game_id, playthrough_number, rating, finished_on, games (id, name, platform, cover_url, icon_url)",
+      "id, game_id, playthrough_number, rating, review, finished_on, games (id, name, platform, cover_url, icon_url)",
     )
     .eq("user_id", userId)
     .order("finished_on", { ascending: false })
@@ -65,6 +66,7 @@ export async function getUserDiaryEntries(
         imageUrl: game.cover_url ?? game.icon_url,
         finishedOn: row.finished_on,
         rating: row.rating,
+        review: row.review,
         playthroughNumber: row.playthrough_number,
         isPlatinum: platinumGameIds.has(row.game_id),
       };
