@@ -9,7 +9,44 @@ import {
 } from "psn-api";
 import { NpssoExpiredError } from "./errors";
 
-export type PsnIdentity = { accountId: string; onlineId: string; avatarUrl: string | null };
+export type PsnIdentity = {
+  accountId: string;
+  onlineId: string;
+  avatarUrl: string | null;
+  trophySummary: PsnTrophySummary;
+};
+
+/**
+ * Resumen de trofeos tal cual lo devuelve PSN: el nivel y los totales reales
+ * de la cuenta, no una reconstrucción a partir de los trofeos sincronizados
+ * (la biblioteca local puede estar incompleta y la curva de niveles cambió
+ * con los años, así que calcularlo a mano da otro número).
+ */
+export type PsnTrophySummary = {
+  level: number;
+  progressPercent: number;
+  tier: number;
+  earned: { platinum: number; gold: number; silver: number; bronze: number };
+};
+
+/** Normaliza la respuesta de `getUserTrophyProfileSummary` (trophyLevel viene como string). */
+export async function getPsnTrophySummary(
+  authorization: AuthorizationPayload,
+  accountId: string,
+): Promise<PsnTrophySummary> {
+  const summary = await getUserTrophyProfileSummary(authorization, accountId);
+  return {
+    level: Number(summary.trophyLevel),
+    progressPercent: summary.progress,
+    tier: summary.tier,
+    earned: {
+      platinum: summary.earnedTrophies.platinum,
+      gold: summary.earnedTrophies.gold,
+      silver: summary.earnedTrophies.silver,
+      bronze: summary.earnedTrophies.bronze,
+    },
+  };
+}
 
 /** De los tamaños que devuelve PSN (`xs`, `s`, `m`, `l`, `xl`), el más grande disponible. */
 const AVATAR_SIZE_PRIORITY = ["xl", "l", "m", "s", "xs"];
@@ -61,5 +98,16 @@ export async function getPsnIdentityFromNpsso(npsso: string): Promise<PsnIdentit
     accountId: trophySummary.accountId,
     onlineId: profile.onlineId,
     avatarUrl: pickLargestAvatar(profile.avatars),
+    trophySummary: {
+      level: Number(trophySummary.trophyLevel),
+      progressPercent: trophySummary.progress,
+      tier: trophySummary.tier,
+      earned: {
+        platinum: trophySummary.earnedTrophies.platinum,
+        gold: trophySummary.earnedTrophies.gold,
+        silver: trophySummary.earnedTrophies.silver,
+        bronze: trophySummary.earnedTrophies.bronze,
+      },
+    },
   };
 }

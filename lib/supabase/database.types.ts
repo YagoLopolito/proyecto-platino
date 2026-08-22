@@ -303,6 +303,13 @@ export type Database = {
           token_status: string
           updated_at: string
           user_id: string
+          earned_bronze: number | null
+          earned_gold: number | null
+          earned_platinum: number | null
+          earned_silver: number | null
+          trophy_level: number | null
+          trophy_progress: number | null
+          trophy_tier: number | null
         }
         Insert: {
           account_id: string
@@ -315,6 +322,13 @@ export type Database = {
           token_status?: string
           updated_at?: string
           user_id: string
+          earned_bronze?: number | null
+          earned_gold?: number | null
+          earned_platinum?: number | null
+          earned_silver?: number | null
+          trophy_level?: number | null
+          trophy_progress?: number | null
+          trophy_tier?: number | null
         }
         Update: {
           account_id?: string
@@ -327,6 +341,13 @@ export type Database = {
           token_status?: string
           updated_at?: string
           user_id?: string
+          earned_bronze?: number | null
+          earned_gold?: number | null
+          earned_platinum?: number | null
+          earned_silver?: number | null
+          trophy_level?: number | null
+          trophy_progress?: number | null
+          trophy_tier?: number | null
         }
         Relationships: [
           {
