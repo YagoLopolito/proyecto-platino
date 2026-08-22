@@ -132,6 +132,29 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   ocultan **derivándolos durante el render**, no con un `setState` dentro del effect (regla
   `react-hooks/set-state-in-effect`, ver Convenciones de código).
 
+## Amigos y feed "Jugados por amigos" (`friendships`, `public_profiles`)
+
+- La relación es **unidireccional y sin aceptación** (más "seguir" que "solicitud de amistad"):
+  el diario ya es público (`game_diary_entries` tiene `select using (true)`), así que agregar a
+  alguien no da acceso a nada nuevo — solo decide qué aparece en tu feed. Migración
+  `20260822010000_friends.sql`.
+- `public_profiles` es una vista **SECURITY DEFINER a propósito** (sin `security_invoker`, a
+  diferencia de `game_scores`/`get_library_trophy_stats`): expone `online_id`/`avatar_url` de
+  `psn_accounts`, cuya RLS es "solo el dueño". Lista **solo** columnas públicas — nunca
+  `npsso_encrypted`, `account_id` ni el email — y tiene `grant select` únicamente a
+  `authenticated` (`revoke all` para `anon`). Si se le agregan columnas, revisar eso.
+- `lib/friends/queries.ts` (server-only) tiene `getFriends` y `getFriendsDiaryFeed`;
+  `lib/friends/actions.ts` (Server Actions) tiene `searchUsers` (sin query lista a todos los
+  usuarios, con query filtra por PSN o `display_name`), `addFriend` (upsert, para que
+  re-agregar no falle con 23505) y `removeFriend`.
+- En el feed de amigos **no se muestra el badge de platino**: se deriva de `user_trophies`, que
+  es privado, así que desde la sesión del que mira no se puede saber.
+- La app todavía no tiene un lugar para editar `users.display_name`, así que un usuario sin
+  cuenta PSN conectada aparece como "Usuario sin nombre" en el buscador (`profileLabel` en
+  `lib/friends/constants.ts` prioriza el `online_id` de PSN).
+- `components/Modal.tsx` es el modal genérico compartido (Escape / ✕ / click afuera, bloquea el
+  scroll del body); lo usan "Marcar como terminado" y "Agregar amigo".
+
 ## `lib/covers/`: búsqueda de catálogo (`searchCatalogGames`)
 
 - Además de `findCoverUrl` (carátula única, ya existente), expone `searchCatalogGames(query)`

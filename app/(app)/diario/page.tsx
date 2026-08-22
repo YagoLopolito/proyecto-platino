@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserDiaryEntries } from "@/lib/diary/queries";
 import DiaryTimeline from "@/components/diary/DiaryTimeline";
 import MarkAsFinishedModal from "@/components/diary/MarkAsFinishedModal";
+import AddFriendModal from "@/components/friends/AddFriendModal";
+import { FriendsDiaryFeed } from "@/components/friends/FriendsDiaryFeed";
+import { getFriendsDiaryFeed } from "@/lib/friends/queries";
 import { ErrorState } from "@/components/ErrorState";
 
 export default async function DiaryPage({
@@ -21,7 +24,12 @@ export default async function DiaryPage({
     redirect("/login");
   }
 
-  const outcome = await getUserDiaryEntries(supabase, user.id);
+  // Las dos consultas no dependen entre sí (ver convención de Promise.all en
+  // CLAUDE.md, sección Performance).
+  const [outcome, friendsOutcome] = await Promise.all([
+    getUserDiaryEntries(supabase, user.id),
+    getFriendsDiaryFeed(supabase, user.id),
+  ]);
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
@@ -41,6 +49,29 @@ export default async function DiaryPage({
         ) : (
           <DiaryTimeline entries={outcome.entries} />
         )}
+
+        <section className="space-y-4 border-t border-zinc-800 pt-8">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold">Jugados por amigos</h2>
+              <p className="text-sm text-zinc-400">
+                Lo que terminaron los usuarios que agregaste, con sus reseñas.
+              </p>
+            </div>
+            <AddFriendModal />
+          </div>
+
+          {friendsOutcome.status === "error" ? (
+            <ErrorState
+              message={`No se pudo cargar el diario de tus amigos: ${friendsOutcome.message}`}
+            />
+          ) : (
+            <FriendsDiaryFeed
+              friends={friendsOutcome.friends}
+              entries={friendsOutcome.entries}
+            />
+          )}
+        </section>
       </div>
     </div>
   );
