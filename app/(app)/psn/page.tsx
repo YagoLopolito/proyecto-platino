@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ConnectPsnForm from "./ConnectPsnForm";
-import SyncButton from "./SyncButton";
+import SyncButton from "@/components/psn/SyncButton";
 import { SyncStatusBadge, type SyncTokenStatus } from "@/components/SyncStatusBadge";
 import { ErrorState } from "@/components/ErrorState";
 
@@ -53,7 +53,7 @@ export default async function PsnPage() {
               />
             )}
 
-            <SyncButton />
+            <SyncButton className="w-full" />
           </div>
         ) : (
           <p className="text-sm text-zinc-400">

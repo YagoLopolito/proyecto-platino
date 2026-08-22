@@ -10,7 +10,20 @@ type SyncMessage =
   | { kind: "expired"; text: string }
   | { kind: "error"; text: string };
 
-export default function SyncButton() {
+/**
+ * Dispara /api/psn/sync desde donde se lo monte (la página de PSN y la
+ * biblioteca) -- sincronizar no debería obligar a irse hasta /psn.
+ *
+ * `reconnectHref` cambia porque el form de reconexión vive en /psn: desde ahí
+ * alcanza el ancla local, desde otra página hay que navegar.
+ */
+export default function SyncButton({
+  className = "",
+  reconnectHref = "#reconectar-psn",
+}: {
+  className?: string;
+  reconnectHref?: string;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<SyncMessage | null>(null);
@@ -55,7 +68,7 @@ export default function SyncButton() {
 
   return (
     <div className="space-y-2">
-      <Button type="button" onClick={handleClick} disabled={pending} className="w-full">
+      <Button type="button" onClick={handleClick} disabled={pending} className={className}>
         {pending ? "Sincronizando..." : "Sincronizar ahora"}
       </Button>
 
@@ -65,10 +78,10 @@ export default function SyncButton() {
         <div className="space-y-1">
           <FormError>{message.text}</FormError>
           <a
-            href="#reconectar-psn"
+            href={reconnectHref}
             className="rounded text-sm text-blue-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
           >
-            Reconectar cuenta PSN ↓
+            {reconnectHref.startsWith("#") ? "Reconectar cuenta PSN ↓" : "Reconectar cuenta PSN"}
           </a>
         </div>
       )}
