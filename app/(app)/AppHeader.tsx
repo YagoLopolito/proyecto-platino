@@ -24,8 +24,10 @@ export default function AppHeader() {
         */}
       <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
         <Link href="/juegos" className="mr-auto text-sm font-semibold tracking-wide text-zinc-50">
-          <span className="text-accent">Platino</span>
-          <span className="text-accent-2">noob</span>
+          {/* "Platinoob": la "n" es compartida entre "Platino" y "noob", por
+              eso el corte de color va en Platin|oob y no en Platino|noob. */}
+          <span className="text-accent">Platin</span>
+          <span className="text-accent-2">oob</span>
         </Link>
 
         <nav
