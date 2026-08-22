@@ -109,7 +109,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
       <EmptyState
         title="Todavía no marcaste ningún juego como terminado."
         action={
-          <Link href="/diario/nuevo" className="text-blue-400 hover:underline">
+          <Link href="/diario?nuevo=1" className="text-blue-400 hover:underline">
             Marcar uno ahora
           </Link>
         }

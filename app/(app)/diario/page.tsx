@@ -1,11 +1,17 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUserDiaryEntries } from "@/lib/diary/queries";
 import DiaryTimeline from "@/components/diary/DiaryTimeline";
+import MarkAsFinishedModal from "@/components/diary/MarkAsFinishedModal";
 import { ErrorState } from "@/components/ErrorState";
 
-export default async function DiaryPage() {
+export default async function DiaryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nuevo?: string }>;
+}) {
+  // `?nuevo=1` abre el modal directo (links viejos a /diario/nuevo, empty state).
+  const { nuevo } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,12 +33,7 @@ export default async function DiaryPage() {
               Todas tus partidas terminadas, de la más reciente a la más vieja.
             </p>
           </div>
-          <Link
-            href="/diario/nuevo"
-            className="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
-          >
-            ✓ Marcar terminado
-          </Link>
+          <MarkAsFinishedModal defaultOpen={nuevo === "1"} />
         </div>
 
         {outcome.status === "error" ? (

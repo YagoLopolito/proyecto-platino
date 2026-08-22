@@ -8,9 +8,7 @@ const NAV_LINKS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/juegos", label: "Biblioteca" },
   { href: "/perfil", label: "Perfil" },
   { href: "/psn", label: "PSN" },
-  // exact: /diario no debe quedar activo cuando estás en /diario/nuevo.
-  { href: "/diario", label: "Diario", exact: true },
-  { href: "/diario/nuevo", label: "✓ Marcar terminado" },
+  { href: "/diario", label: "Diario" },
 ];
 
 export default function AppHeader() {
@@ -20,7 +18,7 @@ export default function AppHeader() {
     <header className="border-b border-zinc-800 bg-zinc-950">
       {/*
         * En mobile el header se parte en dos filas: arriba logo + "Cerrar sesión",
-        * abajo la nav a lo ancho y scrolleable horizontalmente (son 5 links: en
+        * abajo la nav a lo ancho y scrolleable horizontalmente (en
         * pantallas angostas no entran en la misma fila sin desbordar la página).
         * A partir de `sm` vuelve a ser una sola fila.
         */}
