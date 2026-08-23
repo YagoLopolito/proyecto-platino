@@ -71,8 +71,16 @@ export function GameDiarySection({
                     🏆 Platino {entry.platinumEarnedAt.slice(0, 10)}
                   </span>
                 )}
+                {entry.completedAt && (
+                  <span className="rounded-full border border-emerald-500/60 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] text-emerald-300">
+                    100% {entry.completedAt.slice(0, 10)}
+                  </span>
+                )}
                 {entry.source === "platinum_sync" && (
                   <span className="text-[11px] text-zinc-500">creada por el sync de PSN</span>
+                )}
+                {entry.source === "completion_sync" && (
+                  <span className="text-[11px] text-zinc-500">creada por el sync de Steam</span>
                 )}
               </div>
               {entry.review && <p className="mt-1 text-xs text-zinc-500">{entry.review}</p>}

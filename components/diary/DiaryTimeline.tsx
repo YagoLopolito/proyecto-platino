@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { DiaryTimelineEntry } from "@/lib/diary/queries";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
 import { PlatinumBadge } from "@/components/PlatinumBadge";
+import { CompletionBadge } from "@/components/CompletionBadge";
 import { EmptyState } from "@/components/EmptyState";
 import { text, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
@@ -225,6 +226,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium break-words text-zinc-100 sm:text-base">
                         {entry.gameName}
                         {entry.isPlatinum && <PlatinumBadge />}
+                        {entry.isCompleted && <CompletionBadge />}
                         {entry.playthroughNumber > 1 && (
                           <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">
                             Rejugada #{entry.playthroughNumber}

@@ -19,4 +19,5 @@ export {
   type SteamAchievement,
   type SteamAchievementsResult,
 } from "./achievements";
+export { buildSteamLoginUrl, verifySteamOpenIdResponse } from "./openid";
 export { syncSteamAchievementsForUser, type SteamSyncResult } from "./sync";

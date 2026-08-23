@@ -43,12 +43,11 @@ Decidido el 2026-08-23: **la misma conexión que hay con PSN, pero para Steam**,
 conviviendo. Ver `PRODUCT_SPEC.md` sección 12 para el diseño completo (endpoints, modelo de
 datos, navegación); acá van las reglas permanentes.
 
-**Estado actual: conexión y sync manual implementados** (issues #110-#114): `lib/steam/`,
-`steam_accounts`, `/api/steam/sync` y Configuración › Conexiones. Falta todavía el filtro
-por fuente en `/juegos` (`?fuente=steam`), las stats del perfil separadas por plataforma,
-el recorrido de `steam_accounts` en `/api/cron/sync`, el equivalente del hook de platino
-para el 100% de Steam (necesita un campo propio: **nunca** escribir `platinum_earned_at`
-con un logro de Steam) y la verificación por Steam OpenID.
+**Estado actual: fase completa** (issues #110-#119): `lib/steam/`, `steam_accounts`,
+`/api/steam/sync`, Configuración › Conexiones, filtro por fuente en `/juegos`
+(`?fuente=steam`), stats del perfil separadas por plataforma, `steam_accounts` en
+`/api/cron/sync`, diario al 100% (`game_diary_entries.completed_at`) y verificación por
+Steam OpenID.
 
 - **Toda llamada a la Steam Web API de tracking vive en `lib/steam/`**, misma regla de
   aislamiento que `lib/psn/` y `lib/ai/`. `lib/external-guides/steam.ts` se queda donde está:
@@ -83,6 +82,17 @@ con un logro de Steam) y la verificación por Steam OpenID.
 - El sync manual es `POST /api/steam/sync` (`app/api/steam/sync/route.ts`, `maxDuration = 300`),
   espejo del de PSN. Devuelve 409 con `reason: "private"` cuando el perfil está en privado: es
   el único estado que el usuario puede arreglar, y se distingue del 500 genérico a propósito.
+- **Verificación por Steam OpenID** (`lib/steam/openid.ts` + `app/api/steam/openid/route.ts`):
+  es OpenID 2.0, no OIDC, y no usa `STEAM_API_KEY`. Va como route handler y no como Server
+  Action porque el callback de Steam es una navegación (GET). El POST de
+  `check_authentication` de vuelta a Steam **no es opcional**: los parámetros de la URL los
+  puede escribir cualquiera, y sin revalidarlos "verificado" no significa nada. Si el SteamID
+  verificado no coincide con el que ya estaba cargado, se le avisa al usuario en vez de
+  pisarle la cuenta.
+- El equivalente del platino para el diario es `game_diary_entries.completed_at`
+  (`source = 'completion_sync'`), con la misma regla de ±14 días: `lib/diary/platinum.ts`
+  quedó parametrizado por condición en vez de duplicado. La fecha es la del **último logro**,
+  no la del sync.
 - El sync automático **reusa `/api/cron/sync`**, recorriendo también `steam_accounts`. No se
   agrega un segundo cron: el plan Hobby de Vercel limita la cantidad de cron jobs y el trabajo es
   el mismo con otra fuente.
@@ -386,10 +396,10 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
 7. Enlaces a guías externas curadas. ✅ campo (`external_url`/`source`) dentro de una guía + vista dedicada de "enlaces por juego" (`app/juegos/[id]/enlaces/`), Fase 9 completa.
 8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema + endpoint + UI del panel + guardado versionado en `ai_game_plans`. ✅ Fase 6 completa.
 9. Letterbox de juegos: diario público de partidas terminadas con rating, buscador de catálogo (RAWG) para loguear cualquier juego de PSN aunque no esté sincronizado. ✅ Fase 12 completa (issues #88-93: `game_diary_entries`/`game_scores`, `lib/covers` búsqueda multi-resultado, `lib/catalog/` alta de juegos, CRUD en `app/juegos/[id]/diario/`, timeline en `/diario`, score comunitario con umbral de 3 votos).
-10. Steam como segunda plataforma conectable (`lib/steam/`, `steam_accounts`, Configuración ›
-    Conexiones, `/api/steam/sync`). ⏳ En curso: conexión y sync manual listos (issues #110-#114);
-    falta el filtro de fuente en la biblioteca, las stats por plataforma en el perfil, el cron y
-    Steam OpenID. Ver la sección de Steam más arriba y `PRODUCT_SPEC.md` sección 12.
+10. Steam como segunda plataforma conectable. ✅ Fase 13 completa (issues #110-#119):
+    `lib/steam/`, `steam_accounts`, Configuración › Conexiones, `/api/steam/sync`, filtro de
+    fuente en la biblioteca, stats por plataforma, cron compartido, diario al 100% y Steam
+    OpenID. Ver la sección de Steam más arriba y `PRODUCT_SPEC.md` sección 12.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

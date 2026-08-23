@@ -175,3 +175,64 @@ export async function disconnectSteamAccount(
   revalidatePath("/juegos");
   return { error: null, success: "Cuenta de Steam desconectada." };
 }
+
+/**
+ * Reemplaza la cuenta de Steam conectada por la que el usuario acaba de
+ * verificar con OpenID.
+ *
+ * El SteamID llega del form, así que **no se confía en él**: se acepta sólo si
+ * coincide con el que la propia app dejó en la URL tras validar contra Steam...
+ * y como eso tampoco es una garantía del lado del servidor, la fila queda con
+ * `verified = false` salvo que se rehaga el flujo de OpenID. Reemplazar acá es
+ * la parte de "cambiar de cuenta"; verificarla es el flujo de /api/steam/openid.
+ */
+export async function replaceSteamAccount(
+  _prevState: ConnectionActionState,
+  formData: FormData,
+): Promise<ConnectionActionState> {
+  const steamId = String(formData.get("steamId") ?? "").trim();
+  if (!/^\d{17}$/.test(steamId)) {
+    return { error: "SteamID inválido." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Tenés que iniciar sesión." };
+  }
+
+  let profile;
+  try {
+    profile = await resolveSteamProfile(steamId);
+  } catch (cause) {
+    if (cause instanceof SteamProfileNotFoundError || cause instanceof SteamApiKeyMissingError) {
+      return { error: cause.message };
+    }
+    return { error: "No se pudo consultar Steam. Probá de nuevo en unos minutos." };
+  }
+
+  const { error } = await supabase.from("steam_accounts").upsert(
+    {
+      user_id: user.id,
+      steam_id64: profile.steamId64,
+      persona_name: profile.personaName,
+      avatar_url: profile.avatarUrl,
+      profile_visibility: profile.isProfilePublic ? "public" : "private",
+      verified: false,
+    },
+    { onConflict: "user_id" },
+  );
+
+  if (error) {
+    return { error: `No se pudo reemplazar la cuenta: ${error.message}` };
+  }
+
+  revalidatePath(CONNECTIONS_PATH);
+  revalidatePath("/perfil");
+  return {
+    error: null,
+    success: `Cuenta reemplazada por ${profile.personaName}. Verificala con Steam para confirmarla.`,
+  };
+}

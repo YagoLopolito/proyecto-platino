@@ -1,8 +1,9 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { findCoverUrl } from "@/lib/covers";
+import { findCoverUrl, findSteamCoverUrlByAppId } from "@/lib/covers";
 import { mapWithConcurrency } from "@/lib/psn/concurrency";
+import { reconcileCompletedDiaryEntry } from "@/lib/diary/platinum";
 import { fetchGameAchievements } from "./achievements";
 import { getSteamCallCount } from "./client";
 import { SteamApiError, SteamProfilePrivateError } from "./errors";
@@ -35,6 +36,19 @@ function rarityFromPercent(percent: number | null): number | null {
 
 type GameRow = { id: string; steamHasAchievements: boolean | null };
 
+const GAME_SELECT = "id, cover_url, steam_has_achievements";
+
+/**
+ * La portada sale de la CDN de Steam (`library_600x900`), no del
+ * `img_icon_url` que trae GetOwnedGames: ese es un ícono de 32x32 y se ve
+ * pixelado en cualquier tarjeta. RAWG queda como último recurso.
+ */
+async function resolveCoverUrl(appId: number, name: string): Promise<string | null> {
+  const steamCover = await findSteamCoverUrlByAppId(appId).catch(() => null);
+  if (steamCover) return steamCover;
+  return findCoverUrl(name).catch(() => null);
+}
+
 /**
  * Busca (o crea) la fila de `games` del appid. Un juego que está en PSN y en
  * Steam son dos filas distintas en v1: acá nunca se adopta una fila de PSN.
@@ -46,18 +60,28 @@ async function resolveGameRow(
 ): Promise<GameRow | null> {
   const { data: existing } = await supabase
     .from("games")
-    .select("id, steam_has_achievements")
+    .select(GAME_SELECT)
     .eq("steam_appid", game.appId)
     .maybeSingle();
 
   if (existing) {
+    // Backfill de las filas que se sincronizaron antes de que la portada
+    // saliera de la CDN de Steam: se quedaron sin cover_url y la UI caía al
+    // ícono de 32x32.
+    if (!existing.cover_url) {
+      const coverUrl = await resolveCoverUrl(game.appId, game.name);
+      if (coverUrl) {
+        await supabase
+          .from("games")
+          .update({ cover_url: coverUrl })
+          .eq("id", existing.id)
+          .eq("created_by", userId);
+      }
+    }
     return { id: existing.id, steamHasAchievements: existing.steam_has_achievements };
   }
 
-  // La carátula "oficial" de un juego de Steam ya viene de Steam; RAWG es un
-  // complemento para el resto de la ficha, nunca la fuente principal ni un
-  // bloqueante del sync.
-  const coverUrl = await findCoverUrl(game.name).catch(() => null);
+  const coverUrl = await resolveCoverUrl(game.appId, game.name);
 
   const { data: created } = await supabase
     .from("games")
@@ -70,7 +94,7 @@ async function resolveGameRow(
       created_by: userId,
       source: "steam",
     })
-    .select("id, steam_has_achievements")
+    .select(GAME_SELECT)
     .single();
 
   if (created) {
@@ -80,7 +104,7 @@ async function resolveGameRow(
   // Carrera con otro sync insertando el mismo appid: reintentar la lectura.
   const { data: retry } = await supabase
     .from("games")
-    .select("id, steam_has_achievements")
+    .select(GAME_SELECT)
     .eq("steam_appid", game.appId)
     .maybeSingle();
   return retry ? { id: retry.id, steamHasAchievements: retry.steam_has_achievements } : null;
@@ -98,7 +122,12 @@ async function syncTitle(
   await supabase
     .from("user_games")
     .upsert(
-      { user_id: userId, game_id: row.id, last_played_at: game.lastPlayedAt },
+      {
+        user_id: userId,
+        game_id: row.id,
+        last_played_at: game.lastPlayedAt,
+        playtime_minutes: game.playtimeMinutes,
+      },
       { onConflict: "user_id,game_id" },
     );
 
@@ -164,6 +193,27 @@ async function syncTitle(
 
   if (earnedRows.length > 0) {
     await supabase.from("user_trophies").upsert(earnedRows, { onConflict: "user_id,trophy_id" });
+  }
+
+  // Equivalente al platino para Steam: el juego al 100%. Va en try/catch igual
+  // que el hook de platino -- es un extra sobre el sync, si falla no puede
+  // tirar abajo la sincronización de logros del título.
+  const earned = result.achievements.filter((achievement) => achievement.earned);
+  if (earned.length === result.achievements.length && earned.length > 0) {
+    // La fecha es la del ÚLTIMO logro, no la del sync: si no, una biblioteca
+    // vieja quedaría toda fechada el día que la sincronizaste por primera vez.
+    const completedAt = earned
+      .map((achievement) => achievement.earnedAt)
+      .filter((date): date is string => date !== null)
+      .sort()
+      .at(-1);
+    if (completedAt) {
+      try {
+        await reconcileCompletedDiaryEntry(supabase, userId, row.id, completedAt);
+      } catch (cause) {
+        console.error(`[steam-sync] no se pudo actualizar el diario al 100% (${game.name}):`, cause);
+      }
+    }
   }
 
   return { titleSynced: true, achievements: result.achievements.length, withoutAchievements: false };
