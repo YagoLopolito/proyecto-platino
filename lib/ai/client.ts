@@ -6,8 +6,11 @@ import {
   buildAiPlanUserPrompt,
   TROPHY_HINT_SYSTEM_PROMPT,
   buildTrophyHintUserPrompt,
+  GAME_DESCRIPTION_SYSTEM_PROMPT,
+  buildGameDescriptionUserPrompt,
   type AiPlanInput,
   type TrophyHintInput,
+  type GameDescriptionInput,
 } from "./prompt";
 import { parseAiGamePlan, type AiGamePlan } from "./schema";
 
@@ -89,6 +92,37 @@ export async function generateTrophyHint(input: TrophyHintInput): Promise<string
     if (!text) {
       throw new Error("La respuesta del modelo no trajo contenido de texto.");
     }
+    return text;
+  } catch (cause) {
+    throw new AiProviderError(cause);
+  }
+}
+
+/** Respuesta convenida del modelo cuando no conoce el juego (ver prompt). */
+const UNKNOWN_GAME_MARKER = "NO_CONOZCO";
+
+/**
+ * Descripción corta del juego para la ficha del diario, cuando RAWG no tiene
+ * ninguna. Devuelve null si el modelo admite no conocer el juego -- preferimos
+ * quedarnos sin descripción antes que mostrar una inventada. El caller la
+ * guarda marcada como generada por IA, y la UI lo aclara al usuario.
+ */
+export async function generateGameDescription(
+  input: GameDescriptionInput,
+): Promise<string | null> {
+  const client = getClient();
+  try {
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      max_tokens: 300,
+      reasoning_effort: "low",
+      messages: [
+        { role: "system", content: GAME_DESCRIPTION_SYSTEM_PROMPT },
+        { role: "user", content: buildGameDescriptionUserPrompt(input) },
+      ],
+    });
+    const text = response.choices[0]?.message?.content?.trim();
+    if (!text || text.includes(UNKNOWN_GAME_MARKER)) return null;
     return text;
   } catch (cause) {
     throw new AiProviderError(cause);

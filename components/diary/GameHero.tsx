@@ -47,20 +47,28 @@ export function GameHero({
       )}
 
       <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:p-6">
-        {game.coverUrl ? (
-          <Image
-            src={game.coverUrl}
-            alt={game.name}
-            width={200}
-            height={300}
-            priority
-            className="h-auto w-32 shrink-0 self-start rounded-lg border border-zinc-700 object-cover shadow-lg sm:w-44"
-          />
-        ) : (
-          <div className="flex h-48 w-32 shrink-0 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800 text-xs text-zinc-500 sm:h-64 sm:w-44">
-            Sin carátula
-          </div>
-        )}
+        {/*
+          * Marco fijo con proporción de póster: las carátulas llegan en
+          * formatos muy distintos (los íconos de PSN son cuadrados, las de RAWG
+          * apaisadas), y sin un marco la imagen quedaba chica al lado del resto
+          * de la ficha. object-cover recorta para llenarlo siempre igual.
+          */}
+        <div className="relative aspect-[3/4] w-40 shrink-0 self-start overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800 shadow-lg sm:w-56">
+          {game.coverUrl ? (
+            <Image
+              src={game.coverUrl}
+              alt={game.name}
+              fill
+              priority
+              sizes="(max-width: 640px) 160px, 224px"
+              className="object-cover"
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
+              Sin carátula
+            </span>
+          )}
+        </div>
 
         <div className="min-w-0 flex-1 space-y-3">
           <div className="space-y-1">
@@ -72,15 +80,18 @@ export function GameHero({
 
           {description ? (
             isLong ? (
-              <details className="group text-sm leading-relaxed text-zinc-300">
-                <summary className="cursor-pointer list-none">
+              // flex-col + order: con el detalle abierto, el "Ver menos" tiene que
+              // quedar DEBAJO del texto, pero un <summary> siempre va primero en
+              // el DOM (es el disparador del <details>).
+              <details className="group flex flex-col text-sm leading-relaxed text-zinc-300">
+                <summary className="order-2 cursor-pointer list-none">
                   <span className="group-open:hidden">
                     {description.slice(0, DESCRIPTION_PREVIEW_CHARS).trimEnd()}…{" "}
                     <span className="text-blue-400">Ver más</span>
                   </span>
                   <span className="hidden text-blue-400 group-open:inline">Ver menos</span>
                 </summary>
-                <p className="mt-2 whitespace-pre-line group-open:block">{description}</p>
+                <p className="order-1 mb-1 whitespace-pre-line">{description}</p>
               </details>
             ) : (
               <p className="text-sm leading-relaxed text-zinc-300">{description}</p>
@@ -89,6 +100,10 @@ export function GameHero({
             <p className="text-sm text-zinc-500">
               Sin descripción disponible para este juego.
             </p>
+          )}
+
+          {description && game.descriptionSource === "ai" && (
+            <p className="text-xs text-zinc-500">✨ Descripción generada por IA.</p>
           )}
 
           <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">

@@ -299,3 +299,71 @@ export async function findGameDetailsByName(name: string): Promise<GameDetails |
   if (outcome.status !== "ok" || outcome.results.length === 0) return null;
   return fetchGameDetails(outcome.results[0].externalId);
 }
+
+/**
+ * Imagen apaisada tipo wallpaper para el fondo de la ficha ("hero" en la
+ * nomenclatura de SteamGridDB, 1920x620). Mejor que la captura de RAWG para
+ * ese uso: son arte oficial pensado justamente para banners. Devuelve null si
+ * falta la key, falla la red o el juego no tiene ninguna.
+ */
+export async function findHeroImageUrl(gameName: string): Promise<string | null> {
+  const apiKey = process.env.STEAMGRIDDB_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const searchUrl = new URL(
+      `https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(gameName)}`,
+    );
+    const searchResponse = await fetch(searchUrl, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!searchResponse.ok) return null;
+
+    const searchData: unknown = await searchResponse.json();
+    if (
+      typeof searchData !== "object" ||
+      searchData === null ||
+      !("data" in searchData) ||
+      !Array.isArray((searchData as { data: unknown }).data)
+    ) {
+      return null;
+    }
+
+    const firstGame = (searchData as { data: unknown[] }).data[0];
+    if (
+      typeof firstGame !== "object" ||
+      firstGame === null ||
+      typeof (firstGame as { id?: unknown }).id !== "number"
+    ) {
+      return null;
+    }
+
+    const heroUrl = new URL(
+      `https://www.steamgriddb.com/api/v2/heroes/game/${(firstGame as { id: number }).id}`,
+    );
+    heroUrl.searchParams.set("dimensions", "1920x620");
+    const heroResponse = await fetch(heroUrl, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!heroResponse.ok) return null;
+
+    const heroData: unknown = await heroResponse.json();
+    if (
+      typeof heroData !== "object" ||
+      heroData === null ||
+      !("data" in heroData) ||
+      !Array.isArray((heroData as { data: unknown }).data)
+    ) {
+      return null;
+    }
+
+    const first = (heroData as { data: unknown[] }).data[0];
+    if (typeof first !== "object" || first === null || !("url" in first)) return null;
+    const url = (first as { url: unknown }).url;
+    return typeof url === "string" && url.length > 0 ? url : null;
+  } catch {
+    return null;
+  }
+}

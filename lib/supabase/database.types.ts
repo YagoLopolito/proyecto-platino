@@ -194,6 +194,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          description_source: string | null
           developer: string | null
           external_catalog_id: string | null
           icon_url: string | null
@@ -211,6 +212,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          description_source?: string | null
           developer?: string | null
           external_catalog_id?: string | null
           icon_url?: string | null
@@ -228,6 +230,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          description_source?: string | null
           developer?: string | null
           external_catalog_id?: string | null
           icon_url?: string | null

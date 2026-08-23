@@ -1,7 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { fetchGameDetails, findGameDetailsByName } from "@/lib/covers";
+import { fetchGameDetails, findGameDetailsByName, findHeroImageUrl } from "@/lib/covers";
+import { generateGameDescription } from "@/lib/ai";
 
 export interface GameCardData {
   id: string;
@@ -10,6 +11,8 @@ export interface GameCardData {
   coverUrl: string | null;
   backgroundUrl: string | null;
   description: string | null;
+  /** "rawg" | "ai" | null -- la UI aclara cuando la descripción la generó el LLM. */
+  descriptionSource: string | null;
   developer: string | null;
   releaseYear: number | null;
 }
@@ -22,13 +25,14 @@ type GameRow = {
   icon_url: string | null;
   background_url: string | null;
   description: string | null;
+  description_source: string | null;
   developer: string | null;
   release_year: number | null;
   external_catalog_id: string | null;
 };
 
 export const GAME_CARD_COLUMNS =
-  "id, name, platform, cover_url, icon_url, background_url, description, developer, release_year, external_catalog_id";
+  "id, name, platform, cover_url, icon_url, background_url, description, description_source, developer, release_year, external_catalog_id";
 
 function toCardData(game: GameRow): GameCardData {
   return {
@@ -38,6 +42,7 @@ function toCardData(game: GameRow): GameCardData {
     coverUrl: game.cover_url ?? game.icon_url,
     backgroundUrl: game.background_url,
     description: game.description,
+    descriptionSource: game.description_source,
     developer: game.developer,
     releaseYear: game.release_year,
   };
@@ -59,37 +64,82 @@ export async function getGameCardData(
   game: GameRow,
 ): Promise<GameCardData> {
   const base = toCardData(game);
-  if (game.description !== null) return base;
+  // Los strings vacíos son la marca de "ya buscamos y no había nada": evitan
+  // repetir el fetch a RAWG/SteamGridDB/LLM en cada visita a la ficha.
+  const needsDescription = game.description === null;
+  const needsBackground = game.background_url === null;
+  if (!needsDescription && !needsBackground) return base;
 
   try {
-    const details = game.external_catalog_id
-      ? await fetchGameDetails(game.external_catalog_id)
-      : await findGameDetailsByName(game.name);
+    const [details, heroUrl] = await Promise.all([
+      needsDescription
+        ? game.external_catalog_id
+          ? fetchGameDetails(game.external_catalog_id)
+          : findGameDetailsByName(game.name)
+        : Promise.resolve(null),
+      needsBackground ? findHeroImageUrl(game.name) : Promise.resolve(null),
+    ]);
 
-    if (!details) {
-      // Marca "ya buscamos y RAWG no lo tiene" para no repetir el fetch en cada
-      // visita. La UI trata el string vacío igual que la ausencia de descripción.
-      await supabase.from("games").update({ description: "" }).eq("id", game.id);
-      return base;
+    // Wallpaper: primero el "hero" de SteamGridDB (arte apaisado hecho para
+    // banners), y si no hay, la imagen de RAWG.
+    const backgroundUrl = needsBackground
+      ? (heroUrl ?? details?.backgroundUrl ?? "")
+      : game.background_url;
+
+    let description = needsDescription ? (details?.description?.trim() ?? "") : game.description;
+    let descriptionSource = game.description_source;
+
+    if (needsDescription && description === "") {
+      // RAWG no tenía descripción: se genera una con el LLM y se guarda marcada
+      // como generada por IA. Si el modelo no conoce el juego o falla el
+      // proveedor, la ficha queda sin descripción (nunca inventamos en silencio).
+      try {
+        const generated = await generateGameDescription({
+          gameName: game.name,
+          platform: game.platform,
+          releaseYear: details?.releaseYear ?? game.release_year,
+          developer: details?.developer ?? game.developer,
+        });
+        if (generated) {
+          description = generated;
+          descriptionSource = "ai";
+        }
+      } catch (cause) {
+        // AiProviderError (falta la key, rate limit de Groq): no rompe la
+        // ficha, pero se loguea -- si todas las descripciones salen vacías,
+        // esto es lo que dice por qué.
+        console.error(`[game-details] falló la descripción por IA de "${game.name}":`, cause);
+      }
+    } else if (needsDescription && description !== "") {
+      descriptionSource = "rawg";
     }
 
-    const patch = {
-      description: details.description ?? "",
-      developer: details.developer,
-      release_year: details.releaseYear,
-      background_url: details.backgroundUrl,
-      ...(game.cover_url === null && details.coverUrl ? { cover_url: details.coverUrl } : {}),
-    };
-
-    await supabase.from("games").update(patch).eq("id", game.id);
+    await supabase
+      .from("games")
+      .update({
+        ...(needsDescription
+          ? {
+              description,
+              description_source: descriptionSource,
+              developer: details?.developer ?? game.developer,
+              release_year: details?.releaseYear ?? game.release_year,
+              ...(game.cover_url === null && details?.coverUrl
+                ? { cover_url: details.coverUrl }
+                : {}),
+            }
+          : {}),
+        ...(needsBackground ? { background_url: backgroundUrl } : {}),
+      })
+      .eq("id", game.id);
 
     return {
       ...base,
-      coverUrl: base.coverUrl ?? details.coverUrl,
-      backgroundUrl: details.backgroundUrl,
-      description: details.description,
-      developer: details.developer,
-      releaseYear: details.releaseYear,
+      coverUrl: base.coverUrl ?? details?.coverUrl ?? null,
+      backgroundUrl: backgroundUrl || null,
+      description: description || null,
+      descriptionSource,
+      developer: details?.developer ?? base.developer,
+      releaseYear: details?.releaseYear ?? base.releaseYear,
     };
   } catch {
     return base;

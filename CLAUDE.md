@@ -154,11 +154,18 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   descripción y distribución de valoraciones). Los datos externos salen de RAWG
   (`fetchGameDetails`/`findGameDetailsByName` en `lib/covers`) y se cachean en `games`
   (`description`, `developer`, `release_year`, `background_url`, migración
-  `20260822030000_games_catalog_details.sql`) la primera vez que alguien abre la ficha:
+  `20260822030000_games_catalog_details.sql`, más `description_source`) la primera vez que
+  alguien abre la ficha:
   `lib/catalog/details.ts` solo consulta RAWG si la fila todavía no los tiene, y guarda
   `description = ''` cuando RAWG no encuentra nada para no reintentar en cada visita. Si la
   RLS de `games` bloquea el update (el juego lo creó otro usuario), igual se muestran los
-  datos recién traídos.
+  datos recién traídos. Cuando RAWG no tiene descripción se genera una con Groq
+  (`generateGameDescription` en `lib/ai/`, prompt que responde `NO_CONOZCO` en vez de
+  inventar) y se guarda con `description_source = 'ai'`; la ficha lo aclara con "Descripción
+  generada por IA". El fondo tipo wallpaper sale del "hero" de SteamGridDB
+  (`findHeroImageUrl`) y cae a la imagen de RAWG si no hay. Todo opcional: sin
+  `RAWG_API_KEY`/`STEAMGRIDDB_API_KEY`/`AI_PROVIDER_API_KEY` la ficha se muestra igual, más
+  pelada.
 - El buscador de "Marcar como terminado" (`CatalogSearchCombobox`) dispara solo con debounce a
   partir de `MIN_QUERY_LENGTH` (`lib/catalog/constants.ts`, 3 caracteres) — la constante vive
   fuera de `lib/catalog/actions.ts` porque un módulo `"use server"` solo puede exportar
