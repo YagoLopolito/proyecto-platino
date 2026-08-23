@@ -189,41 +189,53 @@ export type Database = {
       }
       games: {
         Row: {
+          background_url: string | null
           cover_url: string | null
           created_at: string
           created_by: string | null
+          description: string | null
+          developer: string | null
           external_catalog_id: string | null
           icon_url: string | null
           id: string
           name: string
           np_comm_id: string | null
           platform: string | null
+          release_year: number | null
           source: string
           updated_at: string
         }
         Insert: {
+          background_url?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
+          developer?: string | null
           external_catalog_id?: string | null
           icon_url?: string | null
           id?: string
           name: string
           np_comm_id?: string | null
           platform?: string | null
+          release_year?: number | null
           source?: string
           updated_at?: string
         }
         Update: {
+          background_url?: string | null
           cover_url?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
+          developer?: string | null
           external_catalog_id?: string | null
           icon_url?: string | null
           id?: string
           name?: string
           np_comm_id?: string | null
           platform?: string | null
+          release_year?: number | null
           source?: string
           updated_at?: string
         }

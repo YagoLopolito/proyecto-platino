@@ -149,6 +149,16 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).
+- La ficha de diario de un juego (`/juegos/[id]/diario`) es la vista tipo Letterbox:
+  `components/diary/GameHero.tsx` (fondo, carátula grande, año/plataforma/desarrolladora,
+  descripción y distribución de valoraciones). Los datos externos salen de RAWG
+  (`fetchGameDetails`/`findGameDetailsByName` en `lib/covers`) y se cachean en `games`
+  (`description`, `developer`, `release_year`, `background_url`, migración
+  `20260822030000_games_catalog_details.sql`) la primera vez que alguien abre la ficha:
+  `lib/catalog/details.ts` solo consulta RAWG si la fila todavía no los tiene, y guarda
+  `description = ''` cuando RAWG no encuentra nada para no reintentar en cada visita. Si la
+  RLS de `games` bloquea el update (el juego lo creó otro usuario), igual se muestran los
+  datos recién traídos.
 - El buscador de "Marcar como terminado" (`CatalogSearchCombobox`) dispara solo con debounce a
   partir de `MIN_QUERY_LENGTH` (`lib/catalog/constants.ts`, 3 caracteres) — la constante vive
   fuera de `lib/catalog/actions.ts` porque un módulo `"use server"` solo puede exportar
