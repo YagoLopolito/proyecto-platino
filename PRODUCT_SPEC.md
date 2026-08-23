@@ -131,7 +131,14 @@ PSN_TOKEN_ENCRYPTION_KEY=
 AI_PROVIDER_API_KEY=
 RAWG_API_KEY=
 STEAMGRIDDB_API_KEY=
+STEAM_API_KEY=
+CRON_SECRET=
 ```
+
+`STEAM_API_KEY` hoy solo la usa `lib/external-guides/steam.ts`; con la conexión de
+Steam (sección 12) pasa a ser la credencial del sync de logros, y ahí deja de ser
+opcional para ese pilar. Es una key **de la app**, no del usuario: Steam no tiene
+equivalente al NPSSO, así que no hay secreto por usuario que cifrar.
 
 ## 10. Roadmap MVP → issues
 
@@ -189,6 +196,13 @@ Cada fase abajo se traduce 1:1 en un milestone de GitHub, y cada bullet en un is
 - Manejo de estados vacíos/loading/error en toda la app.
 - QA de flujo completo end-to-end (registro → conexión PSN → sync → guía → advisor IA).
 
+**Fase 13 — Steam como segunda plataforma** (post-MVP, ver sección 12)
+- `lib/steam/` — cliente de la Steam Web API (perfil, juegos, logros, rareza).
+- Migración `steam_accounts` + `games.steam_appid` + `source = 'steam'`.
+- `/configuracion/conexiones`: reemplaza a `/psn` como lugar para conectar cuentas, con PSN y Steam uno al lado del otro.
+- Sync manual y luego automático de logros de Steam (misma ruta de cron que PSN).
+- Filtro de fuente en la biblioteca (Todos / PSN / Steam).
+
 ## 11. Definition of Done (por issue)
 
 Un issue se considera terminado cuando:
@@ -197,6 +211,130 @@ Un issue se considera terminado cuando:
 - Las tablas nuevas tienen RLS si contienen datos de usuario.
 - Hay al menos un estado de error manejado explícitamente en la UI (no solo el happy path).
 - Se probó manualmente el flujo en local con datos reales (o mockeados si la fase es previa a tener sync funcionando).
+
+---
+
+## 12. Steam como segunda plataforma (decidido 2026-08-23)
+
+Objetivo: **la misma conexión que hoy hay con PSN, pero para Steam**. Un usuario puede tener
+una de las dos, las dos, o ninguna, y la app se comporta igual en todos los casos.
+
+### 12.1 Por qué Steam es más fácil que PSN (y en qué es más difícil)
+
+Al revés que Sony, **Steam sí tiene una Web API oficial y documentada**, con key gratis en
+`steamcommunity.com/dev/apikey` — es la misma `STEAM_API_KEY` que ya usa
+`lib/external-guides/steam.ts`. Endpoints que cubren el pilar de tracking:
+
+| Qué | Endpoint |
+| --- | --- |
+| Resolver un perfil desde su URL personalizada | `ISteamUser/ResolveVanityURL` |
+| Nombre y avatar de la cuenta | `ISteamUser/GetPlayerSummaries` |
+| Juegos que tiene y horas jugadas | `IPlayerService/GetOwnedGames` (con `include_appinfo=1`) |
+| Logros del usuario en un juego | `ISteamUserStats/GetPlayerAchievements` |
+| Catálogo de logros (nombre, descripción, ícono, ocultos) | `ISteamUserStats/GetSchemaForGame` |
+| Rareza (% global de cada logro) | `ISteamUserStats/GetGlobalAchievementPercentagesForApp` |
+
+Diferencias que sí complican, y que hay que resolver antes de escribir código:
+
+- **No hay secreto por usuario.** La key es de la app; el usuario solo aporta su SteamID64.
+  No hay nada que cifrar (adiós al equivalente de `PSN_TOKEN_ENCRYPTION_KEY`) y **nada que
+  expire**: el modo de falla no es "token vencido" sino "perfil en privado".
+- **El perfil tiene que ser público.** Con "Detalles del juego" en privado, `GetOwnedGames` y
+  `GetPlayerAchievements` devuelven vacío aunque la key sea válida. Ese es el estado a mostrar
+  en la UI, con instrucciones para cambiarlo, igual que hoy se avisa el NPSSO vencido.
+- **Cualquiera puede escribir cualquier SteamID.** Si solo se confía en lo que el usuario tipea,
+  se puede "conectar" el perfil de otro. Para el MVP de la fase alcanza (el diario ya es público
+  y no se expone nada privado), pero la forma correcta de verificarlo es
+  **Steam OpenID** ("Sign in through Steam", gratis, sin key): loguearse ahí devuelve el
+  SteamID64 verificado. Decisión: arrancar por SteamID/vanity tipeado y dejar OpenID como
+  siguiente paso, marcando la cuenta como no verificada mientras tanto.
+- **Steam no tiene platino ni tipos de logro.** Los logros son planos: no hay bronce/plata/oro,
+  no hay nivel de trofeos, no hay rareza por tipo. La UI de trofeos tiene que degradar:
+  un juego de Steam muestra `X/Y logros` y su porcentaje, sin desglose por tipo ni badge de
+  platino. El equivalente al platino es el **100% de logros**, y se muestra como un badge
+  propio ("Completado al 100%"), visualmente distinto del platino de PSN — no se mezclan,
+  porque no son lo mismo y el usuario lo va a notar.
+- **Rate limits reales**: 100.000 llamadas por día por key. Suena mucho, pero el sync pide
+  schema + logros **por juego**, y una biblioteca de Steam puede tener cientos de títulos.
+  Vale la misma disciplina que en PSN: concurrencia limitada, upserts en bloque por título, y
+  saltear juegos sin logros (`GetSchemaForGame` vacío) en vez de reintentarlos en cada sync.
+
+### 12.2 Aislamiento
+
+`lib/steam/` es a la Steam Web API lo que `lib/psn/` es a `psn-api`: **ninguna llamada a Steam
+vive fuera de esa carpeta**. Mismos módulos espejados (`auth.ts` resuelve/valida el perfil,
+`achievements.ts` trae logros y schema, `sync.ts` persiste, `concurrency.ts` se reusa el que ya
+existe). `lib/external-guides/steam.ts` se queda donde está: resuelve appids para guías, no para
+tracking, y no se mezclan.
+
+### 12.3 Modelo de datos
+
+- `steam_accounts` — espejo de `psn_accounts`: `user_id`, `steam_id64`, `persona_name`,
+  `avatar_url`, `profile_visibility` (`public` | `private` — el equivalente a `token_status`),
+  `verified` (false mientras no haya OpenID), `last_synced_at`. RLS: solo el dueño.
+  **Sin columna de secreto cifrado**, porque no hay secreto.
+- `games.source` suma `'steam'` (hoy: `manual` | `psn` | `catalog`), y `games.steam_appid`
+  (integer, nullable) junto al `np_comm_id` que ya existe para PSN.
+- `trophies` se reusa tal cual para los logros; `type` suma el valor `'achievement'`, que es el
+  único que van a tener las filas de Steam. Todo lo que hoy agrupa por tipo tiene que tratar
+  ese valor como "sin desglose", no como un cuarto color de trofeo.
+- `user_trophies` se reusa sin cambios (`unlocked_at` ya es lo único que importa).
+- **Un juego en las dos plataformas son dos filas de `games` en v1.** Deduplicar Bloodborne de
+  PSN con su versión de Steam es el mismo problema de matching que ya tiene `lib/catalog/dedup.ts`
+  con los remasters, y no vale la pena resolverlo antes de tener datos reales. El diario y las
+  capturas quedan colgando de la fila de la plataforma donde se jugó, que además es lo correcto.
+- `public_profiles` suma el nombre y avatar de Steam. **Cuidado**: es una vista SECURITY DEFINER,
+  así que listar columnas de más ahí expone datos; solo `persona_name` y `avatar_url`.
+
+### 12.4 Biblioteca: filtro por fuente
+
+`/juegos` gana un selector de fuente con tres estados: **Todos** (default), **PSN**, **Steam**.
+
+- Va como query param (`/juegos?fuente=steam`), no como estado de cliente: así el filtro es
+  linkeable, sobrevive al refresh y el filtrado ocurre en la query de Postgres en vez de traer
+  toda la biblioteca para esconder la mitad.
+- El selector **solo aparece si el usuario tiene las dos cuentas conectadas**. Con una sola
+  fuente, tres botones donde dos dan vacío es ruido.
+- Cada tarjeta de juego lleva el logo de su plataforma; en "Todos" es lo único que distingue de
+  dónde viene cada una.
+- Las stats globales del perfil se muestran **separadas por plataforma**, no sumadas: un platino
+  de PSN y un 100% de Steam no son la misma unidad y sumarlos da un número que no significa nada.
+  El total de juegos sí se puede sumar.
+
+### 12.5 Navegación: Configuración › Conexiones
+
+La ruta `/psn` deja de existir como sección propia — hoy es un tab de nivel superior llamado
+"PSN", lo cual ya no tiene sentido cuando hay dos plataformas.
+
+```
+/configuracion                 -> redirige a /configuracion/conexiones
+/configuracion/conexiones      -> conectar/desconectar PSN y Steam
+```
+
+- En el header, el tab "PSN" se reemplaza por **"Configuración"**.
+- Dentro de Configuración hay tabs internos; el primero (y único por ahora) es **"Conexiones"**.
+  Queda como el lugar natural para lo que hoy no tiene casa: editar `display_name`, preferencias
+  del diario, borrar la cuenta.
+- Conexiones muestra **una tarjeta por plataforma**, cada una con su estado (conectada /
+  no conectada / necesita atención), su último sync, su botón de sincronizar ahora y el de
+  desconectar. Las instrucciones específicas (cómo sacar el NPSSO, cómo poner el perfil de
+  Steam en público) viven adentro de cada tarjeta, no sueltas en la página.
+- `/psn` se mantiene como **redirect** a `/configuracion/conexiones`: hay links guardados y el
+  middleware ya la protege.
+- `middleware.ts` tiene un matcher acotado a mano (ver `CLAUDE.md`, sección de performance):
+  agregar `/configuracion` ahí es parte de la tarea, no un detalle — si se olvida, la ruta
+  queda sin la capa de sesión del middleware.
+
+### 12.6 Sync
+
+- Manual: `/api/steam/sync`, espejo de `/api/psn/sync` (API route y no Server Action por lo
+  mismo — declara `maxDuration`).
+- Automático: **la misma ruta de cron**, `/api/cron/sync`, recorriendo también `steam_accounts`.
+  No se agrega un segundo cron: el plan Hobby de Vercel limita la cantidad de cron jobs, y el
+  trabajo es el mismo con otra fuente. Si una cuenta falla no aborta el resto, igual que hoy.
+- El hook de platino del diario (`reconcilePlatinumDiaryEntry`) tiene su equivalente para el
+  100% de Steam. Misma regla de ±14 días, campo distinto: no escribir `platinum_earned_at` con
+  un logro de Steam, porque ese campo significa "platino de PSN" en toda la app.
 
 ---
 
