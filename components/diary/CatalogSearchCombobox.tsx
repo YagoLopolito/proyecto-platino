@@ -155,7 +155,7 @@ export default function CatalogSearchCombobox() {
             return (
               <li
                 key={key}
-                className="flex items-center justify-between gap-3 rounded border border-zinc-800 bg-zinc-900 p-3"
+                className="flex flex-col gap-3 rounded border border-zinc-800 bg-zinc-900 p-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <ResultCover url={result.coverUrl} name={result.name} />
@@ -177,7 +177,7 @@ export default function CatalogSearchCombobox() {
                   <Button
                     type="button"
                     variant="secondary"
-                    className="shrink-0 text-xs"
+                    className="w-full shrink-0 py-2 text-xs sm:w-auto sm:py-1.5"
                     onClick={() => selectLibraryGame(result.gameId!)}
                   >
                     Elegir
@@ -190,7 +190,7 @@ export default function CatalogSearchCombobox() {
                     <Button
                       type="button"
                       variant="secondary"
-                      className="shrink-0 text-xs"
+                      className="w-full shrink-0 py-2 text-xs sm:w-auto sm:py-1.5"
                       onClick={() => setPendingDuplicate(result)}
                     >
                       ¿Es el mismo juego?
@@ -200,12 +200,12 @@ export default function CatalogSearchCombobox() {
                 {result.source === "catalog" &&
                   result.possibleDuplicateOf &&
                   isDuplicatePending && (
-                    <div className="flex shrink-0 flex-col items-end gap-1 text-xs">
+                    <div className="flex w-full shrink-0 flex-col gap-1 text-xs sm:w-auto sm:items-end">
                       <p className="text-zinc-400">
                         ¿Es el mismo juego que &quot;{result.possibleDuplicateOf.name}&quot;?
                       </p>
                       <div className="flex gap-2">
-                        <form action={addAction}>
+                        <form action={addAction} className="flex-1 sm:flex-none">
                           <input type="hidden" name="externalId" value={result.externalId} />
                           <input type="hidden" name="name" value={result.name} />
                           <input type="hidden" name="coverUrl" value={result.coverUrl ?? ""} />
@@ -214,15 +214,20 @@ export default function CatalogSearchCombobox() {
                             name="confirmedDuplicateOfGameId"
                             value={result.possibleDuplicateOf.gameId}
                           />
-                          <Button type="submit" disabled={addPending} className="text-xs">
+                          <Button type="submit" disabled={addPending} className="w-full py-2 text-xs sm:py-1.5">
                             Sí, es el mismo
                           </Button>
                         </form>
-                        <form action={addAction}>
+                        <form action={addAction} className="flex-1 sm:flex-none">
                           <input type="hidden" name="externalId" value={result.externalId} />
                           <input type="hidden" name="name" value={result.name} />
                           <input type="hidden" name="coverUrl" value={result.coverUrl ?? ""} />
-                          <Button type="submit" variant="secondary" disabled={addPending} className="text-xs">
+                          <Button
+                            type="submit"
+                            variant="secondary"
+                            disabled={addPending}
+                            className="w-full py-2 text-xs sm:py-1.5"
+                          >
                             No, es distinto
                           </Button>
                         </form>
@@ -235,7 +240,11 @@ export default function CatalogSearchCombobox() {
                     <input type="hidden" name="externalId" value={result.externalId} />
                     <input type="hidden" name="name" value={result.name} />
                     <input type="hidden" name="coverUrl" value={result.coverUrl ?? ""} />
-                    <Button type="submit" disabled={addPending} className="shrink-0 text-xs">
+                    <Button
+                      type="submit"
+                      disabled={addPending}
+                      className="w-full shrink-0 py-2 text-xs sm:w-auto sm:py-1.5"
+                    >
                       {addPending ? "Agregando..." : "Agregar"}
                     </Button>
                   </form>

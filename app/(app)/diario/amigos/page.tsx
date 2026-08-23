@@ -23,19 +23,19 @@ export default async function FriendsActivityPage() {
   const outcome = await getFriendsDiaryFeed(supabase, user.id);
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 text-zinc-50 sm:py-12">
+    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold">Actividad de tus amigos</h1>
+            <h1 className="text-xl font-semibold sm:text-2xl">Actividad de tus amigos</h1>
             <p className="text-sm text-zinc-400">
               Todo lo que terminaron los usuarios que agregaste, con sus reseñas.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
             <Link
               href="/diario"
-              className="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
+              className="block rounded border border-zinc-700 px-3 py-2 text-center text-sm text-zinc-300 hover:border-zinc-500 sm:py-1.5"
             >
               ← Volver al diario
             </Link>

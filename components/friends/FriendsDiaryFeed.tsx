@@ -82,15 +82,15 @@ export function FriendsDiaryFeed({
                 </div>
               )}
               <div className="min-w-0 flex-1 space-y-1">
-                <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-100">
-                  <span className="truncate">{entry.gameName}</span>
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-zinc-100">
+                  <span className="min-w-0 break-words">{entry.gameName}</span>
                   {entry.playthroughNumber > 1 && (
                     <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">
                       Rejugada #{entry.playthroughNumber}
                     </span>
                   )}
                 </p>
-                <p className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
                   <span className="flex items-center gap-1.5 text-zinc-400">
                     <FriendAvatar url={entry.author.avatarUrl} name={author} size={20} />
                     {author}
@@ -100,7 +100,7 @@ export function FriendsDiaryFeed({
                   <StarRatingDisplay rating={entry.rating} />
                 </p>
                 {entry.review && (
-                  <p className="line-clamp-3 whitespace-pre-line text-xs leading-relaxed text-zinc-400">
+                  <p className="line-clamp-3 whitespace-pre-line break-words text-xs leading-relaxed text-zinc-400">
                     {entry.review}
                   </p>
                 )}

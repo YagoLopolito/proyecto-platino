@@ -15,7 +15,12 @@ export default function MarkAsFinishedModal({ defaultOpen = false }: { defaultOp
 
   return (
     <>
-      <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => setOpen(true)}
+        className="w-full py-2 sm:w-auto sm:py-1.5"
+      >
         ✓ Marcar terminado
       </Button>
 

@@ -56,13 +56,18 @@ export default async function DiarySummaryPage({
 
   return (
     <PageShell>
-      <nav className="flex flex-wrap gap-2" aria-label="Elegir año">
+      {/* Los años scrollean horizontalmente en mobile en vez de partirse en
+          varias filas (mismo patrón que la nav del header). */}
+      <nav
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
+        aria-label="Elegir año"
+      >
         {years.map((option) => (
           <Link
             key={option}
             href={`/diario/resumen?anio=${option}`}
             aria-current={option === year ? "page" : undefined}
-            className={`rounded border px-3 py-1.5 text-sm ${
+            className={`shrink-0 rounded border px-3 py-1.5 text-sm ${
               option === year
                 ? "border-blue-600 bg-blue-900/30 text-blue-300"
                 : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
@@ -99,14 +104,17 @@ export default async function DiarySummaryPage({
             {summary.topRated.map((entry) => (
               <li
                 key={entry.id}
-                className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3"
+                className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 sm:items-center"
               >
                 <Cover imageUrl={entry.imageUrl} name={entry.gameName} />
                 <div className="min-w-0 flex-1">
-                  <Link href={`/juegos/${entry.gameId}`} className="truncate font-medium hover:underline">
+                  <Link
+                    href={`/juegos/${entry.gameId}`}
+                    className="block text-sm font-medium break-words hover:underline sm:text-base"
+                  >
                     {entry.gameName}
                   </Link>
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
                     <StarRatingDisplay rating={entry.rating} />
                     <span>{entry.finishedOn}</span>
                     {entry.isPlatinum && <span>🏆 Platino</span>}
@@ -125,7 +133,7 @@ export default async function DiarySummaryPage({
 
         <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
           <p className="text-xs text-zinc-500">Juegos terminados por mes</p>
-          <ul className="mt-3 flex h-28 items-end gap-1">
+          <ul className="mt-3 flex h-28 items-end gap-0.5 sm:gap-1">
             {advanced.monthlyCounts.map((count, index) => {
               const max = Math.max(1, ...advanced.monthlyCounts);
               return (
@@ -136,7 +144,9 @@ export default async function DiarySummaryPage({
                     style={{ height: `${(count / max) * 72}px` }}
                     title={`${MONTH_NAMES[index]}: ${count}`}
                   />
-                  <span className="text-[10px] text-zinc-600">{MONTH_NAMES[index].slice(0, 3)}</span>
+                  <span className="text-[9px] text-zinc-600 sm:text-[10px]">
+                    {MONTH_NAMES[index].slice(0, 3)}
+                  </span>
                 </li>
               );
             })}
@@ -219,18 +229,18 @@ export default async function DiarySummaryPage({
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 text-zinc-50 sm:py-16">
-      <div className="mx-auto w-full max-w-5xl space-y-8">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-16">
+      <div className="mx-auto w-full max-w-5xl space-y-6 sm:space-y-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold">Resumen del diario</h1>
+            <h1 className="text-xl font-semibold sm:text-2xl">Resumen del diario</h1>
             <p className="text-sm text-zinc-400">
               Tus partidas terminadas, mes a mes y con el balance del año.
             </p>
           </div>
           <Link
             href="/diario"
-            className="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
+            className="block rounded border border-zinc-700 px-3 py-2 text-center text-sm text-zinc-300 hover:border-zinc-500 sm:py-1.5"
           >
             ← Volver al diario
           </Link>
@@ -245,7 +255,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
       <p className="text-xs text-zinc-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
+      <p className="mt-1 text-base font-semibold break-words sm:text-lg">{value}</p>
     </div>
   );
 }

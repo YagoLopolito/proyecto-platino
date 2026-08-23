@@ -117,12 +117,15 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
     );
   }
 
+  // En mobile los tres filtros van uno por fila y a ancho completo: con
+  // `flex-1` en una fila de 375px quedaban de ~100px y el texto de la opción
+  // elegida se cortaba.
   const selectClass =
-    "min-w-0 max-w-full flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 sm:flex-none";
+    "w-full min-w-0 rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 sm:w-auto sm:flex-1 md:flex-none";
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <label className="sr-only" htmlFor="diary-filter-year">
           Filtrar por año
         </label>
@@ -196,24 +199,30 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                 <li key={entry.id}>
                   <Link
                     href={`/juegos/${entry.gameId}/diario`}
-                    className="flex items-start gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4 hover:border-zinc-600"
+                    className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 hover:border-zinc-600 sm:gap-4 sm:p-4"
                   >
-                    <span className="w-7 shrink-0 text-center text-base text-zinc-500">{day}</span>
+                    <span className="w-5 shrink-0 text-center text-sm text-zinc-500 sm:w-7 sm:text-base">
+                      {day}
+                    </span>
+                    {/* La carátula achica en mobile: a 96px de alto se comía
+                        el ancho del texto en pantallas de 360-375px. */}
                     {entry.imageUrl ? (
                       <Image
                         src={entry.imageUrl}
                         alt={entry.gameName}
                         width={72}
                         height={96}
-                        className="h-24 w-18 shrink-0 rounded object-cover"
+                        className="h-[72px] w-[54px] shrink-0 rounded object-cover sm:h-24 sm:w-18"
                       />
                     ) : (
-                      <div className="flex h-24 w-18 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+                      <div className="flex h-[72px] w-[54px] shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500 sm:h-24 sm:w-18">
                         Sin img
                       </div>
                     )}
                     <div className="min-w-0 flex-1 space-y-1">
-                      <p className="flex flex-wrap items-center gap-2 truncate text-base font-medium text-zinc-100">
+                      {/* `truncate` no funciona en un contenedor flex-wrap y
+                          además cortaba los badges: se corta por palabra. */}
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium break-words text-zinc-100 sm:text-base">
                         {entry.gameName}
                         {entry.isPlatinum && <PlatinumBadge />}
                         {entry.playthroughNumber > 1 && (
@@ -222,7 +231,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                           </span>
                         )}
                       </p>
-                      <p className="flex items-center gap-2 text-sm text-zinc-500">
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500 sm:text-sm">
                         {entry.platform && <span>{entry.platform}</span>}
                         <StarRatingDisplay rating={entry.rating} />
                       </p>
@@ -230,7 +239,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                         // Recortada a 3 líneas: la idea es ver de un vistazo qué
                         // dijiste de esa partida; el texto completo está en el
                         // diario del juego, a un click de acá.
-                        <p className="line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-zinc-400">
+                        <p className="line-clamp-3 whitespace-pre-line text-xs leading-relaxed break-words text-zinc-400 sm:text-sm">
                           {entry.review}
                         </p>
                       )}
