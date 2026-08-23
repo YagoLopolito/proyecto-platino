@@ -1,0 +1,42 @@
+/**
+ * Identificadores de corrida. Todo lo que la suite escribe en la base real
+ * lleva estos prefijos para que el teardown pueda limpiarlo sin tocar los
+ * datos reales del usuario (TESTING_PRD.md seccion 3.3).
+ */
+
+/** Prefijo de todo `np_comm_id` creado por los tests. */
+export const E2E_GAME_PREFIX = "E2E-";
+
+/** Prefijo visible de todo `games.title` creado por los tests. */
+export const E2E_TITLE_PREFIX = "[E2E]";
+
+/** Dominio reservado por RFC 2606: nunca sale un mail real. */
+export const E2E_EMAIL_DOMAIN = "proyecto-platino.test";
+
+/**
+ * Id unico de esta corrida. Se propaga a los workers por env var para que
+ * todos los procesos de Playwright compartan el mismo, y el teardown pueda
+ * limpiar exactamente lo que creo esta corrida.
+ */
+export function getRunId(): string {
+  const existing = process.env.E2E_RUN_ID;
+  if (existing) return existing;
+  const generated = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  process.env.E2E_RUN_ID = generated;
+  return generated;
+}
+
+export function testEmail(suffix: string): string {
+  return `e2e+${getRunId()}-${suffix}@${E2E_EMAIL_DOMAIN}`;
+}
+
+/** Password de los usuarios de test. No protege nada: las cuentas se borran al terminar. */
+export const TEST_PASSWORD = "e2e-Platino-2026!";
+
+export function testGameCommId(n: number): string {
+  return `${E2E_GAME_PREFIX}${getRunId()}-${n}`;
+}
+
+export function testGameTitle(name: string): string {
+  return `${E2E_TITLE_PREFIX} ${name}`;
+}

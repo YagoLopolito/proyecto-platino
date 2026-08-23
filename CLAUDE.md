@@ -238,6 +238,35 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   cierre) y vincular el PR correspondiente al terminar el trabajo — no dejar el issue
   desactualizado respecto al estado real del código.
 
+## Testing: regla obligatoria para todo cambio
+
+**Toda funcionalidad nueva o cambio de comportamiento entra al repo con sus tests
+automáticos, y esos tests corren en GitHub Actions al abrir el PR.** No es opcional ni se
+deja "para después": un PR sin tests para lo que agrega está incompleto.
+
+- **Qué escribir**: tests E2E con Playwright siguiendo `TESTING_PRD.md` al pie de la letra —
+  estructura de carpetas (`e2e/specs/`), prioridad de selectores (rol accesible → label →
+  `data-testid` como último recurso), cero `waitForTimeout`, y el título del test arrancando
+  con el ID del caso de la matriz (`GUIDE-05: ...`). Si el cambio no encaja en ningún caso
+  existente, **primero se agrega la fila a la matriz de `TESTING_PRD.md`** y recién después
+  se escribe el test.
+- **Dónde corren**: `.github/workflows/e2e.yml` ya dispara la suite en cada `pull_request`.
+  Si el cambio necesita un secret, una variable de entorno o un paso nuevo en CI, se agrega
+  al workflow **en el mismo PR** — un test que solo pasa en local no cuenta como cubierto.
+- **Mocks, no red real**: las integraciones externas (PSN, Groq, RAWG, SteamGridDB, Steam) se
+  mockean con el interruptor `E2E_MOCKS=1`, que se lee **solo dentro de `lib/**`**, nunca en
+  componentes, páginas ni Server Actions. Sony bloquea el intercambio de NPSSO desde IPs de
+  datacenter, así que en CI un NPSSO real no funciona nunca — no intentar ese camino. La
+  verificación contra las APIs reales va etiquetada `@live` y se corre a mano
+  (`npm run e2e:live`); un `@live` en rojo se investiga, pero no bloquea el merge.
+- **Los datos de test se limpian solos**: la suite escribe en el proyecto Supabase real, así
+  que todo lo que crea lleva prefijo (`[E2E]` / `E2E-%`) y lo borra el teardown. Ningún test
+  puede tocar datos preexistentes, asumir un `game_id` fijo ni depender del estado que dejó
+  otro test.
+- **Un `data-testid` es un cambio de producción**: va en el mismo PR que el test que lo usa,
+  nunca por adelantado, y se registra en la tabla de `TESTING_PRD.md` sección 7.5.
+- **Antes de pedir review**: `npx tsc --noEmit`, `npm run lint` y `npm run e2e` en verde.
+
 ## Convenciones de código
 
 - TypeScript estricto, sin `any` salvo en boundaries de librerías externas.
@@ -283,3 +312,13 @@ CRON_SECRET=
 - `STEAMGRIDDB_API_KEY`: opcional. Fallback de `lib/covers` cuando RAWG no encuentra la carátula (o falta `RAWG_API_KEY`). Sin ninguna de las dos, el sync sigue funcionando igual con los íconos que trae PSN.
 - `STEAM_API_KEY`: opcional, gratis en steamcommunity.com/dev/apikey. Sin ella, `lib/external-guides/steam.ts` no trae guías de Steam Community — los links de búsqueda a PowerPyx/PSNProfiles/TrueTrophies (`site-search.ts`) siguen funcionando igual.
 - `CRON_SECRET`: requerida para que `/api/cron/sync` acepte invocaciones. Vercel la agrega sola como header en las llamadas que dispara desde `vercel.json` si está seteada en el proyecto — sin ella el cron queda deshabilitado (401 siempre) pero el sync manual (`/api/psn/sync`) no se ve afectado.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

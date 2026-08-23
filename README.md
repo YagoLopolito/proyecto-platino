@@ -34,3 +34,27 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Tests end-to-end (Playwright)
+
+La estrategia completa, la matriz de casos y las convenciones están en
+[`TESTING_PRD.md`](TESTING_PRD.md). Resumen operativo:
+
+```bash
+cp .env.example .env.test.local   # completar las claves de Supabase
+npm run e2e                       # suite determinista, con mocks
+```
+
+| Comando | Qué hace |
+| --- | --- |
+| `npm run e2e` | Suite completa headless, con `E2E_MOCKS=1` |
+| `npm run e2e:ui` | Modo UI de Playwright, para desarrollar tests |
+| `npm run e2e:headed` | Con browser visible |
+| `npm run e2e:live` | Solo los `@live`, contra PSN/Groq/RAWG reales |
+| `npm run e2e:smoke` | Smoke contra `PLAYWRIGHT_BASE_URL` |
+| `npm run e2e:report` | Abre el último reporte HTML |
+
+Los tests corren contra el proyecto Supabase real con usuarios descartables
+(`e2e+...@proyecto-platino.test`) y filas de catálogo prefijadas `[E2E]`, que el
+teardown borra siempre. Para dejar los datos y poder inspeccionarlos,
+`E2E_KEEP_DATA=1`.
