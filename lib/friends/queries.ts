@@ -70,7 +70,7 @@ export async function getFriendsDiaryFeed(
   const { data, error } = await supabase
     .from("game_diary_entries")
     .select(
-      "id, user_id, game_id, playthrough_number, rating, review, finished_on, games (id, name, platform, cover_url, icon_url)",
+      "id, user_id, game_id, playthrough_number, rating, review, finished_on, completed_at, games (id, name, platform, cover_url, icon_url)",
     )
     .in(
       "user_id",
@@ -107,6 +107,9 @@ export async function getFriendsDiaryFeed(
           // la entrada, y `user_trophies` es privado: en el feed de amigos no
           // se puede saber, así que nunca se muestra.
           isPlatinum: false,
+          // El 100% de Steam sí se puede: no se deriva de trofeos privados,
+          // vive en la propia entrada de diario, que es pública.
+          isCompleted: row.completed_at !== null,
           author: friendsById.get(row.user_id)!,
         };
       }),

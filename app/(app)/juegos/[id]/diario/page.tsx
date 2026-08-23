@@ -41,7 +41,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
       supabase
         .from("game_diary_entries")
         .select(
-          "id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at",
+          "id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at, completed_at",
         )
         .eq("game_id", gameId)
         .order("finished_on", { ascending: false }),
@@ -115,6 +115,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
                     </span>
                     <StarRatingDisplay rating={entry.rating} />
                     {entry.platinum_earned_at && <span title="Platinado">🏆</span>}
+                    {entry.completed_at && <span title="Completado al 100%">💯</span>}
                   </span>
                   {entry.review && (
                     <p className="mt-1 whitespace-pre-line break-words text-xs text-zinc-500">

@@ -216,12 +216,10 @@ Un issue se considera terminado cuando:
 
 ## 12. Steam como segunda plataforma (decidido 2026-08-23)
 
-> **Estado**: implementados los issues #110-#114 — `steam_accounts` + `games.steam_appid` +
-> `trophies.type = 'achievement'` (12.3), `lib/steam/` (12.2), conectar/desconectar por
-> SteamID o vanity URL, `/api/steam/sync` (12.6, sync manual) y Configuración › Conexiones
-> (12.5). **Pendiente**: el filtro por fuente de 12.4, las stats del perfil separadas por
-> plataforma, el recorrido de `steam_accounts` en el cron, el equivalente del hook de
-> platino para el 100%, y Steam OpenID.
+> **Estado**: fase completa (issues #110-#119). Todo lo de esta sección está implementado:
+> modelo de datos (12.3), `lib/steam/` (12.2), conectar/desconectar y verificar con OpenID,
+> `/api/steam/sync` y el cron compartido (12.6), filtro por fuente y stats separadas (12.4)
+> y Configuración › Conexiones (12.5).
 
 Objetivo: **la misma conexión que hoy hay con PSN, pero para Steam**. Un usuario puede tener
 una de las dos, las dos, o ninguna, y la app se comporta igual en todos los casos.

@@ -94,6 +94,7 @@ export type Database = {
       }
       game_diary_entries: {
         Row: {
+          completed_at: string | null
           created_at: string
           finished_on: string
           game_id: string
@@ -107,6 +108,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           finished_on: string
           game_id: string
@@ -120,6 +122,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           finished_on?: string
           game_id?: string
@@ -160,6 +163,7 @@ export type Database = {
         }
         Insert: {
           caption?: string | null
+          completed_at?: string | null
           created_at?: string
           game_id: string
           id?: string
@@ -168,6 +172,7 @@ export type Database = {
         }
         Update: {
           caption?: string | null
+          completed_at?: string | null
           created_at?: string
           game_id?: string
           id?: string

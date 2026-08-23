@@ -1,8 +1,8 @@
 import { test, expect } from "../fixtures/test";
 
 /**
- * Fase 13: conexión con Steam y sync de logros (issues #110-#114).
- * Casos STEAM-01..07 de TESTING_PRD.md sección 6.14.
+ * Fase 13: Steam como segunda plataforma (issues #110-#119).
+ * Casos STEAM-01..10 de TESTING_PRD.md sección 6.14.
  *
  * Toda la Steam Web API está mockeada por `E2E_MOCKS=1` (lib/steam/mocks.ts):
  * no sale una sola request real, y los juegos que crea el sync se borran en el
@@ -162,6 +162,144 @@ test.describe("Steam", () => {
       .eq("user_id", users.userA.id)
       .single();
     expect(data?.profile_visibility).toBe("private");
+  });
+
+  test("STEAM-08: un juego al 100% crea su entrada de diario, sin tocar el platino", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    await connectSteam(page, VANITY_PUBLIC);
+    const steamCard = page.getByRole("region", { name: "Steam" });
+    await steamCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
+    await expect(steamCard.getByRole("status")).toContainText(/Sincronizado/i);
+
+    // El juego mockeado tiene 1 de 2 logros: NO está al 100%, así que no
+    // debería haber entrada de diario todavía.
+    const { data: sinCompletar } = await supabase
+      .from("game_diary_entries")
+      .select("id")
+      .eq("user_id", users.userA.id)
+      .eq("source", "completion_sync");
+    expect(sinCompletar).toHaveLength(0);
+
+    // Se desbloquea el logro que faltaba y se vuelve a sincronizar.
+    const { data: game } = await supabase
+      .from("games")
+      .select("id")
+      .eq("steam_appid", 999_000_001)
+      .single();
+    const { data: trophies } = await supabase
+      .from("trophies")
+      .select("id")
+      .eq("game_id", game!.id);
+    await supabase.from("user_trophies").upsert(
+      (trophies ?? []).map((trophy) => ({
+        user_id: users.userA.id,
+        trophy_id: trophy.id,
+        unlocked_at: "2026-01-15T12:00:00.000Z",
+      })),
+      { onConflict: "user_id,trophy_id" },
+    );
+
+    await page.goto("/diario");
+    await page.getByRole("button", { name: /Importar mis platinos/i }).click();
+
+    const { data: entries } = await supabase
+      .from("game_diary_entries")
+      .select("completed_at, platinum_earned_at, source, finished_on")
+      .eq("user_id", users.userA.id)
+      .eq("game_id", game!.id);
+
+    expect(entries).toHaveLength(1);
+    expect(entries![0].source).toBe("completion_sync");
+    expect(entries![0].completed_at).not.toBeNull();
+    // El 100% de Steam NUNCA escribe el campo del platino de PSN.
+    expect(entries![0].platinum_earned_at).toBeNull();
+    // La fecha es la del último logro, no la del sync.
+    expect(entries![0].finished_on).toBe("2026-01-15");
+  });
+
+  test("STEAM-09: una respuesta de OpenID falsificada no verifica la cuenta", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    await connectSteam(page, VANITY_PUBLIC);
+
+    // Los parámetros de la URL de vuelta los puede escribir cualquiera: sin la
+    // revalidación contra Steam, esto alcanzaría para marcarse como verificado.
+    await page.goto(
+      "/api/steam/openid?openid.mode=id_res" +
+        "&openid.claimed_id=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F76561199000000001" +
+        "&openid.sig=firma-falsificada",
+    );
+    await expect(page).toHaveURL(/steam=invalido/);
+
+    const { data } = await supabase
+      .from("steam_accounts")
+      .select("verified")
+      .eq("user_id", users.userA.id)
+      .single();
+    expect(data?.verified).toBe(false);
+  });
+
+  test("STEAM-10: una respuesta de OpenID válida marca la cuenta como verificada", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    await connectSteam(page, VANITY_PUBLIC);
+
+    await page.goto(
+      "/api/steam/openid?openid.mode=id_res" +
+        "&openid.claimed_id=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F76561199000000001" +
+        "&openid.sig=e2e-firma-valida",
+    );
+    await expect(page).toHaveURL(/steam=verificada/);
+
+    const steamCard = page.getByRole("region", { name: "Steam" });
+    await expect(steamCard.getByText(/Cuenta verificada con Steam/i)).toBeVisible();
+
+    const { data } = await supabase
+      .from("steam_accounts")
+      .select("verified")
+      .eq("user_id", users.userA.id)
+      .single();
+    expect(data?.verified).toBe(true);
+  });
+
+  test("STEAM-11: el filtro de fuente solo aparece con las dos cuentas conectadas", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    await connectSteam(page, VANITY_PUBLIC);
+
+    // Con una sola plataforma el selector es ruido: dos de los tres botones
+    // darían vacío siempre.
+    await page.goto("/juegos");
+    await expect(page.getByRole("navigation", { name: /Filtrar por plataforma/i })).toHaveCount(0);
+
+    await supabase.from("psn_accounts").insert({
+      user_id: users.userA.id,
+      online_id: "[E2E] PSN",
+      account_id: "e2e-account",
+      npsso_encrypted: "e2e",
+    });
+
+    await page.goto("/juegos");
+    const filtro = page.getByRole("navigation", { name: /Filtrar por plataforma/i });
+    await expect(filtro).toBeVisible();
+
+    // Un valor inválido cae a "Todos" en vez de romper.
+    await page.goto("/juegos?fuente=nintendo");
+    await expect(page.getByRole("link", { name: "Todos", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    await supabase.from("psn_accounts").delete().eq("user_id", users.userA.id);
   });
 
   test("STEAM-07: desconectar borra la cuenta y deja los juegos", async ({

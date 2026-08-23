@@ -26,6 +26,7 @@ export default function EditDiaryEntryForm({
     finished_on: string;
     source?: string;
     platinum_earned_at?: string | null;
+    completed_at?: string | null;
   };
 }) {
   const [editing, setEditing] = useState(false);
@@ -53,11 +54,17 @@ export default function EditDiaryEntryForm({
                 🏆 Platinado
               </span>
             )}
+            {entry.completed_at && (
+              <span className="rounded-full border border-emerald-500/60 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] text-emerald-300">
+                100% completado
+              </span>
+            )}
           </p>
           {entry.review && (
             <p className="whitespace-pre-line break-words text-xs text-zinc-500">{entry.review}</p>
           )}
-          {entry.source === "platinum_sync" && entry.rating === null && (
+          {(entry.source === "platinum_sync" || entry.source === "completion_sync") &&
+            entry.rating === null && (
             <p className="text-xs text-zinc-500">
               Creada automáticamente al detectar el platino en PSN. Editala para puntuarla y
               reseñarla.

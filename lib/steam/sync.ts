@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { findCoverUrl, findSteamCoverUrlByAppId } from "@/lib/covers";
 import { mapWithConcurrency } from "@/lib/psn/concurrency";
+import { reconcileCompletedDiaryEntry } from "@/lib/diary/platinum";
 import { fetchGameAchievements } from "./achievements";
 import { getSteamCallCount } from "./client";
 import { SteamApiError, SteamProfilePrivateError } from "./errors";
@@ -192,6 +193,27 @@ async function syncTitle(
 
   if (earnedRows.length > 0) {
     await supabase.from("user_trophies").upsert(earnedRows, { onConflict: "user_id,trophy_id" });
+  }
+
+  // Equivalente al platino para Steam: el juego al 100%. Va en try/catch igual
+  // que el hook de platino -- es un extra sobre el sync, si falla no puede
+  // tirar abajo la sincronización de logros del título.
+  const earned = result.achievements.filter((achievement) => achievement.earned);
+  if (earned.length === result.achievements.length && earned.length > 0) {
+    // La fecha es la del ÚLTIMO logro, no la del sync: si no, una biblioteca
+    // vieja quedaría toda fechada el día que la sincronizaste por primera vez.
+    const completedAt = earned
+      .map((achievement) => achievement.earnedAt)
+      .filter((date): date is string => date !== null)
+      .sort()
+      .at(-1);
+    if (completedAt) {
+      try {
+        await reconcileCompletedDiaryEntry(supabase, userId, row.id, completedAt);
+      } catch (cause) {
+        console.error(`[steam-sync] no se pudo actualizar el diario al 100% (${game.name}):`, cause);
+      }
+    }
   }
 
   return { titleSynced: true, achievements: result.achievements.length, withoutAchievements: false };

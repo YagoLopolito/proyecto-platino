@@ -1,10 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { reconcilePlatinumDiaryEntry } from "@/lib/diary/platinum";
+import { reconcileCompletedDiaryEntry, reconcilePlatinumDiaryEntry } from "@/lib/diary/platinum";
 
 export interface PlatinumBackfillResult {
-  /** Platinos ya sincronizados que se miraron. */
+  /** Platinos de PSN y juegos de Steam al 100% ya sincronizados que se miraron. */
   platinumsFound: number;
   /** Entradas nuevas creadas (no había ninguna partida cargada de ese juego). */
   created: number;
@@ -52,6 +52,68 @@ export async function backfillPlatinumDiaryEntries(
       userId,
       platinum.gameId,
       platinum.unlockedAt,
+    );
+    if (outcome === "created") result.created += 1;
+    if (outcome === "linked") result.linked += 1;
+  }
+
+  return result;
+}
+
+/**
+ * El equivalente del backfill para Steam: juegos ya sincronizados que están al
+ * 100% de sus logros pero nunca pasaron por la auto-detección (porque se
+ * sincronizaron antes de que existiera).
+ *
+ * Tampoco llama a Steam: las fechas de desbloqueo ya están en `user_trophies`.
+ * La condición del 100% se calcula acá comparando los logros del juego contra
+ * los que el usuario tiene -- no existe un "trofeo de 100%" que buscar, a
+ * diferencia del platino.
+ */
+export async function backfillCompletedDiaryEntries(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<PlatinumBackfillResult> {
+  // Todos los logros de Steam de los juegos que el usuario tiene en biblioteca.
+  const { data: rows, error } = await supabase
+    .from("trophies")
+    .select("id, game_id, user_trophies (user_id, unlocked_at), games!inner (source)")
+    .eq("type", "achievement")
+    .eq("games.source", "steam");
+
+  if (error) throw new Error(error.message);
+
+  type GameProgress = { total: number; earned: number; lastUnlockedAt: string | null };
+  const byGame = new Map<string, GameProgress>();
+
+  for (const row of rows ?? []) {
+    const progress = byGame.get(row.game_id) ?? { total: 0, earned: 0, lastUnlockedAt: null };
+    progress.total += 1;
+
+    const mine = (row.user_trophies ?? []).find((entry) => entry.user_id === userId);
+    if (mine) {
+      progress.earned += 1;
+      if (mine.unlocked_at && (!progress.lastUnlockedAt || mine.unlocked_at > progress.lastUnlockedAt)) {
+        progress.lastUnlockedAt = mine.unlocked_at;
+      }
+    }
+    byGame.set(row.game_id, progress);
+  }
+
+  const completed = [...byGame.entries()].filter(
+    ([, progress]) => progress.total > 0 && progress.earned === progress.total && progress.lastUnlockedAt,
+  );
+
+  const result: PlatinumBackfillResult = { platinumsFound: completed.length, created: 0, linked: 0 };
+
+  // En serie por lo mismo que el backfill de platinos: así dos juegos no
+  // compiten por el mismo `playthrough_number`.
+  for (const [gameId, progress] of completed) {
+    const outcome = await reconcileCompletedDiaryEntry(
+      supabase,
+      userId,
+      gameId,
+      progress.lastUnlockedAt!,
     );
     if (outcome === "created") result.created += 1;
     if (outcome === "linked") result.linked += 1;

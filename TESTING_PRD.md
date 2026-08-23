@@ -424,7 +424,7 @@ Sin usuario de test, sin escrituras, sin mocks. Corre contra `PLAYWRIGHT_BASE_UR
 
 ### 6.14 Steam y Conexiones (`13-steam.spec.ts`)
 
-Fase 13 (issues #110-#114). Toda la Steam Web API va mockeada (§4.1): la key es de la app
+Fase 13 (issues #110-#119). Toda la Steam Web API va mockeada (§4.1): la key es de la app
 y en CI no hay ninguna, así que ninguna de estas pruebas sale a la red. Los juegos que
 crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 
@@ -437,8 +437,12 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 | STEAM-05 | Sync de logros | 2 juegos `source = 'steam'`, logros con `type = 'achievement'`, el juego sin logros marcado con `steam_has_achievements = false`, 1 logro en `user_trophies`, `playtime_minutes` guardado, el ícono normalizado al host que acepta `next/image`, y la biblioteca esconde el juego con 0 horas y 0 logros | P0 |
 | STEAM-06 | Perfil en privado | La cuenta se guarda igual con `profile_visibility = 'private'` y la tarjeta explica cómo cambiarlo | P0 |
 | STEAM-07 | Desconectar | La fila de `steam_accounts` desaparece; los juegos sincronizados se mantienen | P1 |
+| STEAM-08 | Diario al 100% | Un juego de Steam con todos sus logros crea una entrada `source = 'completion_sync'` con `completed_at` y **sin** tocar `platinum_earned_at`; la fecha es la del último logro | P0 |
+| STEAM-09 | OpenID falsificado | Una respuesta de OpenID sin firma válida NO marca la cuenta como verificada | P0 |
+| STEAM-10 | OpenID válido | Una respuesta válida deja `verified = true` y la tarjeta lo muestra | P0 |
+| STEAM-11 | Filtro de fuente | El selector solo aparece con las dos cuentas conectadas, y un `?fuente=` inválido cae a "Todos" | P1 |
 
-**Total: 95 casos** — 36 P0, 41 P1, 18 P2.
+**Total: 99 casos** — 39 P0, 42 P1, 18 P2.
 
 ---
 

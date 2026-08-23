@@ -6,10 +6,25 @@ import ConnectPsnForm from "@/components/connections/ConnectPsnForm";
 import ConnectSteamForm from "@/components/connections/ConnectSteamForm";
 import DisconnectButton from "@/components/connections/DisconnectButton";
 import { ConnectionCard, type ConnectionStatus } from "@/components/connections/ConnectionCard";
+import VerifySteamButton from "@/components/connections/VerifySteamButton";
+import ReplaceSteamAccountForm from "@/components/connections/ReplaceSteamAccountForm";
 import { ErrorState } from "@/components/ErrorState";
 import { disconnectPsnAccount, disconnectSteamAccount } from "./actions";
 
-export default async function ConexionesPage() {
+/** Resultados del callback de Steam OpenID (ver /api/steam/openid). */
+const OPENID_MESSAGE: Record<string, string> = {
+  verificada: "Cuenta de Steam verificada.",
+  invalido:
+    "Steam no confirmó la sesión. Si cancelaste el login es esperable; si no, volvé a intentar.",
+  error: "No se pudo completar la verificación con Steam. Probá de nuevo en unos minutos.",
+};
+
+export default async function ConexionesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ steam?: string; verificada?: string }>;
+}) {
+  const { steam: openIdResult, verificada: verifiedSteamId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -50,6 +65,19 @@ export default async function ConexionesPage() {
         Conectá las plataformas de las que querés traer tus juegos y trofeos. Podés tener una,
         las dos, o ninguna.
       </p>
+
+      {openIdResult && OPENID_MESSAGE[openIdResult] && (
+        <p
+          role="status"
+          className={`rounded-lg border p-3 text-sm ${
+            openIdResult === "verificada"
+              ? "border-green-700 bg-green-950/30 text-green-400"
+              : "border-amber-700 bg-amber-950/30 text-amber-300"
+          }`}
+        >
+          {OPENID_MESSAGE[openIdResult]}
+        </p>
+      )}
 
       <ConnectionCard
         title="PlayStation Network"
@@ -135,13 +163,21 @@ export default async function ConexionesPage() {
               </div>
             )}
 
-            {!steamAccount.verified && (
-              <p className="rounded border border-zinc-700 bg-zinc-800/50 p-3 text-sm text-zinc-400">
-                <span className="text-zinc-200">Cuenta no verificada.</span> Escribiste el
-                SteamID a mano, así que no podemos comprobar que el perfil sea tuyo: solo leemos
-                datos públicos. La verificación con &quot;Sign in through Steam&quot; llega más
-                adelante.
-              </p>
+            {steamAccount.verified ? (
+              <p className="text-sm text-emerald-400">✓ Cuenta verificada con Steam.</p>
+            ) : (
+              <div className="space-y-2 rounded border border-zinc-700 bg-zinc-800/50 p-3">
+                <p className="text-sm text-zinc-400">
+                  <span className="text-zinc-200">Cuenta no verificada.</span> Escribiste el
+                  SteamID a mano, así que no podemos comprobar que el perfil sea tuyo: solo
+                  leemos datos públicos. Verificala iniciando sesión en Steam.
+                </p>
+                <VerifySteamButton label="Verificar con Steam" />
+              </div>
+            )}
+
+            {openIdResult === "distinta" && verifiedSteamId && (
+              <ReplaceSteamAccountForm verifiedSteamId={verifiedSteamId} />
             )}
 
             <SteamSyncButton />
@@ -162,7 +198,16 @@ export default async function ConexionesPage() {
             />
           </div>
         ) : (
-          <ConnectSteamForm />
+          <div className="space-y-4">
+            <ConnectSteamForm />
+            <div className="space-y-2 border-t border-zinc-800 pt-4">
+              <p className="text-sm text-zinc-400">
+                O conectala directamente iniciando sesión en Steam: así queda verificada de
+                entrada y no hace falta escribir nada.
+              </p>
+              <VerifySteamButton label="Iniciar sesión con Steam" />
+            </div>
+          </div>
         )}
       </ConnectionCard>
     </div>

@@ -19,7 +19,7 @@ export default function ImportPlatinumsButton() {
         disabled={pending}
         className="w-full py-2 text-sm sm:w-auto sm:py-1.5"
       >
-        {pending ? "Importando..." : "🏆 Importar mis platinos"}
+        {pending ? "Importando..." : "🏆 Importar mis platinos y 100%"}
       </Button>
       <FormError>{state.error}</FormError>
       {state.message && <p className="text-xs text-zinc-400">{state.message}</p>}

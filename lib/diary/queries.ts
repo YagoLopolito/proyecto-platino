@@ -14,6 +14,12 @@ export interface DiaryTimelineEntry {
   review: string | null;
   playthroughNumber: number;
   isPlatinum: boolean;
+  /**
+   * Juego de Steam completado al 100%. A diferencia del platino no se deriva de
+   * los trofeos: no existe un "logro de 100%" que buscar, así que sale de la
+   * columna que escribe la auto-detección del sync (`completed_at`).
+   */
+  isCompleted: boolean;
 }
 
 export type DiaryTimelineOutcome =
@@ -35,7 +41,7 @@ export async function getUserDiaryEntries(
   let query = supabase
     .from("game_diary_entries")
     .select(
-      "id, game_id, playthrough_number, rating, review, finished_on, games (id, name, platform, cover_url, icon_url)",
+      "id, game_id, playthrough_number, rating, review, finished_on, completed_at, games (id, name, platform, cover_url, icon_url)",
     )
     .eq("user_id", userId)
     .order("finished_on", { ascending: false })
@@ -69,6 +75,7 @@ export async function getUserDiaryEntries(
         review: row.review,
         playthroughNumber: row.playthrough_number,
         isPlatinum: platinumGameIds.has(row.game_id),
+        isCompleted: row.completed_at !== null,
       };
     }),
   };
@@ -112,6 +119,7 @@ export interface GameDiaryEntry {
   review: string | null;
   finishedOn: string;
   platinumEarnedAt: string | null;
+  completedAt: string | null;
   source: string;
 }
 
@@ -145,7 +153,9 @@ export async function getGameDiarySummary(
 ): Promise<GameDiarySummaryOutcome> {
   const { data, error } = await supabase
     .from("game_diary_entries")
-    .select("id, user_id, playthrough_number, rating, review, finished_on, platinum_earned_at, source")
+    .select(
+      "id, user_id, playthrough_number, rating, review, finished_on, platinum_earned_at, completed_at, source",
+    )
     .eq("game_id", gameId)
     .order("playthrough_number", { ascending: false });
 
@@ -189,6 +199,7 @@ export async function getGameDiarySummary(
           review: row.review,
           finishedOn: row.finished_on,
           platinumEarnedAt: row.platinum_earned_at,
+          completedAt: row.completed_at,
           source: row.source,
         })),
     },

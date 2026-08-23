@@ -75,33 +75,57 @@ export default async function PerfilPage() {
   // biblioteca) en vez de paginar manualmente por TODOS los user_trophies de la
   // cuenta (con backlogs grandes eran varios round-trips seriales de a 1000 filas
   // solo para totalizar 4 números).
-  const [{ data: psnAccount }, { data: libraryRows }, { data: statsRows }] = await Promise.all([
-    supabase
-      .from("psn_accounts")
-      .select(
-        "online_id, avatar_url, trophy_level, trophy_progress, trophy_tier, earned_platinum, earned_gold, earned_silver, earned_bronze",
-      )
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    // Mismo criterio que /juegos, vía `isVisibleInLibrary`: los juegos de
-    // catálogo y la basura de Steam (nunca jugada y sin logros) no cuentan como
-    // biblioteca. Se traen las filas en vez de pedir un count porque el criterio
-    // cruza `playtime_minutes` con los logros obtenidos, que salen del RPC.
-    supabase
-      .from("user_games")
-      .select("game_id, playtime_minutes, games!inner (source)")
-      .eq("user_id", user.id),
-    supabase.rpc("get_library_trophy_stats"),
-  ]);
+  const [{ data: psnAccount }, { data: steamAccount }, { data: libraryRows }, { data: statsRows }] =
+    await Promise.all([
+      supabase
+        .from("psn_accounts")
+        .select(
+          "online_id, avatar_url, trophy_level, trophy_progress, trophy_tier, earned_platinum, earned_gold, earned_silver, earned_bronze",
+        )
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("steam_accounts")
+        .select("persona_name")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      // Mismo criterio que /juegos, vía `isVisibleInLibrary`: los juegos de
+      // catálogo y la basura de Steam (nunca jugada y sin logros) no cuentan
+      // como biblioteca. Se traen las filas en vez de pedir un count porque el
+      // criterio cruza `playtime_minutes` con los logros obtenidos, que salen
+      // del RPC.
+      supabase
+        .from("user_games")
+        .select("game_id, playtime_minutes, games!inner (source)")
+        .eq("user_id", user.id),
+      supabase.rpc("get_library_trophy_stats"),
+    ]);
 
-  const obtainedByGame = new Map((statsRows ?? []).map((row) => [row.game_id, row.obtained]));
-  const gamesCount = (libraryRows ?? []).filter((row) =>
+  const statsByGame = new Map((statsRows ?? []).map((row) => [row.game_id, row]));
+  const visibleGames = (libraryRows ?? []).filter((row) =>
     isVisibleInLibrary({
       source: row.games?.source ?? null,
       playtimeMinutes: row.playtime_minutes,
-      obtained: obtainedByGame.get(row.game_id) ?? 0,
+      obtained: statsByGame.get(row.game_id)?.obtained ?? 0,
     }),
-  ).length;
+  );
+  const gamesCount = visibleGames.length;
+
+  // Las stats van SEPARADAS por plataforma: un platino de PSN y un 100% de
+  // Steam no son la misma unidad, y sumarlos da un número que no significa
+  // nada. El total de juegos sí se puede sumar, y es el único que se suma.
+  const steamStats = visibleGames
+    .filter((row) => row.games?.source === "steam")
+    .reduce(
+      (acc, row) => {
+        const stats = statsByGame.get(row.game_id);
+        acc.games += 1;
+        acc.achievements += stats?.obtained ?? 0;
+        if (stats && stats.total > 0 && stats.obtained === stats.total) acc.completed += 1;
+        return acc;
+      },
+      { games: 0, achievements: 0, completed: 0 },
+    );
 
   const counts: Record<PsnTrophyType, number> = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
   for (const row of statsRows ?? []) {
@@ -175,7 +199,12 @@ export default async function PerfilPage() {
         </div>
 
         <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-          <h2 className="text-sm font-semibold text-zinc-200">Trofeos por tipo</h2>
+          {/* Todo este panel es de PSN: nivel, puntos y los cuatro tipos de
+              trofeo. Steam no tiene nada de eso, por eso va con su título y su
+              propio panel abajo en vez de mezclarse acá. */}
+          <h2 className="text-sm font-semibold text-zinc-200">
+            PlayStation Network · trofeos por tipo
+          </h2>
           {/*
             * 2 columnas en mobile (4 no entran sin achicar el ícono a algo
             * ilegible) y 4 a partir de sm. Dentro de cada tarjeta el ícono va
@@ -202,6 +231,21 @@ export default async function PerfilPage() {
               : "Totales calculados a partir de los juegos ya sincronizados: sincronizá tu cuenta PSN para ver tus números reales."}
           </p>
         </div>
+
+        {steamAccount && (
+          <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <h2 className="text-sm font-semibold text-zinc-200">Steam · logros</h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatCard label="Juegos de Steam" value={steamStats.games} />
+              <StatCard label="Logros desbloqueados" value={steamStats.achievements} />
+              <StatCard label="Juegos al 100%" value={steamStats.completed} />
+            </div>
+            <p className="pt-1 text-xs text-zinc-600">
+              Los logros de Steam no tienen tipo ni platino: el equivalente es completar el 100%
+              de un juego. Por eso no se suman con los trofeos de PSN.
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
