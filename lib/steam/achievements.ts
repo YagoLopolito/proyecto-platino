@@ -26,6 +26,26 @@ export type SteamAchievementsResult =
   | { status: "ok"; achievements: SteamAchievement[] }
   | { status: "no_achievements" };
 
+/**
+ * GetSchemaForGame devuelve los íconos con el host viejo de Akamai
+ * (`steamcdn-a.akamaihd.net`). Es el mismo archivo que sirve
+ * `cdn.cloudflare.steamstatic.com` --byte a byte-- así que se normaliza al host
+ * moderno, que es el que ya usa el resto de la app y el único que hace falta
+ * whitelistear en `next.config.ts` para que `next/image` no rechace la URL.
+ */
+const LEGACY_CDN_HOSTS = ["steamcdn-a.akamaihd.net", "media.steampowered.com"];
+const STEAM_CDN_HOST = "cdn.cloudflare.steamstatic.com";
+
+function normalizeIconUrl(url: string | null): string | null {
+  if (!url) return null;
+  for (const host of LEGACY_CDN_HOSTS) {
+    if (url.includes(`://${host}/`)) {
+      return url.replace(`://${host}/`, `://${STEAM_CDN_HOST}/`);
+    }
+  }
+  return url;
+}
+
 type SchemaEntry = {
   name: string;
   displayName: string;
@@ -59,7 +79,7 @@ async function getSchema(appId: number): Promise<SchemaEntry[]> {
         name,
         displayName: readString(entry, "displayName") ?? name,
         description: readString(entry, "description"),
-        icon: readString(entry, "icon"),
+        icon: normalizeIconUrl(readString(entry, "icon")),
         hidden: readNumber(entry, "hidden") === 1,
       };
     })

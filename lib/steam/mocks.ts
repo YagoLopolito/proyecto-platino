@@ -108,7 +108,9 @@ export function getSteamMockResponse(
               name: "E2E_ACH_1",
               displayName: "[E2E] Primer logro",
               description: "Logro de prueba ya desbloqueado.",
-              icon: null,
+              // Con el host viejo a propósito: es el que devuelve Steam de
+              // verdad, y el sync tiene que normalizarlo.
+              icon: `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${APPID_WITH_ACHIEVEMENTS}/e2e1.jpg`,
               hidden: 0,
             },
             {

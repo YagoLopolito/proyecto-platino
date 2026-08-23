@@ -23,6 +23,10 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn.cloudflare.steamstatic.com" },
       { protocol: "https", hostname: "shared.cloudflare.steamstatic.com" },
       // Íconos de juegos y de logros, y avatares, del sync de Steam (lib/steam).
+      // El host viejo de Akamai se normaliza a cdn.cloudflare.steamstatic.com al
+      // sincronizar (ver lib/steam/achievements.ts); queda igual acá porque las
+      // filas viejas pueden seguir apuntando ahí.
+      { protocol: "https", hostname: "steamcdn-a.akamaihd.net" },
       { protocol: "https", hostname: "avatars.steamstatic.com" },
       { protocol: "https", hostname: "avatars.cloudflare.steamstatic.com" },
       { protocol: "https", hostname: "media.steampowered.com" },

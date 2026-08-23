@@ -107,10 +107,15 @@ test.describe("Steam", () => {
     const withAchievements = games?.find((game) => game.steam_has_achievements === true);
     const { data: trophies } = await supabase
       .from("trophies")
-      .select("id, type")
+      .select("id, type, icon_url")
       .eq("game_id", withAchievements!.id);
     expect(trophies).toHaveLength(2);
     expect(trophies?.every((trophy) => trophy.type === "achievement")).toBe(true);
+
+    // El ícono queda con el host moderno, que es el único whitelisteado en
+    // next.config.ts: con el que devuelve Steam, next/image no lo renderiza.
+    const withIcon = trophies?.find((trophy) => trophy.icon_url !== null);
+    expect(withIcon?.icon_url).toContain("cdn.cloudflare.steamstatic.com");
 
     const { data: unlocked } = await supabase
       .from("user_trophies")
