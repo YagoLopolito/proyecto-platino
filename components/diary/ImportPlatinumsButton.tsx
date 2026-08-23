@@ -1,0 +1,23 @@
+"use client";
+
+import { useActionState } from "react";
+import { importPlatinumsToDiary, type BackfillState } from "@/app/(app)/diario/actions";
+import { Button } from "@/components/Button";
+import { FormError } from "@/components/FormError";
+
+const initialState: BackfillState = { error: null, message: null };
+
+/** Trae al diario los platinos ya sincronizados que no tienen entrada todavía. */
+export default function ImportPlatinumsButton() {
+  const [state, formAction, pending] = useActionState(importPlatinumsToDiary, initialState);
+
+  return (
+    <form action={formAction} className="space-y-1">
+      <Button type="submit" variant="secondary" disabled={pending} className="text-sm">
+        {pending ? "Importando..." : "🏆 Importar mis platinos"}
+      </Button>
+      <FormError>{state.error}</FormError>
+      {state.message && <p className="text-xs text-zinc-400">{state.message}</p>}
+    </form>
+  );
+}

@@ -137,6 +137,10 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   ninguna crea una con `source = 'platinum_sync'` que el usuario puede editar después para
   puntuar y reseñar. Lo llama `lib/psn/sync.ts` dentro de un try/catch: es un extra, no puede
   tirar abajo el sync de trofeos. Migración `20260822020000_diary_platinum_sync.sql`.
+- Los platinos **viejos** (ya en `user_trophies` de syncs anteriores al hook) se importan con
+  el botón "Importar mis platinos" de `/diario` (`lib/diary/backfill.ts` +
+  `app/(app)/diario/actions.ts`). No llama a PSN: la fecha ya está guardada localmente. Reusa
+  `reconcilePlatinumDiaryEntry`, así que es idempotente.
 - **Reconciliación catálogo → PSN**: si un juego cargado antes desde el catálogo aparece
   después en el sync real, `adoptCatalogGame` (en `lib/psn/sync.ts`) adopta esa fila
   (le escribe `np_comm_id` y `source = 'psn'`) en vez de crear un duplicado en `games`, así no

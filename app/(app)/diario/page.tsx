@@ -8,6 +8,7 @@ import { FriendsDiaryFeed } from "@/components/friends/FriendsDiaryFeed";
 import { getFriendsDiaryFeed } from "@/lib/friends/queries";
 import { ErrorState } from "@/components/ErrorState";
 import Link from "next/link";
+import ImportPlatinumsButton from "@/components/diary/ImportPlatinumsButton";
 
 export default async function DiaryPage({
   searchParams,
@@ -49,6 +50,7 @@ export default async function DiaryPage({
             >
               📊 Resumen del año
             </Link>
+            <ImportPlatinumsButton />
             <MarkAsFinishedModal defaultOpen={nuevo === "1"} />
           </div>
         </div>
