@@ -8,10 +8,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { ProgressBar } from "@/components/ProgressBar";
 import { PlatinumBadge } from "@/components/PlatinumBadge";
 import AiAdvisorPanel from "./AiAdvisorPanel";
-import TrophyItem from "./TrophyItem";
+import TrophyList, { type TrophyListGroup } from "./TrophyList";
 import type { AiGamePlan } from "@/lib/ai";
 import GameBreadcrumb from "@/components/GameBreadcrumb";
 import { GameScore } from "@/components/diary/GameScore";
+import { GameDiarySection } from "@/components/diary/GameDiarySection";
+import { getGameDiarySummary } from "@/lib/diary/queries";
 
 /**
  * El botón "Generar plan" invoca generateAiPlan (ai-actions.ts), que llama a
@@ -52,7 +54,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     { data: trophies, error: trophiesError },
     { data: trophyGroups },
     { data: cachedPlanRow },
-    { data: score },
+    diaryOutcome,
   ] = await Promise.all([
     supabase.from("games").select("id, name, platform, cover_url, icon_url").eq("id", gameId).single(),
     supabase
@@ -71,12 +73,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase
-      .from("game_scores")
-      .select("average_rating, rating_count")
-      .eq("game_id", gameId)
-      .maybeSingle(),
+    getGameDiarySummary(supabase, gameId, userId),
   ]);
+
+  const diarySummary = diaryOutcome.status === "ok" ? diaryOutcome.summary : null;
 
   if (gameError || !game) {
     notFound();
@@ -108,19 +108,24 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const trophyGroupOrder = Array.from(new Set((trophies ?? []).map((t) => t.trophy_group_id ?? "default")));
   const hasMultipleGroups = trophyGroupOrder.length > 1;
 
-  const groupedTrophies = trophyGroupOrder.map((groupId) => {
-    const groupTrophies = (trophies ?? []).filter((t) => (t.trophy_group_id ?? "default") === groupId);
-    const groupObtainedCount = groupTrophies.filter((t) => obtained.has(t.id)).length;
-    return {
-      groupId,
-      name: groupId === "default" ? "Juego base" : (groupNameById.get(groupId) ?? `DLC ${groupId}`),
-      trophies: groupTrophies,
-      obtainedCount: groupObtainedCount,
-      total: groupTrophies.length,
-      percent:
-        groupTrophies.length > 0 ? Math.round((groupObtainedCount / groupTrophies.length) * 100) : 0,
-    };
-  });
+  const groupedTrophies: TrophyListGroup[] = trophyGroupOrder.map((groupId) => ({
+    groupId,
+    name: groupId === "default" ? "Juego base" : (groupNameById.get(groupId) ?? `DLC ${groupId}`),
+    trophies: (trophies ?? [])
+      .filter((t) => (t.trophy_group_id ?? "default") === groupId)
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        type: t.type,
+        hidden: t.hidden,
+        icon_url: t.icon_url,
+        rarity: t.rarity,
+        earned_rate: t.earned_rate,
+        progress_target: t.progress_target,
+        obtained: obtained.has(t.id),
+      })),
+  }));
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
@@ -130,7 +135,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           * propia fila y la nav de secciones queda a lo ancho, scrolleable
           * horizontalmente (5 pills no entran en 375px sin desbordar la página).
           */}
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-1.5 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-1.5 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <p className="truncate text-sm text-zinc-400">{game.name}</p>
           <nav className="-mx-4 flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 text-sm sm:mx-0 sm:overflow-visible sm:px-0">
             <a
@@ -157,17 +162,17 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             >
               🔗 Enlaces
             </Link>
-            <Link
-              href={`/juegos/${gameId}/diario`}
+            <a
+              href="#diario"
               className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
             >
               📔 Diario
-            </Link>
+            </a>
           </nav>
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-2xl space-y-8 px-4 py-6 sm:space-y-10 sm:py-8">
+      <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6 sm:space-y-10 sm:py-8">
         <GameBreadcrumb gameId={gameId} gameName={game.name} />
 
         <div className="space-y-4">
@@ -191,7 +196,14 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 {isPlatinumed && <PlatinumBadge />}
               </h1>
               <p className="text-sm text-zinc-400">{game.platform}</p>
-              <GameScore score={score} />
+              {diarySummary && (
+                <GameScore
+                  score={{
+                    average_rating: diarySummary.averageRating,
+                    rating_count: diarySummary.ratingCount,
+                  }}
+                />
+              )}
             </div>
           </div>
 
@@ -219,56 +231,18 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             <EmptyState title="Todavía no cargaste trofeos para este juego." />
           )}
 
-          {hasMultipleGroups
-            ? groupedTrophies.map((group) => (
-                <div key={group.groupId} className="space-y-2">
-                  <div className="flex items-center justify-between gap-2 pt-2">
-                    <h3 className="text-sm font-medium text-zinc-300">{group.name}</h3>
-                    <span className="text-xs text-zinc-500">
-                      {group.obtainedCount}/{group.total} ({group.percent}%)
-                    </span>
-                  </div>
-                  <ProgressBar percent={group.percent} className="h-1.5" />
-                  <ul className="space-y-2">
-                    {group.trophies.map((trophy) => (
-                      <TrophyItem
-                        key={trophy.id}
-                        gameId={gameId}
-                        trophyId={trophy.id}
-                        name={trophy.name}
-                        description={trophy.description}
-                        type={trophy.type}
-                        hidden={trophy.hidden}
-                        iconUrl={trophy.icon_url}
-                        isObtained={obtained.has(trophy.id)}
-                        rarity={trophy.rarity}
-                        earnedRate={trophy.earned_rate}
-                        progressTarget={trophy.progress_target}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              ))
-            : (
-                <ul className="space-y-2">
-                  {trophies?.map((trophy) => (
-                    <TrophyItem
-                      key={trophy.id}
-                      gameId={gameId}
-                      trophyId={trophy.id}
-                      name={trophy.name}
-                      description={trophy.description}
-                      type={trophy.type}
-                      hidden={trophy.hidden}
-                      iconUrl={trophy.icon_url}
-                      isObtained={obtained.has(trophy.id)}
-                      rarity={trophy.rarity}
-                      earnedRate={trophy.earned_rate}
-                      progressTarget={trophy.progress_target}
-                    />
-                  ))}
-                </ul>
-              )}
+          {!trophiesError && total > 0 && (
+            <TrophyList gameId={gameId} groups={groupedTrophies} showGroups={hasMultipleGroups} />
+          )}
+        </section>
+
+        <section id="diario" className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Diario</h2>
+          {diaryOutcome.status === "error" ? (
+            <ErrorState message={`No se pudo cargar el diario: ${diaryOutcome.message}`} />
+          ) : (
+            <GameDiarySection gameId={gameId} summary={diaryOutcome.summary} />
+          )}
         </section>
 
         <section id="advisor" className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8">

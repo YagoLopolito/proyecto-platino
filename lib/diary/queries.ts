@@ -104,3 +104,93 @@ async function getPlatinumGameIds(
   }
   return out;
 }
+
+export interface GameDiaryEntry {
+  id: string;
+  playthroughNumber: number;
+  rating: number | null;
+  review: string | null;
+  finishedOn: string;
+  platinumEarnedAt: string | null;
+  source: string;
+}
+
+export interface GameDiarySummary {
+  /** Cantidad de valoraciones por estrella (índice 0 = 1 estrella .. 4 = 5 estrellas). */
+  distribution: number[];
+  ratingCount: number;
+  averageRating: number | null;
+  ownEntries: GameDiaryEntry[];
+  totalEntries: number;
+}
+
+export type GameDiarySummaryOutcome =
+  | { status: "ok"; summary: GameDiarySummary }
+  | { status: "error"; message: string };
+
+/**
+ * Resumen del Letterbox para un juego: distribución de valoraciones (1-5
+ * estrellas) y las entradas propias del usuario. La distribución cuenta el
+ * ÚLTIMO rating de cada usuario, igual criterio que la vista `game_scores`
+ * (una rejugada no vale como voto extra).
+ *
+ * El diario es público, así que se leen las entradas de todos los usuarios;
+ * funciona igual para un juego sincronizado por PSN y uno solo de catálogo,
+ * porque no toca trofeos.
+ */
+export async function getGameDiarySummary(
+  supabase: SupabaseServerClient,
+  gameId: string,
+  userId: string,
+): Promise<GameDiarySummaryOutcome> {
+  const { data, error } = await supabase
+    .from("game_diary_entries")
+    .select("id, user_id, playthrough_number, rating, review, finished_on, platinum_earned_at, source")
+    .eq("game_id", gameId)
+    .order("playthrough_number", { ascending: false });
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  const rows = data ?? [];
+
+  // Ya vienen ordenadas por playthrough desc: la primera de cada usuario es su
+  // última partida.
+  const latestByUser = new Map<string, (typeof rows)[number]>();
+  for (const row of rows) {
+    if (row.rating === null) continue;
+    if (!latestByUser.has(row.user_id)) latestByUser.set(row.user_id, row);
+  }
+
+  const distribution = [0, 0, 0, 0, 0];
+  let ratingSum = 0;
+  for (const row of latestByUser.values()) {
+    const stars = Math.min(5, Math.max(1, Math.ceil(row.rating! / 2)));
+    distribution[stars - 1] += 1;
+    ratingSum += row.rating!;
+  }
+  const ratingCount = latestByUser.size;
+
+  return {
+    status: "ok",
+    summary: {
+      distribution,
+      ratingCount,
+      averageRating: ratingCount > 0 ? ratingSum / ratingCount : null,
+      totalEntries: rows.length,
+      ownEntries: rows
+        .filter((row) => row.user_id === userId)
+        .sort((a, b) => a.playthrough_number - b.playthrough_number)
+        .map((row) => ({
+          id: row.id,
+          playthroughNumber: row.playthrough_number,
+          rating: row.rating,
+          review: row.review,
+          finishedOn: row.finished_on,
+          platinumEarnedAt: row.platinum_earned_at,
+          source: row.source,
+        })),
+    },
+  };
+}

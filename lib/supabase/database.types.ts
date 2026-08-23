@@ -98,9 +98,11 @@ export type Database = {
           finished_on: string
           game_id: string
           id: string
+          platinum_earned_at: string | null
           playthrough_number: number
           rating: number | null
           review: string | null
+          source: string
           updated_at: string
           user_id: string
         }
@@ -109,9 +111,11 @@ export type Database = {
           finished_on: string
           game_id: string
           id?: string
+          platinum_earned_at?: string | null
           playthrough_number?: number
           rating?: number | null
           review?: string | null
+          source?: string
           updated_at?: string
           user_id: string
         }
@@ -120,9 +124,11 @@ export type Database = {
           finished_on?: string
           game_id?: string
           id?: string
+          platinum_earned_at?: string | null
           playthrough_number?: number
           rating?: number | null
           review?: string | null
+          source?: string
           updated_at?: string
           user_id?: string
         }

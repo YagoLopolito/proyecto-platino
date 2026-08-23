@@ -4,19 +4,13 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { explainTrophy } from "./actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
+import { RARITY_CLASS, RARITY_LABEL } from "@/components/trophyRarity";
 
 const TYPE_LABEL: Record<string, string> = {
   bronze: "Bronce",
   silver: "Plata",
   gold: "Oro",
   platinum: "Platino",
-};
-
-/** 0=ultra rara .. 3=común, tal cual `TrophyRarity` de psn-api. */
-const RARITY_LABEL: Record<number, string> = {
-  0: "Ultra rara",
-  1: "Muy rara",
-  2: "Rara",
 };
 
 export default function TrophyItem({
@@ -105,7 +99,11 @@ export default function TrophyItem({
                 {TYPE_LABEL[type] ?? type}
               </span>
               {rarity !== null && rarity in RARITY_LABEL && (
-                <span className="text-amber-500">{RARITY_LABEL[rarity]}</span>
+                <span
+                  className={`rounded-full border px-1.5 py-0.5 text-[11px] font-medium ${RARITY_CLASS[rarity]}`}
+                >
+                  {RARITY_LABEL[rarity]}
+                </span>
               )}
               {earnedRate !== null && <span>{earnedRate}% lo desbloqueó</span>}
               {progressTarget && <span>Objetivo: {progressTarget}</span>}

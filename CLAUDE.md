@@ -122,6 +122,26 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   El badge de platino no sale de la tabla — `game_diary_entries` no tiene `is_platinum` — se
   deriva de los trofeos sincronizados, así una entrada de un juego de catálogo simplemente
   queda sin badge.
+- `/diario/resumen` (issues #94/#97) es el "Year in Review": `lib/diary/stats.ts` son funciones
+  puras sobre las mismas entradas que trae `getUserDiaryEntries`, así los números no pueden
+  divergir de `/diario`. Las fechas se parsean cortando el string `YYYY-MM-DD`, nunca con
+  `new Date(...)` (correría a UTC y podría mover el mes). La racha de meses consecutivos es
+  histórica a propósito, no por año.
+- La ficha del juego (`/juegos/[id]`) tiene su propia sección de diario (issue #95):
+  `getGameDiarySummary` + `components/diary/GameDiarySection.tsx` (score, distribución 1-5,
+  historial propio y acceso a registrar/editar). La distribución cuenta el último rating de
+  cada usuario, mismo criterio que la vista `game_scores`.
+- **Auto-detección de platino** (issue #96): `lib/diary/platinum.ts`
+  (`reconcilePlatinumDiaryEntry`) aplica la regla ±14 días sobre `finished_on`; si hay una
+  entrada cercana le escribe `platinum_earned_at` (nunca pisa rating ni reseña), y si no hay
+  ninguna crea una con `source = 'platinum_sync'` que el usuario puede editar después para
+  puntuar y reseñar. Lo llama `lib/psn/sync.ts` dentro de un try/catch: es un extra, no puede
+  tirar abajo el sync de trofeos. Migración `20260822020000_diary_platinum_sync.sql`.
+- **Reconciliación catálogo → PSN**: si un juego cargado antes desde el catálogo aparece
+  después en el sync real, `adoptCatalogGame` (en `lib/psn/sync.ts`) adopta esa fila
+  (le escribe `np_comm_id` y `source = 'psn'`) en vez de crear un duplicado en `games`, así no
+  se pierden las entradas de diario ya cargadas. Solo funciona sobre filas propias
+  (`created_by`), que es lo que deja actualizar la RLS de `games`.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).
