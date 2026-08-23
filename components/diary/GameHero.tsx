@@ -24,6 +24,9 @@ export function GameHero({
   const totalVotes = distribution.reduce((sum, count) => sum + count, 0);
   const maxBucket = Math.max(1, ...distribution);
 
+  // Sin wallpaper propio, la carátula difuminada hace de fondo.
+  const backgroundImage = game.backgroundUrl ?? game.coverUrl;
+
   const meta = [
     game.releaseYear !== null ? String(game.releaseYear) : null,
     game.platform,
@@ -32,18 +35,31 @@ export function GameHero({
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
-      {game.backgroundUrl && (
-        <>
+      {/*
+        * Fondo tipo wallpaper: el "hero" apaisado si lo hay y, si no, la propia
+        * carátula difuminada -- así la ficha nunca queda plana aunque falten
+        * las API keys de imágenes. Se desvanece hacia abajo con una máscara
+        * para que el texto de la mitad inferior siga leyéndose.
+        */}
+      {backgroundImage && (
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{
+            maskImage: "linear-gradient(to bottom, black 0%, black 45%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 45%, transparent 100%)",
+          }}
+          aria-hidden="true"
+        >
           <Image
-            src={game.backgroundUrl}
+            src={backgroundImage}
             alt=""
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 1024px"
-            className="object-cover object-top opacity-30"
+            className="scale-110 object-cover object-center opacity-40 blur-md"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/85 to-zinc-900/40" />
-        </>
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/70 to-zinc-900/30" />
+        </div>
       )}
 
       <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:p-6">

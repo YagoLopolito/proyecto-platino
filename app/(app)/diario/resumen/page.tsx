@@ -220,7 +220,7 @@ export default async function DiarySummaryPage({
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 text-zinc-50 sm:py-16">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
+      <div className="mx-auto w-full max-w-5xl space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold">Resumen del diario</h1>

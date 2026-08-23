@@ -146,6 +146,14 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   (le escribe `np_comm_id` y `source = 'psn'`) en vez de crear un duplicado en `games`, así no
   se pierden las entradas de diario ya cargadas. Solo funciona sobre filas propias
   (`created_by`), que es lo que deja actualizar la RLS de `games`.
+- `/diario` muestra primero el feed corto de amigos (`FriendsDiaryGrid`, grilla de carátulas
+  con las últimas 10 partidas, cada una linkeando al diario de ese juego donde está la reseña)
+  y después el timeline propio: el propio crece sin techo y empujaba el feed fuera de pantalla.
+  La actividad completa de amigos (lista con reseñas, `FriendsDiaryFeed`) vive en
+  `/diario/amigos`.
+- El fondo de `GameHero` usa el wallpaper si lo hay y, si no, la propia carátula difuminada,
+  con una `mask-image` que lo desvanece hacia abajo -- así la ficha nunca queda plana aunque
+  falten `STEAMGRIDDB_API_KEY`/`RAWG_API_KEY`.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).
