@@ -13,9 +13,39 @@ const CONNECTIONS = "/configuracion/conexiones";
 const VANITY_PUBLIC = "e2e-steam-user";
 const VANITY_PRIVATE = "e2e-steam-private";
 
-/** Deja la cuenta de Steam desconectada al terminar cada caso. */
+/**
+ * Deja al usuario sin cuenta de Steam y sin los rastros del sync entre casos.
+ *
+ * Los juegos de `games` son catálogo compartido y los borra el teardown, pero
+ * lo que cuelga del usuario (logros desbloqueados, entradas de diario) tiene que
+ * limpiarse acá: en modo serial un test que falla reintenta todo el describe, y
+ * sin esto el reintento arranca con el estado que dejó el intento anterior.
+ */
 test.afterEach(async ({ supabase, users }) => {
   await supabase.from("steam_accounts").delete().eq("user_id", users.userA.id);
+
+  const { data: steamGames } = await supabase
+    .from("games")
+    .select("id")
+    .gte("steam_appid", 999_000_000);
+  const gameIds = (steamGames ?? []).map((game) => game.id);
+  if (gameIds.length === 0) return;
+
+  await supabase
+    .from("game_diary_entries")
+    .delete()
+    .eq("user_id", users.userA.id)
+    .in("game_id", gameIds);
+
+  const { data: trophies } = await supabase.from("trophies").select("id").in("game_id", gameIds);
+  const trophyIds = (trophies ?? []).map((trophy) => trophy.id);
+  if (trophyIds.length > 0) {
+    await supabase
+      .from("user_trophies")
+      .delete()
+      .eq("user_id", users.userA.id)
+      .in("trophy_id", trophyIds);
+  }
 });
 
 /**
@@ -204,6 +234,10 @@ test.describe("Steam", () => {
 
     await page.goto("/diario");
     await page.getByRole("button", { name: /Importar mis platinos/i }).click();
+    // El resultado del import es texto suelto, no un role=status: se busca por
+    // texto para que un backfill que no encuentra nada falle acá y no tres
+    // asserts más abajo con un array vacío sin explicación.
+    await expect(page.getByText(/Listo:/i)).toBeVisible();
 
     const { data: entries } = await supabase
       .from("game_diary_entries")

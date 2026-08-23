@@ -74,27 +74,44 @@ export async function backfillCompletedDiaryEntries(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<PlatinumBackfillResult> {
-  // Todos los logros de Steam de los juegos que el usuario tiene en biblioteca.
-  const { data: rows, error } = await supabase
+  // Dos queries planas en vez de un embed anidado: es el mismo patrón que usa
+  // getPlatinumGameIds en lib/diary/queries.ts, y evita depender de cómo
+  // PostgREST resuelve un embed con RLS de por medio.
+  const { data: achievements, error } = await supabase
     .from("trophies")
-    .select("id, game_id, user_trophies (user_id, unlocked_at), games!inner (source)")
+    .select("id, game_id, games!inner (source)")
     .eq("type", "achievement")
     .eq("games.source", "steam");
 
   if (error) throw new Error(error.message);
 
+  const trophyIds = (achievements ?? []).map((row) => row.id);
+  if (trophyIds.length === 0) {
+    return { platinumsFound: 0, created: 0, linked: 0 };
+  }
+
+  const { data: unlocked, error: unlockedError } = await supabase
+    .from("user_trophies")
+    .select("trophy_id, unlocked_at")
+    .eq("user_id", userId)
+    .in("trophy_id", trophyIds);
+
+  if (unlockedError) throw new Error(unlockedError.message);
+
+  const unlockedById = new Map((unlocked ?? []).map((row) => [row.trophy_id, row.unlocked_at]));
+
   type GameProgress = { total: number; earned: number; lastUnlockedAt: string | null };
   const byGame = new Map<string, GameProgress>();
 
-  for (const row of rows ?? []) {
+  for (const row of achievements ?? []) {
     const progress = byGame.get(row.game_id) ?? { total: 0, earned: 0, lastUnlockedAt: null };
     progress.total += 1;
 
-    const mine = (row.user_trophies ?? []).find((entry) => entry.user_id === userId);
-    if (mine) {
+    if (unlockedById.has(row.id)) {
       progress.earned += 1;
-      if (mine.unlocked_at && (!progress.lastUnlockedAt || mine.unlocked_at > progress.lastUnlockedAt)) {
-        progress.lastUnlockedAt = mine.unlocked_at;
+      const unlockedAt = unlockedById.get(row.id) ?? null;
+      if (unlockedAt && (!progress.lastUnlockedAt || unlockedAt > progress.lastUnlockedAt)) {
+        progress.lastUnlockedAt = unlockedAt;
       }
     }
     byGame.set(row.game_id, progress);
