@@ -7,7 +7,7 @@ import { reconcileCompletedDiaryEntry } from "@/lib/diary/platinum";
 import { fetchGameAchievements } from "./achievements";
 import { getSteamCallCount } from "./client";
 import { SteamApiError, SteamProfilePrivateError } from "./errors";
-import { getOwnedGames, type SteamOwnedGame } from "./library";
+import { getOwnedGames, getRecentlyPlayedAppIds, type SteamOwnedGame } from "./library";
 import { getPlayerSummary } from "./profile";
 
 export type SteamSyncResult = {
@@ -115,9 +115,18 @@ async function syncTitle(
   userId: string,
   steamId64: string,
   game: SteamOwnedGame,
+  recentlyPlayedAppIds: Set<number>,
+  syncStartedAt: string,
 ): Promise<{ titleSynced: boolean; achievements: number; withoutAchievements: boolean }> {
   const row = await resolveGameRow(supabase, userId, game);
   if (!row) return { titleSynced: false, achievements: 0, withoutAchievements: false };
+
+  // `rtime_last_played` de GetOwnedGames viene en null para estas cuentas: si
+  // GetRecentlyPlayedGames dice que se jugó en las últimas dos semanas, se usa
+  // el momento del sync como aproximación -- no es la fecha exacta, pero
+  // alcanza para que suba arriba de la biblioteca en vez de quedar hundido.
+  const lastPlayedAt =
+    game.lastPlayedAt ?? (recentlyPlayedAppIds.has(game.appId) ? syncStartedAt : null);
 
   await supabase
     .from("user_games")
@@ -125,7 +134,7 @@ async function syncTitle(
       {
         user_id: userId,
         game_id: row.id,
-        last_played_at: game.lastPlayedAt,
+        last_played_at: lastPlayedAt,
         playtime_minutes: game.playtimeMinutes,
       },
       { onConflict: "user_id,game_id" },
@@ -256,8 +265,11 @@ export async function syncSteamAchievementsForUser(
     throw cause;
   }
 
+  const recentlyPlayedAppIds = await getRecentlyPlayedAppIds(account.steam_id64).catch(() => new Set<number>());
+  const syncStartedAt = new Date().toISOString();
+
   const results = await mapWithConcurrency(owned, TITLE_CONCURRENCY, (game) =>
-    syncTitle(supabase, userId, account.steam_id64, game),
+    syncTitle(supabase, userId, account.steam_id64, game, recentlyPlayedAppIds, syncStartedAt),
   );
 
   // El nombre y el avatar pueden cambiar en Steam sin que el usuario reconecte.

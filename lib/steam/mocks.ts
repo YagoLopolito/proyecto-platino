@@ -97,6 +97,11 @@ export function getSteamMockResponse(
     };
   }
 
+  if (path.includes("GetRecentlyPlayedGames")) {
+    if (params.steamid === PRIVATE_STEAM_ID) return { response: {} };
+    return { response: { total_count: 0, games: [] } };
+  }
+
   if (path.includes("GetSchemaForGame")) {
     if (Number(params.appid) !== APPID_WITH_ACHIEVEMENTS) return { game: {} };
     return {

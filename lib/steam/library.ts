@@ -62,3 +62,32 @@ export async function getOwnedGames(steamId64: string): Promise<SteamOwnedGame[]
     })
     .filter((game): game is SteamOwnedGame => game !== null);
 }
+
+/**
+ * IPlayerService/GetRecentlyPlayedGames -- juegos con actividad en las
+ * últimas dos semanas. Existe porque en la práctica `rtime_last_played` de
+ * `GetOwnedGames` viene en `0` para bibliotecas grandes (bug/limitación de la
+ * Steam Web API, no del código: se confirmó con cuentas reales que sí tienen
+ * cientos de horas jugadas en esos títulos). Sin esta segunda fuente, todo lo
+ * jugado recientemente se hundía en el orden de sync en vez de subir arriba
+ * de la biblioteca (`user_games.last_played_at` quedaba siempre `null`).
+ */
+export async function getRecentlyPlayedAppIds(steamId64: string): Promise<Set<number>> {
+  const payload = await steamFetch("/IPlayerService/GetRecentlyPlayedGames/v1/", {
+    steamid: steamId64,
+    count: "0",
+  });
+
+  const response = readResponse(payload);
+  const games = response?.games;
+  if (!Array.isArray(games)) return new Set();
+
+  const appIds = games
+    .map((raw) => {
+      const game = asRecord(raw);
+      return game ? readNumber(game, "appid") : null;
+    })
+    .filter((appId): appId is number => appId !== null);
+
+  return new Set(appIds);
+}
