@@ -40,6 +40,7 @@ create_label "area:ai"       "Advisor con IA"              "fbca04"
 create_label "area:guides"   "Guias y checklist"           "c5def5"
 create_label "area:covers"   "Caratulas / imagenes"        "f9d0c4"
 create_label "area:ui"       "Frontend / UI"               "bfd4f2"
+create_label "area:steam"    "Integracion Steam (Web API)" "1b2838"
 
 echo "== 3. Milestones =="
 existing_milestones="$(gh api "repos/$FULL/milestones" --paginate -q '.[].title' 2>/dev/null || true)"
@@ -55,6 +56,7 @@ milestones=(
   "Fase 8 - Caratulas enriquecidas"
   "Fase 9 - Enlaces a guias externas curadas"
   "Fase 10 - Pulido y deploy productivo"
+  "Fase 13 - Steam como segunda plataforma"
 )
 for m in "${milestones[@]}"; do
   if grep -qxF "$m" <<< "$existing_milestones"; then
@@ -330,6 +332,33 @@ for n in $all_issue_numbers; do
     --url "https://github.com/$FULL/issues/$n" >/dev/null 2>&1 || true
 done
 echo "  issues agregados al Project #$project_number."
+
+echo "== 6. Fase 13 (Steam): milestone y label de los issues ya creados =="
+# Los issues #110-#119 se crearon desde la sesion de Claude Code, que no tiene acceso
+# a la API de Projects v2 ni a milestones. Esto los completa. Idempotente: volver a
+# setear el mismo milestone/label no hace nada.
+STEAM_MILESTONE="Fase 13 - Steam como segunda plataforma"
+steam_issues=(110 111 112 113 114 115 116 117 118 119)
+for n in "${steam_issues[@]}"; do
+  if gh issue view "$n" --repo "$FULL" >/dev/null 2>&1; then
+    gh issue edit "$n" --repo "$FULL" \
+      --milestone "$STEAM_MILESTONE" --add-label "area:steam" >/dev/null 2>&1 \
+      && echo "  #$n actualizado." \
+      || echo "  #$n no se pudo actualizar (revisar a mano)."
+  else
+    echo "  #$n no existe, se omite."
+  fi
+done
+
+echo "== 7. Sincronizar el Project con TODOS los issues =="
+# El paso 5 ya agrega los issues que existian cuando se corrio; esto vuelve a pasar por
+# todos para levantar los nuevos (110-120) sin duplicar los que ya estaban.
+all_issue_numbers="$(gh issue list --repo "$FULL" --state all --limit 300 --json number -q '.[].number')"
+for n in $all_issue_numbers; do
+  gh project item-add "$project_number" --owner "$OWNER" \
+    --url "https://github.com/$FULL/issues/$n" >/dev/null 2>&1 || true
+done
+echo "  Project #$project_number sincronizado."
 
 echo "== Listo =="
 echo "Nota: los valores de Estado/Prioridad por issue y el detalle fino de estados"
