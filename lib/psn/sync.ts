@@ -2,6 +2,8 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { findCoverUrl } from "@/lib/covers";
+import { normalizeName } from "@/lib/catalog/dedup";
+import { reconcilePlatinumDiaryEntry } from "@/lib/diary/platinum";
 import { getAuthorizationFromNpsso, getPsnAvatarUrl, getPsnTrophySummary } from "./auth";
 import { mapWithConcurrency } from "./concurrency";
 import { decryptSecret } from "./crypto";
@@ -19,10 +21,49 @@ function parseEarnedRate(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/**
+ * Busca un juego `source = 'catalog'` del propio usuario cuyo nombre normalizado
+ * coincida con el que trae PSN y lo convierte en el juego sincronizado (mismo
+ * `id`, así no se pierden ni las entradas de diario ni el vínculo en
+ * `user_games`). Devuelve null si no hay candidato o si la RLS bloquea el
+ * update -- en ese caso el caller sigue con el alta normal.
+ */
+async function adoptCatalogGame(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  title: FetchedTitle,
+  catalogGameIdByName: Map<string, string>,
+): Promise<string | null> {
+  const matchId = catalogGameIdByName.get(normalizeName(title.name));
+  if (!matchId) return null;
+
+  const { data: updated } = await supabase
+    .from("games")
+    .update({
+      np_comm_id: title.npCommId,
+      platform: title.platform,
+      icon_url: title.iconUrl,
+      source: "psn",
+    })
+    .eq("id", matchId)
+    .eq("created_by", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (updated?.id) {
+    // Ya no es un juego de catálogo: sacarlo del mapa evita que un segundo
+    // título de PSN con nombre parecido intente adoptar la misma fila.
+    catalogGameIdByName.delete(normalizeName(title.name));
+    return updated.id;
+  }
+  return null;
+}
+
 async function resolveGameId(
   supabase: SupabaseClient<Database>,
   userId: string,
   title: FetchedTitle,
+  catalogGameIdByName: Map<string, string>,
 ): Promise<string | null> {
   const { data: existingGame } = await supabase
     .from("games")
@@ -31,6 +72,13 @@ async function resolveGameId(
     .maybeSingle();
 
   if (existingGame) return existingGame.id;
+
+  // Reconciliación catálogo -> PSN (issue #96): si el usuario ya había cargado
+  // este juego desde la búsqueda de catálogo para el diario, se adopta esa fila
+  // en vez de crear una segunda. Se acota a filas propias (`created_by`) porque
+  // la RLS de `games` solo deja actualizar las del propio usuario.
+  const adoptedId = await adoptCatalogGame(supabase, userId, title, catalogGameIdByName);
+  if (adoptedId) return adoptedId;
 
   const coverUrl = await findCoverUrl(title.name);
   const { data: created, error: insertGameError } = await supabase
@@ -70,8 +118,9 @@ async function syncTitle(
   supabase: SupabaseClient<Database>,
   userId: string,
   title: FetchedTitle,
+  catalogGameIdByName: Map<string, string>,
 ): Promise<{ titleSynced: boolean; trophiesSynced: number }> {
-  const gameId = await resolveGameId(supabase, userId, title);
+  const gameId = await resolveGameId(supabase, userId, title, catalogGameIdByName);
   if (!gameId) return { titleSynced: false, trophiesSynced: 0 };
 
   await supabase
@@ -141,6 +190,18 @@ async function syncTitle(
     await supabase.from("user_trophies").upsert(earnedRows, { onConflict: "user_id,trophy_id" });
   }
 
+  // Auto-detección de platino para el diario (issue #96). Va en try/catch a
+  // propósito: es un extra sobre el sync, si falla no puede tirar abajo la
+  // sincronización de trofeos del título.
+  const platinum = title.trophies.find((t) => t.type === "platinum" && t.earned && t.earnedAt);
+  if (platinum?.earnedAt) {
+    try {
+      await reconcilePlatinumDiaryEntry(supabase, userId, gameId, platinum.earnedAt);
+    } catch (cause) {
+      console.error(`[psn-sync] no se pudo actualizar el diario por platino (${title.name}):`, cause);
+    }
+  }
+
   return { titleSynced: true, trophiesSynced: trophyIdByNpId.size };
 }
 
@@ -181,8 +242,20 @@ export async function syncTrophiesForUser(
     throw new NpssoExpiredError(cause);
   }
 
+  // Juegos que el usuario cargó desde el catálogo (para el diario) y todavía no
+  // tienen np_comm_id: se leen una sola vez por sync, no una vez por título.
+  const { data: catalogGames } = await supabase
+    .from("games")
+    .select("id, name")
+    .eq("source", "catalog")
+    .eq("created_by", userId)
+    .is("np_comm_id", null);
+  const catalogGameIdByName = new Map(
+    (catalogGames ?? []).map((game) => [normalizeName(game.name), game.id] as const),
+  );
+
   const results = await mapWithConcurrency(titles, TITLE_WRITE_CONCURRENCY, (title) =>
-    syncTitle(supabase, userId, title),
+    syncTitle(supabase, userId, title, catalogGameIdByName),
   );
 
   // El avatar puede cambiar en PSN sin que el usuario reconecte la cuenta; se

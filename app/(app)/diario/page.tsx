@@ -7,6 +7,7 @@ import AddFriendModal from "@/components/friends/AddFriendModal";
 import { FriendsDiaryFeed } from "@/components/friends/FriendsDiaryFeed";
 import { getFriendsDiaryFeed } from "@/lib/friends/queries";
 import { ErrorState } from "@/components/ErrorState";
+import Link from "next/link";
 
 export default async function DiaryPage({
   searchParams,
@@ -41,7 +42,15 @@ export default async function DiaryPage({
               Todas tus partidas terminadas, de la más reciente a la más vieja.
             </p>
           </div>
-          <MarkAsFinishedModal defaultOpen={nuevo === "1"} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/diario/resumen"
+              className="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
+            >
+              📊 Resumen del año
+            </Link>
+            <MarkAsFinishedModal defaultOpen={nuevo === "1"} />
+          </div>
         </div>
 
         {outcome.status === "error" ? (

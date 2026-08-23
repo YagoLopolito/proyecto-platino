@@ -29,7 +29,12 @@ const EDITION_TOKENS = [
   "complete edition",
 ];
 
-function normalizeName(name: string): string {
+/**
+ * Nombre comparable entre fuentes distintas (RAWG, PSN, carga manual): sin
+ * tokens de edición, sin puntuación y en minúsculas. Lo usa también el sync de
+ * PSN para reconciliar un juego cargado antes desde el catálogo (issue #96).
+ */
+export function normalizeName(name: string): string {
   let normalized = name.toLowerCase().trim();
   for (const token of EDITION_TOKENS) {
     normalized = normalized.replaceAll(token, "");

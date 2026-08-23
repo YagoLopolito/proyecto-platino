@@ -33,7 +33,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
   const [{ data: entries, error: entriesError }, { data: score }] = await Promise.all([
     supabase
       .from("game_diary_entries")
-      .select("id, user_id, playthrough_number, rating, review, finished_on")
+      .select("id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at")
       .eq("game_id", gameId)
       .order("finished_on", { ascending: false }),
     supabase.from("game_scores").select("average_rating, rating_count").eq("game_id", gameId).maybeSingle(),
@@ -87,6 +87,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
                       Partida #{entry.playthrough_number} · {entry.finished_on}
                     </span>
                     <StarRatingDisplay rating={entry.rating} />
+                    {entry.platinum_earned_at && <span title="Platinado">🏆</span>}
                   </span>
                   {entry.review && <p className="mt-1 text-xs text-zinc-500">{entry.review}</p>}
                 </div>

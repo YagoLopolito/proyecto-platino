@@ -24,6 +24,8 @@ export default function EditDiaryEntryForm({
     rating: number | null;
     review: string | null;
     finished_on: string;
+    source?: string;
+    platinum_earned_at?: string | null;
   };
 }) {
   const [editing, setEditing] = useState(false);
@@ -46,8 +48,19 @@ export default function EditDiaryEntryForm({
               Partida #{entry.playthrough_number} · {entry.finished_on}
             </span>
             <StarRatingDisplay rating={entry.rating} />
+            {entry.platinum_earned_at && (
+              <span className="rounded-full border border-zinc-600/60 bg-zinc-700/20 px-1.5 py-0.5 text-[11px] text-zinc-300">
+                🏆 Platinado
+              </span>
+            )}
           </p>
           {entry.review && <p className="text-xs text-zinc-500">{entry.review}</p>}
+          {entry.source === "platinum_sync" && entry.rating === null && (
+            <p className="text-xs text-zinc-500">
+              Creada automáticamente al detectar el platino en PSN. Editala para puntuarla y
+              reseñarla.
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button type="button" variant="secondary" onClick={() => setEditing(true)} className="text-xs">
