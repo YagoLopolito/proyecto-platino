@@ -26,14 +26,18 @@ test.afterEach(async ({ supabase, users }) => {
  * su rama "conectada", desmontando el form que mostraba ese mensaje. El badge
  * es lo que el usuario efectivamente ve al final, y no depende de ese timing.
  */
+async function submitSteamForm(page: import("@playwright/test").Page, vanity: string) {
+  await page.goto(CONNECTIONS);
+  await page.getByLabel(/SteamID64 o URL del perfil/i).fill(vanity);
+  await page.getByRole("button", { name: /Conectar cuenta de Steam/i }).click();
+}
+
 async function connectSteam(
   page: import("@playwright/test").Page,
   vanity: string,
   expectedStatus: "connected" | "attention" = "connected",
 ) {
-  await page.goto(CONNECTIONS);
-  await page.getByLabel(/SteamID64 o URL del perfil/i).fill(vanity);
-  await page.getByRole("button", { name: /Conectar cuenta de Steam/i }).click();
+  await submitSteamForm(page, vanity);
 
   await expect(
     page.getByRole("region", { name: "Steam" }).getByTestId("connection-status"),
@@ -60,7 +64,7 @@ test.describe("Steam", () => {
   });
 
   test("STEAM-03: conectar con un SteamID inexistente da un mensaje claro", async ({ page }) => {
-    await connectSteam(page, "no-existe-este-perfil-e2e");
+    await submitSteamForm(page, "no-existe-este-perfil-e2e");
     await expect(
       page.getByRole("region", { name: "Steam" }).getByRole("alert"),
     ).toContainText(/No encontramos ese perfil de Steam/i);
