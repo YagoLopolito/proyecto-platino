@@ -434,7 +434,7 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 | STEAM-02 | Conexiones lista las plataformas | Una tarjeta para PSN y otra para Steam | P0 |
 | STEAM-03 | SteamID inexistente | Mensaje propio ("No encontramos ese perfil"), no un error genérico | P0 |
 | STEAM-04 | Conectar por vanity URL | Fila en `steam_accounts` con `verified = false`, y la UI lo aclara | P0 |
-| STEAM-05 | Sync de logros | 2 juegos `source = 'steam'`, logros con `type = 'achievement'`, el juego sin logros marcado con `steam_has_achievements = false`, 1 logro en `user_trophies` | P0 |
+| STEAM-05 | Sync de logros | 2 juegos `source = 'steam'`, logros con `type = 'achievement'`, el juego sin logros marcado con `steam_has_achievements = false`, 1 logro en `user_trophies`, `playtime_minutes` guardado, y la biblioteca esconde el juego con 0 horas y 0 logros | P0 |
 | STEAM-06 | Perfil en privado | La cuenta se guarda igual con `profile_visibility = 'private'` y la tarjeta explica cómo cambiarlo | P0 |
 | STEAM-07 | Desconectar | La fila de `steam_accounts` desaparece; los juegos sincronizados se mantienen | P1 |
 

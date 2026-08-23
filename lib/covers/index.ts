@@ -426,3 +426,27 @@ export async function findSteamHeroUrl(gameName: string): Promise<string | null>
   }
   return null;
 }
+
+/**
+ * Carátula vertical de un juego de Steam desde su CDN pública
+ * (`library_600x900`, la misma portada que muestra la biblioteca del cliente de
+ * Steam), con `header.jpg` como alternativa para los appids que no la tienen.
+ *
+ * A diferencia del resto de este módulo no busca por nombre: el appid ya lo
+ * trae el sync, así que no hace falta resolver nada. No consume la cuota de la
+ * Steam Web API -- es la CDN de imágenes, sin key.
+ *
+ * Existe porque `img_icon_url` de `GetOwnedGames` es un ícono de **32x32**:
+ * estirado al tamaño de una tarjeta se ve pixelado.
+ */
+export async function findSteamCoverUrlByAppId(appId: number): Promise<string | null> {
+  // En la suite E2E los appids son inventados: sin esto, cada juego mockeado
+  // saldría a la CDN real para recibir dos 404.
+  if (process.env.E2E_MOCKS === "1") return null;
+
+  for (const file of ["library_600x900.jpg", "header.jpg"]) {
+    const candidate = `${STEAM_CDN}/${appId}/${file}`;
+    if (await urlExists(candidate)) return candidate;
+  }
+  return null;
+}

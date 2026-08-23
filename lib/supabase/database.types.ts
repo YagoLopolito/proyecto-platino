@@ -628,6 +628,7 @@ export type Database = {
           game_id: string
           id: string
           last_played_at: string | null
+          playtime_minutes: number | null
           user_id: string
         }
         Insert: {
@@ -635,6 +636,7 @@ export type Database = {
           game_id: string
           id?: string
           last_played_at?: string | null
+          playtime_minutes?: number | null
           user_id: string
         }
         Update: {
@@ -642,6 +644,7 @@ export type Database = {
           game_id?: string
           id?: string
           last_played_at?: string | null
+          playtime_minutes?: number | null
           user_id?: string
         }
         Relationships: [

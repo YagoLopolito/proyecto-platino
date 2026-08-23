@@ -119,9 +119,22 @@ test.describe("Steam", () => {
       .in("trophy_id", (trophies ?? []).map((trophy) => trophy.id));
     expect(unlocked).toHaveLength(1);
 
-    // La biblioteca los muestra sin desglose por tipo de trofeo.
+    // El playtime queda guardado: es lo que separa un juego real de un
+    // free-to-play reclamado y nunca abierto.
+    const { data: userGame } = await supabase
+      .from("user_games")
+      .select("playtime_minutes")
+      .eq("user_id", users.userA.id)
+      .eq("game_id", withAchievements!.id)
+      .single();
+    expect(userGame?.playtime_minutes).toBe(120);
+
+    // La biblioteca muestra el juego jugado, sin desglose por tipo de trofeo, y
+    // esconde el que tiene 0 horas y 0 logros (demos, playtests, free-to-play
+    // reclamados y nunca abiertos).
     await page.goto("/juegos");
     await expect(page.getByText("[E2E] Steam Game Con Logros")).toBeVisible();
+    await expect(page.getByText("[E2E] Steam Game Sin Logros")).toHaveCount(0);
   });
 
   test("STEAM-06: un perfil en privado se guarda y explica cómo destrabarlo", async ({

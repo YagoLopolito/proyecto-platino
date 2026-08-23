@@ -5,6 +5,7 @@ import GamesLibrary, { type LibraryGame } from "./GamesLibrary";
 import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { ErrorState } from "@/components/ErrorState";
 import { SyncStatusBadge, type SyncTokenStatus } from "@/components/SyncStatusBadge";
+import { isVisibleInLibrary } from "@/lib/library/visibility";
 import SyncButton from "@/components/psn/SyncButton";
 
 type GameStats = {
@@ -33,7 +34,9 @@ export default async function JuegosPage() {
     supabase.from("psn_accounts").select("token_status, last_synced_at").eq("user_id", userId).maybeSingle(),
     supabase
       .from("user_games")
-      .select("added_at, last_played_at, games (id, name, platform, cover_url, icon_url, source)")
+      .select(
+        "added_at, last_played_at, playtime_minutes, games (id, name, platform, cover_url, icon_url, source)",
+      )
       .order("last_played_at", { ascending: false, nullsFirst: false })
       .order("added_at", { ascending: false }),
     supabase.rpc("get_library_trophy_stats"),
@@ -49,19 +52,28 @@ export default async function JuegosPage() {
     });
   }
 
-  // Los juegos dados de alta desde "Marcar como terminado" (source='catalog') viven
-  // solo en el diario: no son parte de la biblioteca de PSN y no tienen trofeos, así
-  // que no se listan acá (decisión de producto).
+  // Qué se lista y qué no lo decide `isVisibleInLibrary` (juegos de catálogo y
+  // basura de Steam), compartido con /perfil para que los dos cuenten igual.
   const games: LibraryGame[] = (library ?? [])
-    .filter((row) => row.games && row.games.source !== "catalog")
-    .map((row) => {
-      const game = row.games!;
+    .flatMap((row) => {
+      const game = row.games;
+      if (!game) return [];
       const stats = statsByGame.get(game.id) ?? {
         total: 0,
         obtained: 0,
         percent: 0,
         counts: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
       };
+
+      if (
+        !isVisibleInLibrary({
+          source: game.source,
+          playtimeMinutes: row.playtime_minutes,
+          obtained: stats.obtained,
+        })
+      ) {
+        return [];
+      }
 
       return {
         id: game.id,

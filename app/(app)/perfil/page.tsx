@@ -12,6 +12,7 @@ import {
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/Button";
+import { isVisibleInLibrary } from "@/lib/library/visibility";
 
 // Solo los tipos de PSN: los logros de Steam no tienen desglose ni puntos de
 // nivel, así que no entran en este panel (ver PRODUCT_SPEC.md 12.4).
@@ -74,7 +75,7 @@ export default async function PerfilPage() {
   // biblioteca) en vez de paginar manualmente por TODOS los user_trophies de la
   // cuenta (con backlogs grandes eran varios round-trips seriales de a 1000 filas
   // solo para totalizar 4 números).
-  const [{ data: psnAccount }, { count: gamesCount }, { data: statsRows }] = await Promise.all([
+  const [{ data: psnAccount }, { data: libraryRows }, { data: statsRows }] = await Promise.all([
     supabase
       .from("psn_accounts")
       .select(
@@ -82,15 +83,25 @@ export default async function PerfilPage() {
       )
       .eq("user_id", user.id)
       .maybeSingle(),
-    // Mismo criterio que /juegos: los juegos de catálogo (alta desde "Marcar
-    // como terminado") no cuentan como parte de la biblioteca.
+    // Mismo criterio que /juegos, vía `isVisibleInLibrary`: los juegos de
+    // catálogo y la basura de Steam (nunca jugada y sin logros) no cuentan como
+    // biblioteca. Se traen las filas en vez de pedir un count porque el criterio
+    // cruza `playtime_minutes` con los logros obtenidos, que salen del RPC.
     supabase
       .from("user_games")
-      .select("game_id, games!inner (source)", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .neq("games.source", "catalog"),
+      .select("game_id, playtime_minutes, games!inner (source)")
+      .eq("user_id", user.id),
     supabase.rpc("get_library_trophy_stats"),
   ]);
+
+  const obtainedByGame = new Map((statsRows ?? []).map((row) => [row.game_id, row.obtained]));
+  const gamesCount = (libraryRows ?? []).filter((row) =>
+    isVisibleInLibrary({
+      source: row.games?.source ?? null,
+      playtimeMinutes: row.playtime_minutes,
+      obtained: obtainedByGame.get(row.game_id) ?? 0,
+    }),
+  ).length;
 
   const counts: Record<PsnTrophyType, number> = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
   for (const row of statsRows ?? []) {
@@ -159,7 +170,7 @@ export default async function PerfilPage() {
           <StatCard label="Nivel de trofeos" value={level} className="col-span-2 sm:col-span-2">
             <ProgressBar percent={progressPercent} />
           </StatCard>
-          <StatCard label="Juegos en biblioteca" value={gamesCount ?? 0} />
+          <StatCard label="Juegos en biblioteca" value={gamesCount} />
           <StatCard label="Trofeos totales" value={totalTrophies} />
         </div>
 
