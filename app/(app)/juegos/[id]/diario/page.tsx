@@ -7,6 +7,9 @@ import { StarRatingDisplay } from "@/components/diary/StarRating";
 import { GameHero } from "@/components/diary/GameHero";
 import { getGameCardData, GAME_CARD_COLUMNS } from "@/lib/catalog/details";
 import { getGameDiarySummary } from "@/lib/diary/queries";
+import { getGameScreenshots } from "@/lib/diary/screenshots";
+import ScreenshotUploader from "@/components/diary/ScreenshotUploader";
+import ScreenshotGallery from "@/components/diary/ScreenshotGallery";
 import { ErrorState } from "@/components/ErrorState";
 
 export default async function GameDiaryPage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,17 +36,19 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
 
   // El diario es público (a diferencia de user_trophies) -- se muestran las
   // entradas de todos los usuarios para este juego, ver CLAUDE.md.
-  const [{ data: entries, error: entriesError }, diaryOutcome, card] = await Promise.all([
-    supabase
-      .from("game_diary_entries")
-      .select(
-        "id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at",
-      )
-      .eq("game_id", gameId)
-      .order("finished_on", { ascending: false }),
-    getGameDiarySummary(supabase, gameId, user.id),
-    getGameCardData(supabase, game),
-  ]);
+  const [{ data: entries, error: entriesError }, diaryOutcome, card, screenshotsOutcome] =
+    await Promise.all([
+      supabase
+        .from("game_diary_entries")
+        .select(
+          "id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at",
+        )
+        .eq("game_id", gameId)
+        .order("finished_on", { ascending: false }),
+      getGameDiarySummary(supabase, gameId, user.id),
+      getGameCardData(supabase, game),
+      getGameScreenshots(supabase, gameId, user.id),
+    ]);
 
   const ownEntries = (entries ?? []).filter((entry) => entry.user_id === user.id);
   const otherEntries = (entries ?? []).filter((entry) => entry.user_id !== user.id);
@@ -67,6 +72,16 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
             distribution={diaryOutcome.summary.distribution}
           />
         )}
+
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold text-zinc-300">Capturas</h2>
+          <ScreenshotUploader gameId={gameId} />
+          {screenshotsOutcome.status === "error" ? (
+            <ErrorState message={`No se pudieron cargar las capturas: ${screenshotsOutcome.message}`} />
+          ) : (
+            <ScreenshotGallery gameId={gameId} screenshots={screenshotsOutcome.screenshots} />
+          )}
+        </section>
 
         <AddDiaryEntryForm gameId={gameId} />
 

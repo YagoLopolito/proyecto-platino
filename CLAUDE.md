@@ -159,6 +159,30 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   `STEAMGRIDDB_API_KEY`). Si no hay ninguno, cae a la carátula difuminada. El backdrop va con
   `z-0` y el contenido con `z-10`: con `-z-10` quedaba detrás del `bg-zinc-950` de la página y
   no se veía.
+- **Galería de capturas** (`game_screenshots` + bucket `game-screenshots`, migración
+  `20260823000000_game_screenshots.sql`): las sube el usuario a mano. Sony **no expone la
+  galería de capturas de PSN** por ninguna API usable — `psn-api` no la cubre y el GraphQL
+  interno de la PS App cambia sus hashes de `persistedQuery` en cada release, así que no se
+  intentó. Las capturas son públicas igual que el diario (`select using (true)`), y solo el
+  dueño puede escribir/borrar.
+  El archivo va **directo del browser a Storage** con la sesión del usuario (un Server Action
+  tiene límite de body y una captura pesa varios MB); recién después
+  `registerScreenshots` (`app/(app)/juegos/[id]/diario/screenshot-actions.ts`) indexa el path
+  en la tabla. Por eso el control real de quién escribe qué es la policy de `storage.objects`:
+  la primera carpeta del path tiene que ser el uuid del usuario
+  (`${userId}/${gameId}/${uuid}.ext`, ver `buildScreenshotPath`), y la Server Action revalida
+  ese prefijo antes de insertar — doble capa, misma convención que la autoría de guías.
+  Si el insert falla, la action borra el objeto ya subido para no dejar archivos huérfanos.
+  Al borrar se hace al revés (primero la fila, después el archivo): una fila apuntando a un
+  archivo inexistente sería una imagen rota en una galería pública.
+  Límites (`lib/diary/screenshot-constants.ts`, compartidos entre client y server) están
+  duplicados a propósito en el bucket (`file_size_limit`/`allowed_mime_types`): Storage rechaza
+  la subida antes de que el server vea nada, así que si se cambian hay que cambiarlos en los
+  dos lados. El bucket es público, así que la URL sale de `getPublicUrl` (no hay signed URLs
+  que expiren) y `next.config.ts` whitelistea `*.supabase.co` para que pase por `next/image`.
+  UI: `ScreenshotUploader` (multi-archivo con preview local en `blob:`, por eso ese `<img>` va
+  sin `next/image`) + `ScreenshotGallery` (grilla tipo Instagram con lightbox sobre `Modal`),
+  ambos en `/juegos/[id]/diario`.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).
