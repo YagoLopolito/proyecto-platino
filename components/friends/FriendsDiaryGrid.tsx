@@ -61,7 +61,7 @@ export function FriendsDiaryGrid({
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <ul className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-5">
       {entries.slice(0, limit).map((entry) => {
         const author = profileLabel(entry.author);
         return (
@@ -77,7 +77,7 @@ export function FriendsDiaryGrid({
                     src={entry.imageUrl}
                     alt={entry.gameName}
                     fill
-                    sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 200px"
+                    sizes="(max-width: 480px) 45vw, (max-width: 640px) 30vw, (max-width: 1024px) 25vw, 200px"
                     className="object-cover"
                   />
                 ) : (
@@ -92,7 +92,7 @@ export function FriendsDiaryGrid({
                 </div>
               </div>
 
-              <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-zinc-500">
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs text-zinc-500">
                 <StarRatingDisplay rating={entry.rating} />
                 <span className="flex items-center gap-1">
                   {entry.review && <span title="Tiene reseña">📝</span>}

@@ -41,9 +41,9 @@ export default function EditDiaryEntryForm({
 
   if (!editing) {
     return (
-      <div className="flex items-start justify-between gap-4 rounded border border-zinc-800 bg-zinc-950 p-3">
+      <div className="flex flex-col gap-3 rounded border border-zinc-800 bg-zinc-950 p-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 space-y-1">
-          <p className="flex items-center gap-2 text-sm text-zinc-200">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-200">
             <span>
               Partida #{entry.playthrough_number} · {entry.finished_on}
             </span>
@@ -54,7 +54,9 @@ export default function EditDiaryEntryForm({
               </span>
             )}
           </p>
-          {entry.review && <p className="text-xs text-zinc-500">{entry.review}</p>}
+          {entry.review && (
+            <p className="whitespace-pre-line break-words text-xs text-zinc-500">{entry.review}</p>
+          )}
           {entry.source === "platinum_sync" && entry.rating === null && (
             <p className="text-xs text-zinc-500">
               Creada automáticamente al detectar el platino en PSN. Editala para puntuarla y
@@ -62,16 +64,23 @@ export default function EditDiaryEntryForm({
             </p>
           )}
         </div>
+        {/* En mobile las acciones bajan a su propia fila y ocupan la mitad
+            del ancho cada una, para tener área táctil real. */}
         <div className="flex shrink-0 items-center gap-2">
-          <Button type="button" variant="secondary" onClick={() => setEditing(true)} className="text-xs">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setEditing(true)}
+            className="flex-1 py-2 text-xs sm:flex-none sm:py-1.5"
+          >
             Editar
           </Button>
-          <form action={deleteDiaryEntry}>
+          <form action={deleteDiaryEntry} className="flex-1 sm:flex-none">
             <input type="hidden" name="entryId" value={entry.id} />
             <input type="hidden" name="gameId" value={gameId} />
             <button
               type="submit"
-              className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-400 hover:border-red-500 hover:text-red-400"
+              className="w-full rounded border border-zinc-700 px-2 py-2 text-xs text-zinc-400 hover:border-red-500 hover:text-red-400 sm:py-1.5"
             >
               Borrar
             </button>
@@ -125,10 +134,15 @@ export default function EditDiaryEntryForm({
       <FormError>{state.error}</FormError>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending} className="text-xs">
+        <Button type="submit" disabled={pending} className="flex-1 py-2 text-xs sm:flex-none sm:py-1.5">
           {pending ? "Guardando..." : "Guardar"}
         </Button>
-        <Button type="button" variant="secondary" onClick={() => setEditing(false)} className="text-xs">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setEditing(false)}
+          className="flex-1 py-2 text-xs sm:flex-none sm:py-1.5"
+        >
           Cancelar
         </Button>
       </div>

@@ -49,7 +49,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
   const otherEntries = (entries ?? []).filter((entry) => entry.user_id !== user.id);
 
   return (
-    <div className="flex flex-1 flex-col overflow-x-clip bg-zinc-950 px-4 py-8 text-zinc-50 sm:py-12">
+    <div className="flex flex-1 flex-col overflow-x-clip bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <div className="relative z-10">
           <GameBreadcrumb gameId={gameId} gameName={card.name} current="Diario" />
@@ -94,14 +94,18 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
                   key={entry.id}
                   className="rounded border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300"
                 >
-                  <span className="inline-flex items-center gap-2">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span>
                       Partida #{entry.playthrough_number} · {entry.finished_on}
                     </span>
                     <StarRatingDisplay rating={entry.rating} />
                     {entry.platinum_earned_at && <span title="Platinado">🏆</span>}
                   </span>
-                  {entry.review && <p className="mt-1 text-xs text-zinc-500">{entry.review}</p>}
+                  {entry.review && (
+                    <p className="mt-1 whitespace-pre-line break-words text-xs text-zinc-500">
+                      {entry.review}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

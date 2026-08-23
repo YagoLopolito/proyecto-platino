@@ -32,22 +32,28 @@ export function StarRatingInput({
         const filled = stars >= starIndex;
         const halfFilled = !filled && stars >= starIndex - 0.5;
         return (
+          // Área táctil de ~40px en mobile (el glifo solo daba ~24px y era
+          // difícil de acertar con el dedo); a partir de `sm` vuelve al tamaño
+          // compacto de escritorio.
           <button
             key={starIndex}
             type="button"
             aria-label={`${starIndex} de ${MAX_STARS} estrellas`}
             aria-pressed={filled}
             onClick={() => setStars(stars === starIndex ? starIndex - 0.5 : starIndex)}
-            className="relative text-2xl leading-none text-zinc-700 hover:scale-110 transition-transform"
+            className="relative flex h-10 w-10 items-center justify-center text-3xl leading-none text-zinc-700 transition-transform hover:scale-110 sm:h-8 sm:w-8 sm:text-2xl"
           >
             <span aria-hidden="true">☆</span>
             {(filled || halfFilled) && (
+              // El recorte de la media estrella va en el contenedor; el glifo de
+              // adentro conserva el ancho completo del botón para quedar
+              // exactamente encima del ☆ de base (que está centrado).
               <span
                 aria-hidden="true"
-                className="absolute inset-0 overflow-hidden text-[var(--color-trophy-gold)]"
+                className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden text-[var(--color-trophy-gold)]"
                 style={{ width: halfFilled ? "50%" : "100%" }}
               >
-                ★
+                <span className="flex h-full w-10 items-center justify-center sm:w-8">★</span>
               </span>
             )}
           </button>
@@ -57,7 +63,7 @@ export function StarRatingInput({
         <button
           type="button"
           onClick={() => setStars(0)}
-          className="ml-1 text-xs text-zinc-500 hover:text-zinc-300"
+          className="ml-1 px-2 py-2 text-xs text-zinc-500 hover:text-zinc-300"
         >
           Quitar
         </button>

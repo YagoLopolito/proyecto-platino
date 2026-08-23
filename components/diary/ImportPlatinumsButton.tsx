@@ -13,7 +13,12 @@ export default function ImportPlatinumsButton() {
 
   return (
     <form action={formAction} className="space-y-1">
-      <Button type="submit" variant="secondary" disabled={pending} className="text-sm">
+      <Button
+        type="submit"
+        variant="secondary"
+        disabled={pending}
+        className="w-full py-2 text-sm sm:w-auto sm:py-1.5"
+      >
         {pending ? "Importando..." : "🏆 Importar mis platinos"}
       </Button>
       <FormError>{state.error}</FormError>

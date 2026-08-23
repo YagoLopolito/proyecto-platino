@@ -48,7 +48,7 @@ export function GameHero({
         */}
       {backgroundImage && (
         <div
-          className="pointer-events-none absolute left-1/2 top-0 z-0 -mt-8 h-[280px] w-screen -translate-x-1/2 overflow-hidden sm:-mt-12 sm:h-[420px]"
+          className="pointer-events-none absolute left-1/2 top-0 z-0 -mt-6 h-[220px] w-screen -translate-x-1/2 overflow-hidden sm:-mt-12 sm:h-[420px]"
           aria-hidden="true"
         >
           <Image
@@ -69,8 +69,8 @@ export function GameHero({
       )}
 
       <div
-        className={`relative z-10 flex flex-col gap-5 sm:flex-row ${
-          backgroundImage ? "pt-32 sm:pt-56" : ""
+        className={`relative z-10 flex flex-col gap-4 sm:flex-row sm:gap-5 ${
+          backgroundImage ? "pt-24 sm:pt-56" : ""
         }`}
       >
         {/*
@@ -79,14 +79,14 @@ export function GameHero({
           * apaisadas), y sin un marco la imagen quedaba chica al lado del resto
           * de la ficha. object-cover recorta para llenarlo siempre igual.
           */}
-        <div className="relative aspect-[3/4] w-40 shrink-0 self-start overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800 shadow-lg sm:w-56">
+        <div className="relative aspect-[3/4] w-32 shrink-0 self-start overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800 shadow-lg min-[420px]:w-40 sm:w-56">
           {game.coverUrl ? (
             <Image
               src={game.coverUrl}
               alt={game.name}
               fill
               priority
-              sizes="(max-width: 640px) 160px, 224px"
+              sizes="(max-width: 420px) 128px, (max-width: 640px) 160px, 224px"
               className="object-cover"
             />
           ) : (
@@ -96,11 +96,11 @@ export function GameHero({
           )}
         </div>
 
-        <div className="min-w-0 flex-1 space-y-3 rounded-xl bg-zinc-950/70 p-4 backdrop-blur-sm">
+        <div className="min-w-0 flex-1 space-y-3 rounded-xl bg-zinc-950/70 p-3 backdrop-blur-sm sm:p-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold sm:text-3xl">{game.name}</h1>
+            <h1 className="text-xl font-semibold break-words sm:text-3xl">{game.name}</h1>
             {meta.length > 0 && (
-              <p className="text-sm text-zinc-400">{meta.join(" · ")}</p>
+              <p className="text-xs text-zinc-400 sm:text-sm">{meta.join(" · ")}</p>
             )}
           </div>
 
@@ -138,7 +138,7 @@ export function GameHero({
             </p>
             <GameScore score={score} />
             {totalVotes > 0 && (
-              <ul className="flex items-end gap-1.5 pt-1" aria-label="Distribución de valoraciones">
+              <ul className="flex items-end gap-1 pt-1 sm:gap-1.5" aria-label="Distribución de valoraciones">
                 {distribution.map((count, index) => (
                   <li key={index} className="flex flex-1 flex-col items-center gap-1">
                     <span className="text-[10px] tabular-nums text-zinc-500">{count || ""}</span>
