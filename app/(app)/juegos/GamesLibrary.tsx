@@ -87,8 +87,14 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
 
   const visibleGames = useMemo(() => {
     const filtered = filterGames(games, filter);
+    // "Platinado" cubre las dos plataformas: el platino de PSN y su
+    // equivalente en Steam, el 100% de logros (Steam no tiene platino).
     const withoutPlatinum = hidePlatinum
-      ? filtered.filter((game) => game.counts.platinum === 0)
+      ? filtered.filter((game) => {
+          const isPsnPlatinum = game.counts.platinum > 0;
+          const isSteam100 = game.source === "steam" && game.total > 0 && game.percent === 100;
+          return !isPsnPlatinum && !isSteam100;
+        })
       : filtered;
     const withoutUnstarted = hideUnstarted
       ? withoutPlatinum.filter((game) => game.percent > 0)
