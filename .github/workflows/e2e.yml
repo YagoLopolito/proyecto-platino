@@ -1,0 +1,70 @@
+name: E2E
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL contra la que correr el smoke (deja vacio para correr la suite local)"
+        required: false
+
+jobs:
+  e2e:
+    name: Playwright (mocks)
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.base_url == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "1"
+      E2E_MOCKS: "1"
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      PSN_TOKEN_ENCRYPTION_KEY: ${{ secrets.PSN_TOKEN_ENCRYPTION_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      # A proposito NO se cargan AI_PROVIDER_API_KEY / RAWG_API_KEY /
+      # STEAMGRIDDB_API_KEY / STEAM_API_KEY: con E2E_MOCKS=1 no hacen falta, y su
+      # ausencia verifica de paso que la app degrada bien sin ellas.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  smoke:
+    name: Smoke contra el deploy
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CI: "1"
+      PLAYWRIGHT_BASE_URL: ${{ inputs.base_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e:smoke
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: smoke-report
+          path: playwright-report/
+          retention-days: 7
