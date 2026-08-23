@@ -74,47 +74,53 @@ export async function backfillCompletedDiaryEntries(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<PlatinumBackfillResult> {
-  // Dos queries planas en vez de un embed anidado: es el mismo patrón que usa
-  // getPlatinumGameIds en lib/diary/queries.ts, y evita depender de cómo
-  // PostgREST resuelve un embed con RLS de por medio.
-  const { data: achievements, error } = await supabase
-    .from("trophies")
-    .select("id, game_id, games!inner (source)")
-    .eq("type", "achievement")
-    .eq("games.source", "steam");
+  // Se arranca por los logros QUE EL USUARIO TIENE, no por el catálogo entero:
+  // `trophies` guarda los logros de todos los juegos de todos los usuarios
+  // (decenas de miles), y mandar esos ids en un `in(...)` arma una URL que
+  // PostgREST rechaza con 400.
+  const { data: unlocked, error } = await supabase
+    .from("user_trophies")
+    .select("unlocked_at, trophies!inner (game_id, type)")
+    .eq("user_id", userId)
+    .eq("trophies.type", "achievement");
 
   if (error) throw new Error(error.message);
-
-  const trophyIds = (achievements ?? []).map((row) => row.id);
-  if (trophyIds.length === 0) {
-    return { platinumsFound: 0, created: 0, linked: 0 };
-  }
-
-  const { data: unlocked, error: unlockedError } = await supabase
-    .from("user_trophies")
-    .select("trophy_id, unlocked_at")
-    .eq("user_id", userId)
-    .in("trophy_id", trophyIds);
-
-  if (unlockedError) throw new Error(unlockedError.message);
-
-  const unlockedById = new Map((unlocked ?? []).map((row) => [row.trophy_id, row.unlocked_at]));
 
   type GameProgress = { total: number; earned: number; lastUnlockedAt: string | null };
   const byGame = new Map<string, GameProgress>();
 
-  for (const row of achievements ?? []) {
-    const progress = byGame.get(row.game_id) ?? { total: 0, earned: 0, lastUnlockedAt: null };
-    progress.total += 1;
-
-    if (unlockedById.has(row.id)) {
-      progress.earned += 1;
-      const unlockedAt = unlockedById.get(row.id) ?? null;
-      if (unlockedAt && (!progress.lastUnlockedAt || unlockedAt > progress.lastUnlockedAt)) {
-        progress.lastUnlockedAt = unlockedAt;
-      }
+  for (const row of unlocked ?? []) {
+    if (!row.trophies) continue;
+    const gameId = row.trophies.game_id;
+    const progress = byGame.get(gameId) ?? { total: 0, earned: 0, lastUnlockedAt: null };
+    progress.earned += 1;
+    if (
+      row.unlocked_at &&
+      (!progress.lastUnlockedAt || row.unlocked_at > progress.lastUnlockedAt)
+    ) {
+      progress.lastUnlockedAt = row.unlocked_at;
     }
-    byGame.set(row.game_id, progress);
+    byGame.set(gameId, progress);
+  }
+
+  const gameIds = [...byGame.keys()];
+  if (gameIds.length === 0) {
+    return { platinumsFound: 0, created: 0, linked: 0 };
+  }
+
+  // Cuántos logros tiene cada uno de esos juegos (y solo esos), para saber
+  // cuáles están completos.
+  const { data: allAchievements, error: totalsError } = await supabase
+    .from("trophies")
+    .select("game_id")
+    .eq("type", "achievement")
+    .in("game_id", gameIds);
+
+  if (totalsError) throw new Error(totalsError.message);
+
+  for (const row of allAchievements ?? []) {
+    const progress = byGame.get(row.game_id);
+    if (progress) progress.total += 1;
   }
 
   const completed = [...byGame.entries()].filter(
