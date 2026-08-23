@@ -3,18 +3,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
-import { TrophyTypeIcon, trophyTypeLabel, type TrophyType } from "@/components/TrophyTypeIcon";
+import {
+  TrophyTypeIcon,
+  trophyTypeLabel,
+  PSN_TROPHY_TYPES,
+  type PsnTrophyType,
+} from "@/components/TrophyTypeIcon";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/Button";
 
-const TROPHY_TYPES: TrophyType[] = ["platinum", "gold", "silver", "bronze"];
+// Solo los tipos de PSN: los logros de Steam no tienen desglose ni puntos de
+// nivel, así que no entran en este panel (ver PRODUCT_SPEC.md 12.4).
+const TROPHY_TYPES = PSN_TROPHY_TYPES;
 
 /**
  * Puntos por tipo de trofeo, según la escala clásica que usa PSN para calcular
  * el nivel de trofeos (bronce 15, plata 30, oro 90, platino 300).
  */
-const TROPHY_POINTS: Record<TrophyType, number> = {
+const TROPHY_POINTS: Record<PsnTrophyType, number> = {
   bronze: 15,
   silver: 30,
   gold: 90,
@@ -85,7 +92,7 @@ export default async function PerfilPage() {
     supabase.rpc("get_library_trophy_stats"),
   ]);
 
-  const counts: Record<TrophyType, number> = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
+  const counts: Record<PsnTrophyType, number> = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
   for (const row of statsRows ?? []) {
     counts.platinum += row.platinum;
     counts.gold += row.gold;
@@ -193,7 +200,7 @@ export default async function PerfilPage() {
             Mi biblioteca
           </Link>
           <Link
-            href="/psn"
+            href="/configuracion/conexiones"
             className="block w-full rounded border border-zinc-700 px-4 py-2 text-center font-medium text-zinc-50 hover:border-blue-500"
           >
             {psnAccount ? `PSN conectada: ${psnAccount.online_id}` : "Conectar cuenta PSN"}

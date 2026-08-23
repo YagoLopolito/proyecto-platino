@@ -11,6 +11,8 @@ const TYPE_LABEL: Record<string, string> = {
   silver: "Plata",
   gold: "Oro",
   platinum: "Platino",
+  // Steam: los logros son planos, no hay tipo que mostrar más allá de esto.
+  achievement: "Logro",
 };
 
 export default function TrophyItem({

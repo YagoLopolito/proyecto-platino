@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { E2E_GAME_PREFIX, E2E_EMAIL_DOMAIN } from "./ids";
+import { E2E_GAME_PREFIX, E2E_EMAIL_DOMAIN, E2E_STEAM_APPID_MIN } from "./ids";
 
 /**
  * Cliente con service role para setup/teardown de los tests. Bypassea RLS,
@@ -31,6 +31,9 @@ export async function cleanupTestData(supabase: SupabaseClient): Promise<void> {
   // El catalogo compartido primero: trophies/game_external_guides caen por
   // cascade desde games.
   await supabase.from("games").delete().like("np_comm_id", `${E2E_GAME_PREFIX}%`);
+  // Los juegos que crea el sync mockeado de Steam no tienen np_comm_id: se
+  // limpian por su rango reservado de appid.
+  await supabase.from("games").delete().gte("steam_appid", E2E_STEAM_APPID_MIN);
 
   const { data } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
   const testUsers = (data?.users ?? []).filter((u) => u.email?.endsWith(`@${E2E_EMAIL_DOMAIN}`));

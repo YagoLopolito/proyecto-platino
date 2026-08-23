@@ -89,6 +89,12 @@ export default function TrophyList({
     });
   }, [groups, query, status, type, rarity, sort]);
 
+  // Los logros de Steam son todos del mismo tipo: el selector de tipo no
+  // filtraría nada y solo sumaría ruido, así que no se muestra.
+  const hasTrophyTypes = groups.some((group) =>
+    group.trophies.some((trophy) => trophy.type !== "achievement"),
+  );
+
   const visibleCount = filteredGroups.reduce((acc, g) => acc + g.trophies.length, 0);
   const totalCount = groups.reduce((acc, g) => acc + g.trophies.length, 0);
   const hasFilters = query.trim() !== "" || status !== "all" || type !== "all" || rarity !== "all";
@@ -117,18 +123,20 @@ export default function TrophyList({
             <option value="obtained">Solo obtenidos</option>
           </select>
 
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as TypeFilter)}
-            aria-label="Filtrar por tipo"
-            className={SELECT_CLASS}
-          >
-            <option value="all">Todos los tipos</option>
-            <option value="platinum">Platino</option>
-            <option value="gold">Oro</option>
-            <option value="silver">Plata</option>
-            <option value="bronze">Bronce</option>
-          </select>
+          {hasTrophyTypes && (
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as TypeFilter)}
+              aria-label="Filtrar por tipo"
+              className={SELECT_CLASS}
+            >
+              <option value="all">Todos los tipos</option>
+              <option value="platinum">Platino</option>
+              <option value="gold">Oro</option>
+              <option value="silver">Plata</option>
+              <option value="bronze">Bronce</option>
+            </select>
+          )}
 
           <select
             value={rarity}

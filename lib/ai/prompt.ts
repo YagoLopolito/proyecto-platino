@@ -4,7 +4,9 @@ export type AiPlanTrophyInput = {
   id: string;
   name: string;
   description: string | null;
-  type: "bronze" | "silver" | "gold" | "platinum";
+  // `achievement` es el tipo plano de Steam: el prompt lo pasa tal cual y el
+  // modelo no tiene que inventarle un color de trofeo que no existe.
+  type: "bronze" | "silver" | "gold" | "platinum" | "achievement";
   hidden: boolean;
   obtained: boolean;
 };
@@ -96,7 +98,7 @@ export type TrophyHintInput = {
   platform: string;
   trophyName: string;
   trophyDescription: string | null;
-  trophyType: "bronze" | "silver" | "gold" | "platinum";
+  trophyType: "bronze" | "silver" | "gold" | "platinum" | "achievement";
   hidden: boolean;
 };
 

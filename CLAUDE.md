@@ -37,11 +37,18 @@ Sony **no tiene una API pública ni oficial** para trofeos. No hay developer pro
 - `lib/covers/index.ts` (RAWG, vía `RAWG_API_KEY`) sólo complementa la carátula (`cover_url`) cuando se crea un juego nuevo por sync; nunca aporta trofeos ni bloquea el sync si falla.
 - **Sync automático**: `app/api/cron/sync/route.ts` corre vía Vercel Cron (`vercel.json`, diario) y sincroniza todas las `psn_accounts` con `token_status = 'valid'`, con la misma concurrencia limitada que el sync manual. Usa `lib/supabase/service.ts` (service role, bypassea RLS) porque no hay sesión de cookies de usuario en un cron; nunca usar ese cliente en una ruta que sirve requests de usuarios. El endpoint exige `Authorization: Bearer ${CRON_SECRET}` (Vercel lo manda solo si `CRON_SECRET` está seteada en el proyecto) — sin esa variable, el endpoint rechaza todo con 401. Si una cuenta falla (NPSSO vencido, error de PSN), no aborta el resto: se guarda por-cuenta en la respuesta y `psn_accounts.token_status` queda en `'expired'` para que la UI le pida al usuario reconectar.
 
-## Steam: segunda plataforma (planeado, todavía no implementado)
+## Steam: segunda plataforma
 
 Decidido el 2026-08-23: **la misma conexión que hay con PSN, pero para Steam**, con las dos
 conviviendo. Ver `PRODUCT_SPEC.md` sección 12 para el diseño completo (endpoints, modelo de
-datos, navegación); acá van las reglas que hay que respetar cuando se implemente.
+datos, navegación); acá van las reglas permanentes.
+
+**Estado actual: conexión y sync manual implementados** (issues #110-#114): `lib/steam/`,
+`steam_accounts`, `/api/steam/sync` y Configuración › Conexiones. Falta todavía el filtro
+por fuente en `/juegos` (`?fuente=steam`), las stats del perfil separadas por plataforma,
+el recorrido de `steam_accounts` en `/api/cron/sync`, el equivalente del hook de platino
+para el 100% de Steam (necesita un campo propio: **nunca** escribir `platinum_earned_at`
+con un logro de Steam) y la verificación por Steam OpenID.
 
 - **Toda llamada a la Steam Web API de tracking vive en `lib/steam/`**, misma regla de
   aislamiento que `lib/psn/` y `lib/ai/`. `lib/external-guides/steam.ts` se queda donde está:
@@ -63,13 +70,19 @@ datos, navegación); acá van las reglas que hay que respetar cuando se implemen
   diario, **nunca escribir `platinum_earned_at` con un logro de Steam**: ese campo significa
   "platino de PSN" en toda la app.
 - Tablas: `steam_accounts` (espejo de `psn_accounts`, sin columna de secreto cifrado),
-  `games.steam_appid`, y `games.source` suma `'steam'`. Un juego que está en las dos plataformas
+  `games.steam_appid` (unique parcial), `games.steam_has_achievements` (NULL = no se preguntó;
+  false = confirmado sin logros, no volver a pedir el schema en cada sync) y `games.source` suma
+  `'steam'`. Migraciones `20260823010000_steam_accounts.sql` y
+  `20260823010100_games_steam_achievements.sql`. Un juego que está en las dos plataformas
   son **dos filas de `games` en v1** — deduplicar es el mismo problema de matching que
   `lib/catalog/dedup.ts` con los remasters y no se resuelve antes de tener datos reales.
 - Rate limit real: 100.000 llamadas por día por key. Suena mucho, pero el sync pide schema +
   logros **por juego**: misma disciplina que PSN (concurrencia limitada vía
   `lib/psn/concurrency.ts`, upserts en bloque por título, saltear juegos sin logros en vez de
   reintentarlos en cada sync).
+- El sync manual es `POST /api/steam/sync` (`app/api/steam/sync/route.ts`, `maxDuration = 300`),
+  espejo del de PSN. Devuelve 409 con `reason: "private"` cuando el perfil está en privado: es
+  el único estado que el usuario puede arreglar, y se distingue del 500 genérico a propósito.
 - El sync automático **reusa `/api/cron/sync`**, recorriendo también `steam_accounts`. No se
   agrega un segundo cron: el plan Hobby de Vercel limita la cantidad de cron jobs y el trabajo es
   el mismo con otra fuente.
@@ -83,15 +96,17 @@ El selector **solo aparece si el usuario tiene las dos cuentas conectadas**. Las
 van **separadas por plataforma**, no sumadas: un platino de PSN y un 100% de Steam no son la
 misma unidad.
 
-### Navegación: `/psn` pasa a ser Configuración › Conexiones
+### Navegación: `/psn` es Configuración › Conexiones
 
 El tab de nivel superior "PSN" deja de tener sentido con dos plataformas. Pasa a llamarse
 **Configuración**, y adentro tiene tabs; el primero (y único por ahora) es **Conexiones**, con
 una tarjeta por plataforma (estado, último sync, sincronizar ahora, desconectar) y las
-instrucciones de cada una adentro de su tarjeta. `/psn` queda como **redirect** a
-`/configuracion/conexiones`. Ojo con `middleware.ts`: el matcher está acotado a mano (ver
-sección de performance), así que agregar `/configuracion` ahí es parte de la tarea — si se
-olvida, la ruta queda sin la capa de sesión del middleware.
+instrucciones de cada una adentro de su tarjeta. `/psn` quedó como **redirect** a
+`/configuracion/conexiones`, y el matcher de `middleware.ts` (acotado a mano, ver sección de
+performance) ya cubre `/configuracion`. Las Server Actions de las dos plataformas viven en
+`app/(app)/configuracion/conexiones/actions.ts`; las tarjetas son
+`components/connections/`. Desconectar **no borra** juegos ni trofeos ya sincronizados: son
+del usuario y el diario cuelga de ellos.
 
 ## Guías de desbloqueo: enfoque
 
@@ -371,9 +386,10 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
 7. Enlaces a guías externas curadas. ✅ campo (`external_url`/`source`) dentro de una guía + vista dedicada de "enlaces por juego" (`app/juegos/[id]/enlaces/`), Fase 9 completa.
 8. Advisor con IA (`lib/ai/`): cliente + prompt + validación de schema + endpoint + UI del panel + guardado versionado en `ai_game_plans`. ✅ Fase 6 completa.
 9. Letterbox de juegos: diario público de partidas terminadas con rating, buscador de catálogo (RAWG) para loguear cualquier juego de PSN aunque no esté sincronizado. ✅ Fase 12 completa (issues #88-93: `game_diary_entries`/`game_scores`, `lib/covers` búsqueda multi-resultado, `lib/catalog/` alta de juegos, CRUD en `app/juegos/[id]/diario/`, timeline en `/diario`, score comunitario con umbral de 3 votos).
-10. Steam como segunda plataforma conectable (`lib/steam/`, `steam_accounts`, filtro de fuente en la
-    biblioteca, Configuración › Conexiones). ⏳ Planeado, ver la sección de Steam más arriba y
-    `PRODUCT_SPEC.md` sección 12.
+10. Steam como segunda plataforma conectable (`lib/steam/`, `steam_accounts`, Configuración ›
+    Conexiones, `/api/steam/sync`). ⏳ En curso: conexión y sync manual listos (issues #110-#114);
+    falta el filtro de fuente en la biblioteca, las stats por plataforma en el perfil, el cron y
+    Steam OpenID. Ver la sección de Steam más arriba y `PRODUCT_SPEC.md` sección 12.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
@@ -395,7 +411,7 @@ CRON_SECRET=
 - `AI_PROVIDER_API_KEY`: requerida para el advisor con IA (`lib/ai/`). API key de Groq (console.groq.com), gratis sin tarjeta. Sin ella, tira error al primer llamado — no rompe nada más de la app porque no se invoca en el sync ni en el render de páginas. `lib/external-guides/` (enlaces externos) no depende de esta key: usa Steam Web API + links de búsqueda, gratis, sin IA.
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
 - `STEAMGRIDDB_API_KEY`: opcional. Fallback de `lib/covers` cuando RAWG no encuentra la carátula (o falta `RAWG_API_KEY`). Sin ninguna de las dos, el sync sigue funcionando igual con los íconos que trae PSN.
-- `STEAM_API_KEY`: opcional, gratis en steamcommunity.com/dev/apikey. Sin ella, `lib/external-guides/steam.ts` no trae guías de Steam Community — los links de búsqueda a PowerPyx/PSNProfiles/TrueTrophies (`site-search.ts`) siguen funcionando igual. Cuando se implemente la conexión con Steam (ver sección de Steam) esta misma key pasa a ser la credencial del sync de logros, y ahí deja de ser opcional para ese pilar.
+- `STEAM_API_KEY`: opcional para las guías, **requerida para conectar y sincronizar Steam**. Gratis en steamcommunity.com/dev/apikey. Sin ella, `lib/external-guides/steam.ts` no trae guías de Steam Community (los links de búsqueda a PowerPyx/PSNProfiles/TrueTrophies siguen funcionando) y `lib/steam/` tira `SteamApiKeyMissingError` en el primer llamado, que la UI de Conexiones muestra como mensaje propio en vez de un error genérico. Es la credencial de la app, no del usuario: no hay equivalente al NPSSO ni nada que expire.
 - `CRON_SECRET`: requerida para que `/api/cron/sync` acepte invocaciones. Vercel la agrega sola como header en las llamadas que dispara desde `vercel.json` si está seteada en el proyecto — sin ella el cron queda deshabilitado (401 siempre) pero el sync manual (`/api/psn/sync`) no se ve afectado.
 
 <!-- BEGIN:nextjs-agent-rules -->

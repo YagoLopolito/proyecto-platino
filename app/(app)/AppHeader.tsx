@@ -7,7 +7,7 @@ import { logout } from "@/app/auth/actions";
 const NAV_LINKS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/juegos", label: "Biblioteca" },
   { href: "/perfil", label: "Perfil" },
-  { href: "/psn", label: "PSN" },
+  { href: "/configuracion", label: "Configuración" },
   { href: "/diario", label: "Diario" },
 ];
 

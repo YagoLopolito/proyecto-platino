@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 import { ProgressBar } from "@/components/ProgressBar";
 import { PlatinumBadge } from "@/components/PlatinumBadge";
+import { CompletionBadge } from "@/components/CompletionBadge";
 import AiAdvisorPanel from "./AiAdvisorPanel";
 import TrophyList, { type TrophyListGroup } from "./TrophyList";
 import type { AiGamePlan } from "@/lib/ai";
@@ -56,7 +57,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     { data: cachedPlanRow },
     diaryOutcome,
   ] = await Promise.all([
-    supabase.from("games").select("id, name, platform, cover_url, icon_url").eq("id", gameId).single(),
+    supabase.from("games").select("id, name, platform, cover_url, icon_url, source").eq("id", gameId).single(),
     supabase
       .from("trophies")
       .select("id, name, description, type, hidden, icon_url, trophy_group_id, rarity, earned_rate, progress_target")
@@ -99,7 +100,11 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const total = trophies?.length ?? 0;
   const obtainedCount = trophies?.filter((t) => obtained.has(t.id)).length ?? 0;
   const percent = total > 0 ? Math.round((obtainedCount / total) * 100) : 0;
-  const isPlatinumed = (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
+  const isSteam = game.source === "steam";
+  // Steam no tiene platino: el equivalente es el 100% de los logros, y va con
+  // su propio badge para no mezclarlo con el platino de PSN.
+  const isPlatinumed = !isSteam && (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
+  const isCompleted = isSteam && total > 0 && obtainedCount === total;
 
   // Si el juego tiene DLC/expansiones, PSN los trae como grupos de trofeos
   // aparte del "default" (juego base) -- se separan visualmente para poder
@@ -194,6 +199,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold sm:text-2xl">
                 {game.name}
                 {isPlatinumed && <PlatinumBadge />}
+                {isCompleted && <CompletionBadge />}
               </h1>
               <p className="text-sm text-zinc-400">{game.platform}</p>
               {diarySummary && (
