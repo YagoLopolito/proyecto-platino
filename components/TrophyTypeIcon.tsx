@@ -1,10 +1,17 @@
-export type TrophyType = "bronze" | "silver" | "gold" | "platinum";
+/**
+ * Los cuatro tipos de PSN más `achievement`, el único valor que tienen las
+ * filas que trae Steam. Steam no tiene bronce/plata/oro ni platino: es un tipo
+ * "sin desglose", así que va en gris neutro y no como un quinto color de
+ * trofeo (ver CLAUDE.md, sección de Steam).
+ */
+export type TrophyType = "bronze" | "silver" | "gold" | "platinum" | "achievement";
 
 const COLOR: Record<TrophyType, string> = {
   bronze: "var(--color-trophy-bronze)",
   silver: "var(--color-trophy-silver)",
   gold: "var(--color-trophy-gold)",
   platinum: "var(--color-trophy-platinum)",
+  achievement: "var(--color-zinc-400, #a1a1aa)",
 };
 
 const LABEL: Record<TrophyType, string> = {
@@ -12,7 +19,12 @@ const LABEL: Record<TrophyType, string> = {
   silver: "Plata",
   gold: "Oro",
   platinum: "Platino",
+  achievement: "Logro",
 };
+
+/** Tipos con desglose propio: Steam queda afuera a propósito. */
+export type PsnTrophyType = Exclude<TrophyType, "achievement">;
+export const PSN_TROPHY_TYPES: PsnTrophyType[] = ["platinum", "gold", "silver", "bronze"];
 
 /**
  * Ícono de trofeo por tipo. No reproducimos el asset oficial de Sony (sin

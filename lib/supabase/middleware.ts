@@ -35,7 +35,8 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/perfil") ||
     request.nextUrl.pathname.startsWith("/juegos") ||
-    request.nextUrl.pathname.startsWith("/psn");
+    request.nextUrl.pathname.startsWith("/psn") ||
+    request.nextUrl.pathname.startsWith("/configuracion");
 
   if (!user && !isAuthRoute && isProtectedRoute) {
     const url = request.nextUrl.clone();

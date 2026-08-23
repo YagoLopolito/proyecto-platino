@@ -160,6 +160,7 @@ así que hay exactamente cuatro puntos donde enchufar el mock.
 | `lib/ai/client.ts` | `generateAiGamePlan` | Devuelve un plan válido contra `aiGamePlanSchema`; con `E2E_AI_FAIL=1` tira `AiSchemaValidationError` |
 | `lib/covers/` | `findCoverUrl`, `searchCatalogGames` | Carátula local de `public/`; búsqueda devuelve 3 candidatos fijos + un caso de remaster para el dedup |
 | `lib/external-guides/` | `populateExternalGuidesForGame` | Inserta 1 guía de Steam + los 3 links de búsqueda |
+| `lib/steam/` | `steamFetch` (única salida a la Steam Web API) | Vanity `e2e-steam-user` → perfil público con 2 juegos (uno con 2 logros, uno sin ninguno); `e2e-steam-private` → perfil con los detalles del juego en privado; cualquier otro → perfil inexistente. Ver `lib/steam/mocks.ts` |
 
 **Regla dura:** el interruptor se lee **solo** dentro de esos módulos (`lib/**`), nunca en
 componentes, páginas ni Server Actions. Si un test necesita un comportamiento nuevo, se
@@ -204,6 +205,7 @@ e2e/
     10-profile.spec.ts
     11-a11y-mobile.spec.ts
     12-security-isolation.spec.ts
+    13-steam.spec.ts
     smoke.spec.ts            # el único que corre contra Vercel
   global-setup.ts
   global-teardown.ts
@@ -416,11 +418,27 @@ Sin usuario de test, sin escrituras, sin mocks. Corre contra `PLAYWRIGHT_BASE_UR
 | --- | --- | --- | --- |
 | SMOKE-01 | Landing carga | 200, título correcto | P0 |
 | SMOKE-02 | `/login` y `/registro` cargan | 200, formularios presentes | P0 |
-| SMOKE-03 | Rutas protegidas redirigen | `/perfil`, `/juegos`, `/psn`, `/diario` → `/login` | P0 |
+| SMOKE-03 | Rutas protegidas redirigen | `/perfil`, `/juegos`, `/psn`, `/configuracion/conexiones`, `/diario` → `/login` | P0 |
 | SMOKE-04 | Metadata del sitio | `title`, `description` y favicon reales (issue #58) | P1 |
 | SMOKE-05 | Sin errores de consola en la landing | Consola limpia | P1 |
 
-**Total: 88 casos** — 30 P0, 40 P1, 18 P2.
+### 6.14 Steam y Conexiones (`13-steam.spec.ts`)
+
+Fase 13 (issues #110-#114). Toda la Steam Web API va mockeada (§4.1): la key es de la app
+y en CI no hay ninguna, así que ninguna de estas pruebas sale a la red. Los juegos que
+crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| STEAM-01 | `/psn` sigue funcionando | Redirige a `/configuracion/conexiones` | P0 |
+| STEAM-02 | Conexiones lista las plataformas | Una tarjeta para PSN y otra para Steam | P0 |
+| STEAM-03 | SteamID inexistente | Mensaje propio ("No encontramos ese perfil"), no un error genérico | P0 |
+| STEAM-04 | Conectar por vanity URL | Fila en `steam_accounts` con `verified = false`, y la UI lo aclara | P0 |
+| STEAM-05 | Sync de logros | 2 juegos `source = 'steam'`, logros con `type = 'achievement'`, el juego sin logros marcado con `steam_has_achievements = false`, 1 logro en `user_trophies` | P0 |
+| STEAM-06 | Perfil en privado | La cuenta se guarda igual con `profile_visibility = 'private'` y la tarjeta explica cómo cambiarlo | P0 |
+| STEAM-07 | Desconectar | La fila de `steam_accounts` desaparece; los juegos sincronizados se mantienen | P1 |
+
+**Total: 95 casos** — 36 P0, 41 P1, 18 P2.
 
 ---
 
@@ -483,6 +501,8 @@ test.describe("Guías propias", () => {
 | `friend-row` | `components/friends/FriendsDiaryFeed.tsx` | Identificar amigos en el feed |
 | `sync-status` | `components/SyncStatusBadge.tsx` | Estado del sync |
 | `ai-plan` | `app/(app)/juegos/[id]/AiAdvisorPanel.tsx` | Presencia del plan generado |
+| `connection-card` | `components/connections/ConnectionCard.tsx` | Identificar la tarjeta de cada plataforma en Conexiones |
+| `connection-status` | `components/connections/ConnectionCard.tsx` | Estado de la conexión (`data-status`: connected / attention / disconnected) |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo
 usa, nunca por adelantado "por las dudas".

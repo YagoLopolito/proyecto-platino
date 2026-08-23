@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
       // Wallpapers (library_hero) de la CDN pública de Steam, ver lib/covers.
       { protocol: "https", hostname: "cdn.cloudflare.steamstatic.com" },
       { protocol: "https", hostname: "shared.cloudflare.steamstatic.com" },
+      // Íconos de juegos y de logros, y avatares, del sync de Steam (lib/steam).
+      { protocol: "https", hostname: "avatars.steamstatic.com" },
+      { protocol: "https", hostname: "avatars.cloudflare.steamstatic.com" },
+      { protocol: "https", hostname: "media.steampowered.com" },
+      { protocol: "https", hostname: "cdn.akamai.steamstatic.com" },
       // Capturas que suben los usuarios (bucket público de Supabase Storage).
       { protocol: "https", hostname: "*.supabase.co" },
     ],

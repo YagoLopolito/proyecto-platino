@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { GameCard } from "@/components/GameCard";
 import { EmptyState } from "@/components/EmptyState";
-import type { TrophyType } from "@/components/TrophyTypeIcon";
+import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { boolean, oneOf, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
 export type LibraryGame = {
@@ -17,7 +17,8 @@ export type LibraryGame = {
   total: number;
   obtained: number;
   percent: number;
-  counts: Record<TrophyType, number>;
+  counts: Record<PsnTrophyType, number>;
+  source: string | null;
 };
 
 type SortOption = "recent" | "name" | "percent";
@@ -55,6 +56,8 @@ function sortGames(games: LibraryGame[], sort: SortOption, direction: SortDirect
 }
 
 function filterGames(games: LibraryGame[], filter: FilterOption): LibraryGame[] {
+  // Steam no tiene platino: un juego suyo nunca entra acá, y su equivalente
+  // (100% de logros) se ve como badge propio en la tarjeta.
   if (filter === "platinum") return games.filter((game) => game.counts.platinum > 0);
   if (filter === "over50") return games.filter((game) => game.percent > 50);
   return games;
@@ -178,7 +181,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
           title={
             <>
               Todavía no hay juegos.{" "}
-              <Link href="/psn" className="text-blue-400 hover:underline">
+              <Link href="/configuracion/conexiones" className="text-blue-400 hover:underline">
                 Conectá tu cuenta PSN
               </Link>{" "}
               para traerlos automáticamente.

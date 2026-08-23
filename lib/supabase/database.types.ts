@@ -246,6 +246,8 @@ export type Database = {
           platform: string | null
           release_year: number | null
           source: string
+          steam_appid: number | null
+          steam_has_achievements: boolean | null
           updated_at: string
         }
         Insert: {
@@ -264,6 +266,8 @@ export type Database = {
           platform?: string | null
           release_year?: number | null
           source?: string
+          steam_appid?: number | null
+          steam_has_achievements?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -282,6 +286,8 @@ export type Database = {
           platform?: string | null
           release_year?: number | null
           source?: string
+          steam_appid?: number | null
+          steam_has_achievements?: boolean | null
           updated_at?: string
         }
         Relationships: [
@@ -448,6 +454,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "psn_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      steam_accounts: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          persona_name: string
+          profile_visibility: string
+          steam_id64: string
+          updated_at: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          persona_name: string
+          profile_visibility?: string
+          steam_id64: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          persona_name?: string
+          profile_visibility?: string
+          steam_id64?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "steam_accounts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "users"
@@ -718,6 +771,8 @@ export type Database = {
           display_name: string | null
           id: string | null
           psn_online_id: string | null
+          steam_avatar_url: string | null
+          steam_persona_name: string | null
         }
         Relationships: []
       }

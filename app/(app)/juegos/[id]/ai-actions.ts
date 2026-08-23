@@ -7,6 +7,7 @@ import {
   AiProviderError,
   AiSchemaValidationError,
   type AiGamePlan,
+  type AiPlanTrophyInput,
 } from "@/lib/ai";
 
 const MODEL = "openai/gpt-oss-120b";
@@ -105,7 +106,7 @@ export async function generateAiPlan(
         id: shortIdByRealId.get(t.id)!,
         name: t.name,
         description: t.description,
-        type: t.type as "bronze" | "silver" | "gold" | "platinum",
+        type: t.type as AiPlanTrophyInput["type"],
         hidden: t.hidden,
         obtained: obtainedTrophyIds.has(t.id),
       })),

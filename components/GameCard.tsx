@@ -3,9 +3,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ProgressBar } from "./ProgressBar";
 import { PlatinumBadge } from "./PlatinumBadge";
-import { TrophyTypeIcon, type TrophyType } from "./TrophyTypeIcon";
-
-const TROPHY_TYPES: TrophyType[] = ["platinum", "gold", "silver", "bronze"];
+import { CompletionBadge } from "./CompletionBadge";
+import { TrophyTypeIcon, PSN_TROPHY_TYPES, type PsnTrophyType } from "./TrophyTypeIcon";
 
 export type GameCardData = {
   id: string;
@@ -15,11 +14,18 @@ export type GameCardData = {
   total: number;
   obtained: number;
   percent: number;
-  counts: Record<TrophyType, number>;
+  counts: Record<PsnTrophyType, number>;
+  /**
+   * De dónde salió el juego. Steam no tiene tipos de trofeo ni platino, así
+   * que su tarjeta muestra el progreso sin desglose y el badge de 100%.
+   */
+  source?: string | null;
 };
 
 export function GameCard({ game, actions }: { game: GameCardData; actions?: ReactNode }) {
-  const isPlatinumed = game.counts.platinum > 0;
+  const isSteam = game.source === "steam";
+  const isPlatinumed = !isSteam && game.counts.platinum > 0;
+  const isCompleted = isSteam && game.total > 0 && game.obtained === game.total;
 
   return (
     <li className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 sm:gap-5 sm:p-5">
@@ -44,6 +50,7 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
           <p className="flex items-center gap-2 truncate text-base font-medium sm:text-lg">
             <span className="truncate">{game.name}</span>
             {isPlatinumed && <PlatinumBadge className="shrink-0" />}
+            {isCompleted && <CompletionBadge className="shrink-0" />}
           </p>
           <p className="text-sm text-zinc-400">{game.platform}</p>
         </Link>
@@ -55,14 +62,18 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
               <span>
                 {game.obtained}/{game.total} ({game.percent}%)
               </span>
-              <span className="flex items-center gap-2 sm:gap-3">
-                {TROPHY_TYPES.map((type) => (
-                  <span key={type} className="flex items-center gap-1">
-                    <TrophyTypeIcon type={type} className="h-4 w-4" />
-                    {game.counts[type]}
-                  </span>
-                ))}
-              </span>
+              {isSteam ? (
+                <span>{game.total} logros</span>
+              ) : (
+                <span className="flex items-center gap-2 sm:gap-3">
+                  {PSN_TROPHY_TYPES.map((type) => (
+                    <span key={type} className="flex items-center gap-1">
+                      <TrophyTypeIcon type={type} className="h-4 w-4" />
+                      {game.counts[type]}
+                    </span>
+                  ))}
+                </span>
+              )}
             </div>
           </>
         ) : (

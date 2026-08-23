@@ -1,24 +1,18 @@
 "use client";
 
 import { useActionState } from "react";
-import { connectPsnAccount, type PsnActionState } from "./actions";
+import { connectPsnAccount, type ConnectionActionState } from "@/app/(app)/configuracion/conexiones/actions";
 import { Textarea, Label } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { FormError, FormSuccess } from "@/components/FormError";
 
-const initialState: PsnActionState = { error: null, success: null };
+const initialState: ConnectionActionState = { error: null, success: null };
 
-export default function ConnectPsnForm() {
+export default function ConnectPsnForm({ isReconnect = false }: { isReconnect?: boolean }) {
   const [state, formAction, pending] = useActionState(connectPsnAccount, initialState);
 
   return (
-    <form
-      id="reconectar-psn"
-      action={formAction}
-      className="space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-6"
-    >
-      <h2 className="text-lg font-semibold text-zinc-50">Conectar cuenta PSN</h2>
-
+    <form id="reconectar-psn" action={formAction} className="space-y-4">
       <ol className="list-inside list-decimal space-y-1 text-sm text-zinc-400">
         <li>
           Iniciá sesión en{" "}
@@ -62,8 +56,8 @@ export default function ConnectPsnForm() {
       <FormError>{state.error}</FormError>
       <FormSuccess>{state.success}</FormSuccess>
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Conectando..." : "Conectar"}
+      <Button type="submit" disabled={pending}>
+        {pending ? "Conectando..." : isReconnect ? "Reconectar" : "Conectar cuenta PSN"}
       </Button>
     </form>
   );

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import GamesLibrary, { type LibraryGame } from "./GamesLibrary";
-import type { TrophyType } from "@/components/TrophyTypeIcon";
+import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { ErrorState } from "@/components/ErrorState";
 import { SyncStatusBadge, type SyncTokenStatus } from "@/components/SyncStatusBadge";
 import SyncButton from "@/components/psn/SyncButton";
@@ -11,7 +11,7 @@ type GameStats = {
   total: number;
   obtained: number;
   percent: number;
-  counts: Record<TrophyType, number>;
+  counts: Record<PsnTrophyType, number>;
 };
 
 export default async function JuegosPage() {
@@ -74,6 +74,7 @@ export default async function JuegosPage() {
         obtained: stats.obtained,
         percent: stats.percent,
         counts: stats.counts,
+        source: game.source,
       };
     });
 
@@ -94,7 +95,7 @@ export default async function JuegosPage() {
                 {psnAccount.token_status !== "valid" && (
                   <>
                     Reconectá tu cuenta para seguir sincronizando.{" "}
-                    <Link href="/psn#reconectar-psn" className="text-blue-400 hover:underline">
+                    <Link href="/configuracion/conexiones#reconectar-psn" className="text-blue-400 hover:underline">
                       Reconectar cuenta PSN
                     </Link>
                     .
@@ -104,7 +105,7 @@ export default async function JuegosPage() {
             ) : (
               <>
                 Tus juegos y trofeos se traen automáticamente desde tu cuenta PSN.{" "}
-                <Link href="/psn" className="text-blue-400 hover:underline">
+                <Link href="/configuracion/conexiones" className="text-blue-400 hover:underline">
                   Conectar cuenta
                 </Link>
                 .
@@ -115,7 +116,7 @@ export default async function JuegosPage() {
           {psnAccount?.token_status === "valid" && (
             // Sincronizar desde la propia biblioteca: antes esto era un link
             // que te mandaba a /psn solo para apretar el botón.
-            <SyncButton reconnectHref="/psn#reconectar-psn" />
+            <SyncButton reconnectHref="/configuracion/conexiones#reconectar-psn" />
           )}
         </div>
 

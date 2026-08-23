@@ -14,8 +14,8 @@ type SyncMessage =
  * Dispara /api/psn/sync desde donde se lo monte (la página de PSN y la
  * biblioteca) -- sincronizar no debería obligar a irse hasta /psn.
  *
- * `reconnectHref` cambia porque el form de reconexión vive en /psn: desde ahí
- * alcanza el ancla local, desde otra página hay que navegar.
+ * `reconnectHref` cambia porque el form de reconexión vive en Configuración >
+ * Conexiones: desde ahí alcanza el ancla local, desde otra página hay que navegar.
  */
 export default function SyncButton({
   className = "",

@@ -20,7 +20,7 @@ test.describe("Smoke", () => {
     await expect(page.getByLabel(/email/i)).toBeVisible();
   });
 
-  for (const route of ["/perfil", "/juegos", "/psn", "/diario"]) {
+  for (const route of ["/perfil", "/juegos", "/psn", "/configuracion/conexiones", "/diario"]) {
     test(`SMOKE-03: ${route} redirige a login sin sesion`, async ({ page }) => {
       await page.goto(route);
       await expect(page).toHaveURL(/\/login/);

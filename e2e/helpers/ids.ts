@@ -10,6 +10,14 @@ export const E2E_GAME_PREFIX = "E2E-";
 /** Prefijo visible de todo `games.title` creado por los tests. */
 export const E2E_TITLE_PREFIX = "[E2E]";
 
+/**
+ * Los juegos de Steam que crean los mocks no tienen np_comm_id (es una columna
+ * de PSN), así que el teardown los identifica por su appid: los de test viven
+ * arriba de este número. Tiene que coincidir con E2E_MOCK_APPID_MIN de
+ * lib/steam/mocks.ts.
+ */
+export const E2E_STEAM_APPID_MIN = 999_000_000;
+
 /** Dominio reservado por RFC 2606: nunca sale un mail real. */
 export const E2E_EMAIL_DOMAIN = "proyecto-platino.test";
 
