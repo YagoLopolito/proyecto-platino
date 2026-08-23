@@ -464,6 +464,11 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 - ✅ Web-first assertions (`await expect(locator).toBeVisible()`), que reintentan solas.
 - Para Server Actions: esperar el efecto observable (el texto nuevo, el ítem en la lista),
   nunca una respuesta de red.
+- **Cuidado con el mensaje de éxito de un form cuando la action hace `revalidatePath`**: si
+  la página se vuelve a renderizar en otra rama (ej. la tarjeta de Conexiones pasa de "no
+  conectada" a "conectada"), el form que mostraba ese mensaje se desmonta y el texto puede
+  no llegar a estar visible nunca. Assertear el **estado final** (el badge, la fila nueva),
+  no el cartel intermedio.
 
 ### 7.3 Estructura de un spec
 

@@ -18,10 +18,26 @@ test.afterEach(async ({ supabase, users }) => {
   await supabase.from("steam_accounts").delete().eq("user_id", users.userA.id);
 });
 
-async function connectSteam(page: import("@playwright/test").Page, vanity: string) {
+/**
+ * Conecta y espera a que la tarjeta quede en su estado conectado.
+ *
+ * Se espera el badge de estado y NO el mensaje de éxito del form: al conectar,
+ * la Server Action hace `revalidatePath` y la tarjeta se vuelve a renderizar en
+ * su rama "conectada", desmontando el form que mostraba ese mensaje. El badge
+ * es lo que el usuario efectivamente ve al final, y no depende de ese timing.
+ */
+async function connectSteam(
+  page: import("@playwright/test").Page,
+  vanity: string,
+  expectedStatus: "connected" | "attention" = "connected",
+) {
   await page.goto(CONNECTIONS);
   await page.getByLabel(/SteamID64 o URL del perfil/i).fill(vanity);
   await page.getByRole("button", { name: /Conectar cuenta de Steam/i }).click();
+
+  await expect(
+    page.getByRole("region", { name: "Steam" }).getByTestId("connection-status"),
+  ).toHaveAttribute("data-status", expectedStatus);
 }
 
 // Todos comparten el mismo usuario y el mismo catálogo de juegos de Steam
@@ -53,7 +69,7 @@ test.describe("Steam", () => {
   test("STEAM-04: conectar deja la cuenta como no verificada", async ({ page, supabase, users }) => {
     await connectSteam(page, VANITY_PUBLIC);
     const steamCard = page.getByRole("region", { name: "Steam" });
-    await expect(steamCard.getByRole("status")).toContainText(/Cuenta de Steam conectada/i);
+    await expect(steamCard).toContainText("[E2E] Steam User");
     await expect(steamCard.getByText(/Cuenta no verificada/i)).toBeVisible();
 
     const { data } = await supabase
@@ -72,7 +88,6 @@ test.describe("Steam", () => {
   }) => {
     await connectSteam(page, VANITY_PUBLIC);
     const steamCard = page.getByRole("region", { name: "Steam" });
-    await expect(steamCard.getByRole("status")).toContainText(/Cuenta de Steam conectada/i);
     await steamCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
     await expect(steamCard.getByRole("status")).toContainText(/Sincronizado: 2 juegos/i);
 
@@ -110,17 +125,10 @@ test.describe("Steam", () => {
     supabase,
     users,
   }) => {
-    await connectSteam(page, VANITY_PRIVATE);
+    // La cuenta queda conectada igual, en estado "necesita atención": si no se
+    // guardara, el usuario no tendría dónde ver el problema ni cómo arreglarlo.
+    await connectSteam(page, VANITY_PRIVATE, "attention");
     const steamCard = page.getByRole("region", { name: "Steam" });
-    await expect(steamCard.getByRole("status")).toContainText(/Cuenta de Steam conectada/i);
-
-    // La cuenta queda conectada igual: si no se guardara, el usuario no
-    // tendría dónde ver el problema ni cómo arreglarlo.
-    await page.reload();
-    await expect(steamCard.getByTestId("connection-status")).toHaveAttribute(
-      "data-status",
-      "attention",
-    );
     await expect(steamCard.getByText(/Detalles del juego/i).first()).toBeVisible();
 
     await steamCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
@@ -140,9 +148,6 @@ test.describe("Steam", () => {
     users,
   }) => {
     await connectSteam(page, VANITY_PUBLIC);
-    await expect(
-      page.getByRole("region", { name: "Steam" }).getByRole("status"),
-    ).toContainText(/Cuenta de Steam conectada/i);
 
     page.on("dialog", (dialog) => dialog.accept());
     await page
