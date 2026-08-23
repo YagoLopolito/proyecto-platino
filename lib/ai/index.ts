@@ -8,7 +8,6 @@ export {
   AI_PLAN_SYSTEM_PROMPT,
   type AiPlanInput,
   type AiPlanTrophyInput,
-  type AiPlanGuideInput,
   type TrophyHintInput,
   type GameDescriptionInput,
 } from "./prompt";

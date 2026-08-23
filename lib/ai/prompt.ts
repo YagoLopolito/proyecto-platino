@@ -9,16 +9,10 @@ export type AiPlanTrophyInput = {
   obtained: boolean;
 };
 
-export type AiPlanGuideInput = {
-  title: string;
-  contentMarkdown: string | null;
-};
-
 export type AiPlanInput = {
   gameName: string;
   platform: string;
   trophies: AiPlanTrophyInput[];
-  guides: AiPlanGuideInput[];
 };
 
 export const AI_PLAN_SYSTEM_PROMPT = `Sos un asistente experto en platinar juegos de PlayStation. Analizás la lista de trofeos de un juego y devolvés un plan de desbloqueo en español.
@@ -48,7 +42,6 @@ Reglas:
 - Cada entrada de "modos" agrupa los "trofeos_relacionados" (ids) de ESE modo específico. Un trofeo puede aparecer en un solo modo. Si todos los trofeos pendientes son de un único modo (ej. solo campaña), dejá "modos" vacío: no tiene sentido separar si no hay nada que separar.`;
 
 const MAX_TROPHY_DESCRIPTION_CHARS = 110;
-const MAX_GUIDE_CHARS = 500;
 
 function truncate(text: string, maxChars: number): string {
   return text.length > maxChars ? `${text.slice(0, maxChars)}…` : text;
@@ -76,18 +69,11 @@ export function buildAiPlanUserPrompt(input: AiPlanInput): string {
     }),
   );
 
-  const guideLines = input.guides.map(
-    (g) => `### ${g.title}\n${truncate(g.contentMarkdown ?? "", MAX_GUIDE_CHARS)}`,
-  );
-
   return [
     `Juego: ${input.gameName} (${input.platform})`,
     "",
     "Trofeos (uno por línea, JSON):",
     ...trophyLines,
-    "",
-    guideLines.length > 0 ? "Guías propias ya cargadas para este juego:" : "No hay guías propias cargadas para este juego.",
-    ...guideLines,
   ].join("\n");
 }
 

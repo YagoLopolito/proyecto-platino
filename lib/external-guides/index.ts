@@ -10,15 +10,23 @@ export type PopulateExternalGuidesResult = {
 };
 
 /**
- * Puebla game_external_guides para un juego combinando Steam (API oficial)
- * y links de búsqueda a PowerPyx/PSNProfiles/TrueTrophies. Ninguna de las
- * dos fuentes es paga ni hace scraping: Steam usa su Web API oficial, y los
- * otros tres son solo un link a la búsqueda propia de cada sitio (ver
- * lib/external-guides/site-search.ts). Usa el cliente service-role porque
- * estas filas no son contenido de usuario -- la tabla no tiene policies de
- * insert para `authenticated` a propósito (ver migración). Si Steam falla
- * no bloquea a los links de búsqueda; los duplicados por (game_id, url) se
- * ignoran vía upsert con ignoreDuplicates.
+ * Puebla game_external_guides para un juego con guías de TROFEOS/LOGROS
+ * (no con cualquier contenido del juego), combinando Steam (API oficial,
+ * filtrada por la etiqueta "Achievements" + heurística de título) y links a
+ * la búsqueda de guías de trofeos en PowerPyx/PSNProfiles/TrueTrophies/
+ * YouTube. Ninguna de las dos fuentes es paga ni hace scraping: Steam usa su
+ * Web API oficial, y las otras son solo un link a la búsqueda propia de cada
+ * sitio (ver lib/external-guides/site-search.ts).
+ *
+ * Usa el cliente service-role porque estas filas no son contenido de usuario
+ * -- la tabla no tiene policies de insert para `authenticated` a propósito
+ * (ver migración). Si Steam falla no bloquea a los links de búsqueda.
+ *
+ * Antes de insertar borra los enlaces previos del juego: son todos generados
+ * por esta misma función, así que volver a buscar tiene que poder limpiar
+ * resultados viejos que ya no pasan el filtro (los enlaces de Steam de antes
+ * de este filtro eran guías de cualquier tema). Los `id` cambian, pero nada
+ * referencia a estas filas.
  */
 export async function populateExternalGuidesForGame(
   gameId: string,
@@ -68,6 +76,17 @@ export async function populateExternalGuidesForGame(
   }
 
   const supabase = createServiceClient();
+
+  const { error: deleteError } = await supabase
+    .from("game_external_guides")
+    .delete()
+    .eq("game_id", gameId);
+
+  if (deleteError) {
+    errors.push(`No se pudieron limpiar los enlaces anteriores: ${deleteError.message}`);
+    return { inserted: 0, errors };
+  }
+
   const { error, count } = await supabase
     .from("game_external_guides")
     .upsert(rows, { onConflict: "game_id,url", ignoreDuplicates: true, count: "exact" });

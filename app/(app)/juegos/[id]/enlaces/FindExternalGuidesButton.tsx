@@ -30,15 +30,15 @@ export default function FindExternalGuidesButton({
           disabled={pending}
           className="rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-sm text-blue-300 hover:border-blue-500 disabled:opacity-50"
         >
-          {pending ? "Buscando..." : "Buscar guías externas"}
+          {pending ? "Buscando..." : "Buscar guías de trofeos"}
         </button>
       </form>
 
       {state.inserted !== null && (
         <p role="status" className="text-xs text-zinc-500">
           {state.inserted > 0
-            ? `Se agregaron ${state.inserted} enlaces nuevos.`
-            : "No se encontraron enlaces nuevos."}
+            ? `Se encontraron ${state.inserted} guías.`
+            : "No se encontraron guías."}
         </p>
       )}
 

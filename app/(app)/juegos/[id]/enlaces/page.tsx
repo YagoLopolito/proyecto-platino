@@ -6,9 +6,9 @@ import GameBreadcrumb from "@/components/GameBreadcrumb";
 
 /**
  * El botón "Buscar guías externas" invoca findExternalGuides (actions.ts),
- * que llama a Steam Web API + a Claude con la tool de web search -- puede
- * pasar el timeout default de una función de Vercel. maxDuration para un
- * Server Action va en la página que lo invoca, no en el archivo "use server".
+ * que llama a la Steam Web API (dos consultas) -- puede pasar el timeout
+ * default de una función de Vercel. maxDuration para un Server Action va en
+ * la página que lo invoca, no en el archivo "use server".
  */
 export const maxDuration = 60;
 
@@ -45,43 +45,25 @@ export default async function GameExternalLinksPage({
     notFound();
   }
 
-  const [{ data: curatedGuides, error: curatedError }, { data: userLinks, error: userLinksError }] =
-    await Promise.all([
-      supabase
-        .from("game_external_guides")
-        .select("id, title, url, source")
-        .eq("game_id", gameId)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("guides")
-        .select("id, title, external_url, source")
-        .eq("game_id", gameId)
-        .not("external_url", "is", null)
-        .order("created_at", { ascending: true }),
-    ]);
+  const { data: curatedGuides, error: linksError } = await supabase
+    .from("game_external_guides")
+    .select("id, title, url, source")
+    .eq("game_id", gameId)
+    .order("created_at", { ascending: true });
 
-  const linksError = curatedError ?? userLinksError;
-
-  const links: ExternalLink[] = [
-    ...(curatedGuides ?? []),
-    ...(userLinks ?? []).map((g) => ({
-      id: g.id,
-      title: g.title,
-      url: g.external_url as string,
-      source: g.source,
-    })),
-  ];
+  const links: ExternalLink[] = curatedGuides ?? [];
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
       <div className="mx-auto w-full max-w-2xl space-y-8">
-        <GameBreadcrumb gameId={gameId} gameName={game.name} current="Enlaces externos" />
+        <GameBreadcrumb gameId={gameId} gameName={game.name} current="Guías y enlaces" />
 
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Enlaces externos de {game.name}</h1>
+          <h1 className="text-2xl font-semibold">Guías de trofeos de {game.name}</h1>
           <p className="text-sm text-zinc-400">
-            Guías de fuentes externas (Steam Community, PowerPyx, PSNProfiles, TrueTrophies).
-            Cada enlace cita su fuente y abre en el sitio original.
+            Guías de trofeos y logros de fuentes externas (Steam Community, PowerPyx,
+            PSNProfiles, TrueTrophies, YouTube). Cada enlace cita su fuente y abre en el sitio
+            original.
           </p>
         </div>
 
@@ -96,8 +78,8 @@ export default async function GameExternalLinksPage({
 
           {!linksError && links.length === 0 && (
             <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-              Todavía no hay enlaces externos para este juego. Probá &ldquo;Buscar guías
-              externas&rdquo; arriba.
+              Todavía no hay guías externas para este juego. Probá &ldquo;Buscar guías de
+              trofeos&rdquo; arriba.
             </p>
           )}
 

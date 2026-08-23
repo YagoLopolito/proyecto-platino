@@ -77,11 +77,6 @@ export async function generateAiPlan(
   }
   const obtainedTrophyIds = new Set(userTrophies.map((row) => row.trophy_id));
 
-  const { data: guides } = await supabase
-    .from("guides")
-    .select("title, content_markdown")
-    .eq("game_id", gameId);
-
   // El modelo referencia cada trofeo por id en varios arrays de la respuesta
   // (orden_sugerido, missables, modos, grupos_de_partidas). Un uuid completo
   // (36 caracteres) repetido decenas de veces infla el output y, en juegos
@@ -108,10 +103,6 @@ export async function generateAiPlan(
         type: t.type as "bronze" | "silver" | "gold" | "platinum",
         hidden: t.hidden,
         obtained: obtainedTrophyIds.has(t.id),
-      })),
-      guides: (guides ?? []).map((g) => ({
-        title: g.title,
-        contentMarkdown: g.content_markdown,
       })),
     });
 

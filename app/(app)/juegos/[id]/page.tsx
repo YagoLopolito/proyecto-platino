@@ -151,16 +151,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               ✨ Advisor IA
             </a>
             <Link
-              href={`/juegos/${gameId}/guias`}
-              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
-            >
-              📖 Guías
-            </Link>
-            <Link
               href={`/juegos/${gameId}/enlaces`}
               className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
             >
-              🔗 Enlaces
+              🔗 Guías y enlaces
             </Link>
             <a
               href="#diario"
