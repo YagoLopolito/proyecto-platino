@@ -237,7 +237,9 @@ test.describe("Steam", () => {
     // El resultado del import es texto suelto, no un role=status: se busca por
     // texto para que un backfill que no encuentra nada falle acá y no tres
     // asserts más abajo con un array vacío sin explicación.
-    await expect(page.getByText(/Listo:/i)).toBeVisible();
+    // Se assertea sobre el contenedor y no sobre el texto exacto para que, si
+    // el backfill no encuentra nada, el fallo muestre el mensaje que sí salió.
+    await expect(page.locator("body")).toContainText(/Listo:/i);
 
     const { data: entries } = await supabase
       .from("game_diary_entries")
