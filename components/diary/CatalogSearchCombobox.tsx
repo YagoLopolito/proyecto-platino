@@ -17,7 +17,7 @@ const DEBOUNCE_MS = 300;
 function ResultCover({ url, name }: { url: string | null; name: string }) {
   if (!url) {
     return (
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+      <div className="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
         Sin img
       </div>
     );
@@ -27,8 +27,8 @@ function ResultCover({ url, name }: { url: string | null; name: string }) {
       src={url}
       alt={name}
       width={56}
-      height={56}
-      className="h-14 w-14 shrink-0 rounded object-cover"
+      height={80}
+      className="h-20 w-14 shrink-0 rounded object-cover"
     />
   );
 }
@@ -159,7 +159,18 @@ export default function CatalogSearchCombobox() {
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <ResultCover url={result.coverUrl} name={result.name} />
-                  <span className="min-w-0 truncate text-sm text-zinc-200">{result.name}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-200">{result.name}</p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {[
+                        result.releaseYear ? String(result.releaseYear) : null,
+                        result.platform,
+                        result.source === "library" ? "En tu biblioteca" : "Catálogo",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
                 </div>
 
                 {result.source === "library" && result.gameId && (

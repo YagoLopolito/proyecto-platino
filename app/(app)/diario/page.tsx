@@ -4,10 +4,11 @@ import { getUserDiaryEntries } from "@/lib/diary/queries";
 import DiaryTimeline from "@/components/diary/DiaryTimeline";
 import MarkAsFinishedModal from "@/components/diary/MarkAsFinishedModal";
 import AddFriendModal from "@/components/friends/AddFriendModal";
-import { FriendsDiaryFeed } from "@/components/friends/FriendsDiaryFeed";
+import { FriendsDiaryGrid, FRIENDS_FEED_PREVIEW_LIMIT } from "@/components/friends/FriendsDiaryGrid";
 import { getFriendsDiaryFeed } from "@/lib/friends/queries";
 import { ErrorState } from "@/components/ErrorState";
 import Link from "next/link";
+import ImportPlatinumsButton from "@/components/diary/ImportPlatinumsButton";
 
 export default async function DiaryPage({
   searchParams,
@@ -34,7 +35,7 @@ export default async function DiaryPage({
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
+      <div className="mx-auto w-full max-w-5xl space-y-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold">Mi diario</h1>
@@ -49,25 +50,29 @@ export default async function DiaryPage({
             >
               📊 Resumen del año
             </Link>
+            <ImportPlatinumsButton />
             <MarkAsFinishedModal defaultOpen={nuevo === "1"} />
           </div>
         </div>
 
-        {outcome.status === "error" ? (
-          <ErrorState message={`No se pudo cargar el diario: ${outcome.message}`} />
-        ) : (
-          <DiaryTimeline entries={outcome.entries} />
-        )}
-
-        <section className="space-y-4 border-t border-zinc-800 pt-8">
+        <section className="space-y-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <h2 className="text-lg font-semibold">Jugados por amigos</h2>
               <p className="text-sm text-zinc-400">
-                Lo que terminaron los usuarios que agregaste, con sus reseñas.
+                Las últimas {FRIENDS_FEED_PREVIEW_LIMIT} partidas de los usuarios que agregaste.
+                Entrá a una carátula para leer la reseña.
               </p>
             </div>
-            <AddFriendModal />
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/diario/amigos"
+                className="rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:border-zinc-500"
+              >
+                ⚡ Toda la actividad
+              </Link>
+              <AddFriendModal />
+            </div>
           </div>
 
           {friendsOutcome.status === "error" ? (
@@ -75,10 +80,23 @@ export default async function DiaryPage({
               message={`No se pudo cargar el diario de tus amigos: ${friendsOutcome.message}`}
             />
           ) : (
-            <FriendsDiaryFeed
+            <FriendsDiaryGrid
               friends={friendsOutcome.friends}
               entries={friendsOutcome.entries}
+              limit={FRIENDS_FEED_PREVIEW_LIMIT}
             />
+          )}
+        </section>
+        {/*
+          * El feed de amigos va arriba: el timeline propio crece sin techo y,
+          * con muchas partidas cargadas, empujaba el feed fuera de la pantalla.
+          */}
+        <section className="space-y-4 border-t border-zinc-800 pt-8">
+          <h2 className="text-lg font-semibold">Mis partidas</h2>
+          {outcome.status === "error" ? (
+            <ErrorState message={`No se pudo cargar el diario: ${outcome.message}`} />
+          ) : (
+            <DiaryTimeline entries={outcome.entries} />
           )}
         </section>
       </div>

@@ -118,7 +118,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
   }
 
   const selectClass =
-    "min-w-0 max-w-full flex-1 rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200 sm:flex-none";
+    "min-w-0 max-w-full flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 sm:flex-none";
 
   return (
     <div className="space-y-6">
@@ -173,7 +173,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
           <option value="none">Sin rating</option>
         </select>
 
-        <span className="text-xs text-zinc-500">
+        <span className="text-sm text-zinc-500">
           {filtered.length} de {entries.length}
         </span>
       </div>
@@ -186,7 +186,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
 
       {groups.map(([key, monthEntries]) => (
         <section key={key} className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
             {monthLabel(key)}
           </h2>
           <ul className="space-y-2">
@@ -196,24 +196,24 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                 <li key={entry.id}>
                   <Link
                     href={`/juegos/${entry.gameId}/diario`}
-                    className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 hover:border-zinc-600"
+                    className="flex items-start gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4 hover:border-zinc-600"
                   >
-                    <span className="w-6 shrink-0 text-center text-sm text-zinc-500">{day}</span>
+                    <span className="w-7 shrink-0 text-center text-base text-zinc-500">{day}</span>
                     {entry.imageUrl ? (
                       <Image
                         src={entry.imageUrl}
                         alt={entry.gameName}
-                        width={48}
-                        height={48}
-                        className="h-12 w-12 shrink-0 rounded object-cover"
+                        width={72}
+                        height={96}
+                        className="h-24 w-18 shrink-0 rounded object-cover"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+                      <div className="flex h-24 w-18 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
                         Sin img
                       </div>
                     )}
                     <div className="min-w-0 flex-1 space-y-1">
-                      <p className="flex flex-wrap items-center gap-2 truncate text-sm font-medium text-zinc-100">
+                      <p className="flex flex-wrap items-center gap-2 truncate text-base font-medium text-zinc-100">
                         {entry.gameName}
                         {entry.isPlatinum && <PlatinumBadge />}
                         {entry.playthroughNumber > 1 && (
@@ -222,7 +222,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                           </span>
                         )}
                       </p>
-                      <p className="flex items-center gap-2 text-xs text-zinc-500">
+                      <p className="flex items-center gap-2 text-sm text-zinc-500">
                         {entry.platform && <span>{entry.platform}</span>}
                         <StarRatingDisplay rating={entry.rating} />
                       </p>
@@ -230,7 +230,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                         // Recortada a 3 líneas: la idea es ver de un vistazo qué
                         // dijiste de esa partida; el texto completo está en el
                         // diario del juego, a un click de acá.
-                        <p className="line-clamp-3 whitespace-pre-line text-xs leading-relaxed text-zinc-400">
+                        <p className="line-clamp-3 whitespace-pre-line text-sm leading-relaxed text-zinc-400">
                           {entry.review}
                         </p>
                       )}

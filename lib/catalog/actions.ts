@@ -26,7 +26,7 @@ export async function searchCatalog(query: string): Promise<SearchCatalogOutcome
   const supabase = await createClient();
   const { data: existingGames } = await supabase
     .from("games")
-    .select("id, name, cover_url, icon_url")
+    .select("id, name, cover_url, icon_url, platform, release_year")
     .ilike("name", `%${parsed.data}%`)
     .limit(20);
 
@@ -35,6 +35,8 @@ export async function searchCatalog(query: string): Promise<SearchCatalogOutcome
     gameId: game.id,
     name: game.name,
     coverUrl: game.cover_url ?? game.icon_url,
+    platform: game.platform,
+    releaseYear: game.release_year,
   }));
 
   const catalogOutcome = await searchCatalogGames(parsed.data);

@@ -228,3 +228,201 @@ export async function searchCatalogGames(
     return { status: "error", message: err instanceof Error ? err.message : "Error desconocido" };
   }
 }
+
+export interface GameDetails {
+  description: string | null;
+  developer: string | null;
+  releaseYear: number | null;
+  backgroundUrl: string | null;
+  coverUrl: string | null;
+}
+
+function firstString(raw: unknown, key: string): string | null {
+  if (!Array.isArray(raw)) return null;
+  for (const entry of raw) {
+    if (typeof entry === "object" && entry !== null && key in entry) {
+      const value = (entry as Record<string, unknown>)[key];
+      if (typeof value === "string" && value.length > 0) return value;
+    }
+  }
+  return null;
+}
+
+/**
+ * Detalle de un juego en RAWG (`/games/{id}`): es el único endpoint que trae
+ * la descripción y la desarrolladora -- la búsqueda no las incluye. Devuelve
+ * null si falta la key, falla la red o la respuesta no tiene la forma esperada;
+ * es información decorativa, nunca puede romper la página que la pide.
+ */
+export async function fetchGameDetails(externalId: string): Promise<GameDetails | null> {
+  const apiKey = process.env.RAWG_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const url = new URL(`https://api.rawg.io/api/games/${encodeURIComponent(externalId)}`);
+    url.searchParams.set("key", apiKey);
+
+    const response = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!response.ok) return null;
+
+    const data: unknown = await response.json();
+    if (typeof data !== "object" || data === null) return null;
+    const obj = data as Record<string, unknown>;
+
+    const released = typeof obj.released === "string" ? Number(obj.released.slice(0, 4)) : NaN;
+
+    return {
+      // `description_raw` es la descripción sin HTML (la otra viene con <p>).
+      description: typeof obj.description_raw === "string" ? obj.description_raw : null,
+      developer: firstString(obj.developers, "name"),
+      releaseYear: Number.isFinite(released) ? released : null,
+      backgroundUrl:
+        typeof obj.background_image_additional === "string"
+          ? obj.background_image_additional
+          : typeof obj.background_image === "string"
+            ? obj.background_image
+            : null,
+      coverUrl: typeof obj.background_image === "string" ? obj.background_image : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Igual que `fetchGameDetails` pero partiendo del nombre: resuelve primero el
+ * id de RAWG con la búsqueda normal. Para juegos que llegaron por el sync de
+ * PSN, que no tienen `external_catalog_id`.
+ */
+export async function findGameDetailsByName(name: string): Promise<GameDetails | null> {
+  const outcome = await searchCatalogGames(name, { pageSize: 1 });
+  if (outcome.status !== "ok" || outcome.results.length === 0) return null;
+  return fetchGameDetails(outcome.results[0].externalId);
+}
+
+/**
+ * Imagen apaisada tipo wallpaper para el fondo de la ficha ("hero" en la
+ * nomenclatura de SteamGridDB, 1920x620). Mejor que la captura de RAWG para
+ * ese uso: son arte oficial pensado justamente para banners. Devuelve null si
+ * falta la key, falla la red o el juego no tiene ninguna.
+ */
+export async function findHeroImageUrl(gameName: string): Promise<string | null> {
+  const apiKey = process.env.STEAMGRIDDB_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const searchUrl = new URL(
+      `https://www.steamgriddb.com/api/v2/search/autocomplete/${encodeURIComponent(gameName)}`,
+    );
+    const searchResponse = await fetch(searchUrl, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!searchResponse.ok) return null;
+
+    const searchData: unknown = await searchResponse.json();
+    if (
+      typeof searchData !== "object" ||
+      searchData === null ||
+      !("data" in searchData) ||
+      !Array.isArray((searchData as { data: unknown }).data)
+    ) {
+      return null;
+    }
+
+    const firstGame = (searchData as { data: unknown[] }).data[0];
+    if (
+      typeof firstGame !== "object" ||
+      firstGame === null ||
+      typeof (firstGame as { id?: unknown }).id !== "number"
+    ) {
+      return null;
+    }
+
+    const heroUrl = new URL(
+      `https://www.steamgriddb.com/api/v2/heroes/game/${(firstGame as { id: number }).id}`,
+    );
+    heroUrl.searchParams.set("dimensions", "1920x620");
+    const heroResponse = await fetch(heroUrl, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!heroResponse.ok) return null;
+
+    const heroData: unknown = await heroResponse.json();
+    if (
+      typeof heroData !== "object" ||
+      heroData === null ||
+      !("data" in heroData) ||
+      !Array.isArray((heroData as { data: unknown }).data)
+    ) {
+      return null;
+    }
+
+    const first = (heroData as { data: unknown[] }).data[0];
+    if (typeof first !== "object" || first === null || !("url" in first)) return null;
+    const url = (first as { url: unknown }).url;
+    return typeof url === "string" && url.length > 0 ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Base de la CDN pública de Steam donde viven los assets de cada appid. */
+const STEAM_CDN = "https://cdn.cloudflare.steamstatic.com/steam/apps";
+
+async function resolveSteamAppId(gameName: string): Promise<number | null> {
+  try {
+    const url = new URL("https://store.steampowered.com/api/storesearch");
+    url.searchParams.set("term", gameName);
+    url.searchParams.set("cc", "us");
+    url.searchParams.set("l", "english");
+
+    const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (!response.ok) return null;
+
+    const data: unknown = await response.json();
+    if (
+      typeof data !== "object" ||
+      data === null ||
+      !("items" in data) ||
+      !Array.isArray((data as { items: unknown }).items)
+    ) {
+      return null;
+    }
+
+    const first = (data as { items: unknown[] }).items[0];
+    if (typeof first !== "object" || first === null || !("id" in first)) return null;
+    const id = (first as { id: unknown }).id;
+    return typeof id === "number" ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+async function urlExists(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(3000) });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wallpaper apaisado desde la CDN pública de Steam (`library_hero`, 1920x620;
+ * `page_bg_generated` como alternativa). No necesita ninguna API key: el appid
+ * se resuelve con la búsqueda pública de la store, igual que en
+ * `lib/external-guides/steam.ts`. Se verifica con un HEAD antes de devolver la
+ * URL porque no todos los appids tienen todos los assets.
+ */
+export async function findSteamHeroUrl(gameName: string): Promise<string | null> {
+  const appId = await resolveSteamAppId(gameName);
+  if (!appId) return null;
+
+  for (const file of ["library_hero.jpg", "page_bg_generated_v6b.jpg"]) {
+    const candidate = `${STEAM_CDN}/${appId}/${file}`;
+    if (await urlExists(candidate)) return candidate;
+  }
+  return null;
+}

@@ -13,6 +13,8 @@ export interface CombinedSearchResult {
   externalId?: string;
   name: string;
   coverUrl: string | null;
+  releaseYear?: number | null;
+  platform?: string | null;
   possibleDuplicateOf?: { gameId: string; name: string } | null;
 }
 
@@ -71,6 +73,7 @@ export function dedupeAndFlag(
       externalId: result.externalId,
       name: result.name,
       coverUrl: result.coverUrl,
+      releaseYear: result.releaseYear,
       possibleDuplicateOf: editionMatch
         ? { gameId: editionMatch.id, name: editionMatch.name }
         : null,

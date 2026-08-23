@@ -4,7 +4,10 @@ import AddDiaryEntryForm from "@/components/diary/AddDiaryEntryForm";
 import EditDiaryEntryForm from "@/components/diary/EditDiaryEntryForm";
 import GameBreadcrumb from "@/components/GameBreadcrumb";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
-import { GameScore } from "@/components/diary/GameScore";
+import { GameHero } from "@/components/diary/GameHero";
+import { getGameCardData, GAME_CARD_COLUMNS } from "@/lib/catalog/details";
+import { getGameDiarySummary } from "@/lib/diary/queries";
+import { ErrorState } from "@/components/ErrorState";
 
 export default async function GameDiaryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: gameId } = await params;
@@ -20,7 +23,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
 
   const { data: game, error: gameError } = await supabase
     .from("games")
-    .select("id, name")
+    .select(GAME_CARD_COLUMNS)
     .eq("id", gameId)
     .single();
 
@@ -30,31 +33,40 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
 
   // El diario es público (a diferencia de user_trophies) -- se muestran las
   // entradas de todos los usuarios para este juego, ver CLAUDE.md.
-  const [{ data: entries, error: entriesError }, { data: score }] = await Promise.all([
+  const [{ data: entries, error: entriesError }, diaryOutcome, card] = await Promise.all([
     supabase
       .from("game_diary_entries")
-      .select("id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at")
+      .select(
+        "id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at",
+      )
       .eq("game_id", gameId)
       .order("finished_on", { ascending: false }),
-    supabase.from("game_scores").select("average_rating, rating_count").eq("game_id", gameId).maybeSingle(),
+    getGameDiarySummary(supabase, gameId, user.id),
+    getGameCardData(supabase, game),
   ]);
 
   const ownEntries = (entries ?? []).filter((entry) => entry.user_id === user.id);
   const otherEntries = (entries ?? []).filter((entry) => entry.user_id !== user.id);
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
-        <GameBreadcrumb gameId={gameId} gameName={game.name} current="Diario" />
-
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Diario de {game.name}</h1>
-          <p className="text-sm text-zinc-400">
-            Registro público de partidas terminadas. Podés agregar rejugadas y editar o borrar
-            tus propias entradas.
-          </p>
-          <GameScore score={score} />
+    <div className="flex flex-1 flex-col overflow-x-clip bg-zinc-950 px-4 py-8 text-zinc-50 sm:py-12">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
+        <div className="relative z-10">
+          <GameBreadcrumb gameId={gameId} gameName={card.name} current="Diario" />
         </div>
+
+        {diaryOutcome.status === "error" ? (
+          <ErrorState message={`No se pudo cargar la puntuación: ${diaryOutcome.message}`} />
+        ) : (
+          <GameHero
+            game={card}
+            score={{
+              average_rating: diaryOutcome.summary.averageRating,
+              rating_count: diaryOutcome.summary.ratingCount,
+            }}
+            distribution={diaryOutcome.summary.distribution}
+          />
+        )}
 
         <AddDiaryEntryForm gameId={gameId} />
 

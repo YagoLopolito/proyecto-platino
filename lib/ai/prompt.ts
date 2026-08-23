@@ -122,3 +122,32 @@ export function buildTrophyHintUserPrompt(input: TrophyHintInput): string {
     "¿Qué hay que hacer exactamente para desbloquear este trofeo?",
   ].join("\n");
 }
+
+export interface GameDescriptionInput {
+  gameName: string;
+  platform: string | null;
+  releaseYear: number | null;
+  developer: string | null;
+}
+
+export const GAME_DESCRIPTION_SYSTEM_PROMPT = `Sos un redactor de fichas de videojuegos. Te paso el nombre de un juego de PlayStation y escribís una descripción corta, en español neutro, para la ficha del juego.
+
+Reglas:
+- 2 a 4 oraciones, texto plano, sin markdown, sin títulos ni listas.
+- Contá de qué va el juego: género, ambientación y qué hace el jugador.
+- Nada de opiniones, puntajes ni frases de marketing ("imperdible", "la mejor experiencia").
+- No inventes datos concretos (fechas, estudios, ventas, modos) si no estás seguro.
+- Si no conocés el juego, respondé exactamente: NO_CONOZCO`;
+
+export function buildGameDescriptionUserPrompt(input: GameDescriptionInput): string {
+  return [
+    `Juego: ${input.gameName}`,
+    input.platform ? `Plataforma: ${input.platform}` : null,
+    input.releaseYear !== null ? `Año: ${input.releaseYear}` : null,
+    input.developer ? `Desarrolladora: ${input.developer}` : null,
+    "",
+    "Escribí la descripción para la ficha.",
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+}

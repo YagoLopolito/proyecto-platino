@@ -137,14 +137,48 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   ninguna crea una con `source = 'platinum_sync'` que el usuario puede editar después para
   puntuar y reseñar. Lo llama `lib/psn/sync.ts` dentro de un try/catch: es un extra, no puede
   tirar abajo el sync de trofeos. Migración `20260822020000_diary_platinum_sync.sql`.
+- Los platinos **viejos** (ya en `user_trophies` de syncs anteriores al hook) se importan con
+  el botón "Importar mis platinos" de `/diario` (`lib/diary/backfill.ts` +
+  `app/(app)/diario/actions.ts`). No llama a PSN: la fecha ya está guardada localmente. Reusa
+  `reconcilePlatinumDiaryEntry`, así que es idempotente.
 - **Reconciliación catálogo → PSN**: si un juego cargado antes desde el catálogo aparece
   después en el sync real, `adoptCatalogGame` (en `lib/psn/sync.ts`) adopta esa fila
   (le escribe `np_comm_id` y `source = 'psn'`) en vez de crear un duplicado en `games`, así no
   se pierden las entradas de diario ya cargadas. Solo funciona sobre filas propias
   (`created_by`), que es lo que deja actualizar la RLS de `games`.
+- `/diario` muestra primero el feed corto de amigos (`FriendsDiaryGrid`, grilla de carátulas
+  con las últimas 10 partidas, cada una linkeando al diario de ese juego donde está la reseña)
+  y después el timeline propio: el propio crece sin techo y empujaba el feed fuera de pantalla.
+  La actividad completa de amigos (lista con reseñas, `FriendsDiaryFeed`) vive en
+  `/diario/amigos`.
+- El fondo de `GameHero` es un backdrop a ancho completo de la ventana (w-screen + left-1/2 +
+  -translate-x-1/2, con degradado al color de la página), tipo Letterbox. El wallpaper sale, en
+  orden, de RAWG, del "hero" de SteamGridDB (`findHeroImageUrl`) y de la CDN pública de Steam
+  (`findSteamHeroUrl`: `library_hero.jpg` del appid resuelto con la búsqueda pública de la
+  store, **sin ninguna API key** -- por eso funciona aunque falten `RAWG_API_KEY` y
+  `STEAMGRIDDB_API_KEY`). Si no hay ninguno, cae a la carátula difuminada. El backdrop va con
+  `z-0` y el contenido con `z-10`: con `-z-10` quedaba detrás del `bg-zinc-950` de la página y
+  no se veía.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).
+- La ficha de diario de un juego (`/juegos/[id]/diario`) es la vista tipo Letterbox:
+  `components/diary/GameHero.tsx` (fondo, carátula grande, año/plataforma/desarrolladora,
+  descripción y distribución de valoraciones). Los datos externos salen de RAWG
+  (`fetchGameDetails`/`findGameDetailsByName` en `lib/covers`) y se cachean en `games`
+  (`description`, `developer`, `release_year`, `background_url`, migración
+  `20260822030000_games_catalog_details.sql`, más `description_source`) la primera vez que
+  alguien abre la ficha:
+  `lib/catalog/details.ts` solo consulta RAWG si la fila todavía no los tiene, y guarda
+  `description = ''` cuando RAWG no encuentra nada para no reintentar en cada visita. Si la
+  RLS de `games` bloquea el update (el juego lo creó otro usuario), igual se muestran los
+  datos recién traídos. Cuando RAWG no tiene descripción se genera una con Groq
+  (`generateGameDescription` en `lib/ai/`, prompt que responde `NO_CONOZCO` en vez de
+  inventar) y se guarda con `description_source = 'ai'`; la ficha lo aclara con "Descripción
+  generada por IA". El fondo tipo wallpaper sale del "hero" de SteamGridDB
+  (`findHeroImageUrl`) y cae a la imagen de RAWG si no hay. Todo opcional: sin
+  `RAWG_API_KEY`/`STEAMGRIDDB_API_KEY`/`AI_PROVIDER_API_KEY` la ficha se muestra igual, más
+  pelada.
 - El buscador de "Marcar como terminado" (`CatalogSearchCombobox`) dispara solo con debounce a
   partir de `MIN_QUERY_LENGTH` (`lib/catalog/constants.ts`, 3 caracteres) — la constante vive
   fuera de `lib/catalog/actions.ts` porque un módulo `"use server"` solo puede exportar
