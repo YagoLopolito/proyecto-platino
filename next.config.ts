@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "psn-rsc.prod.dl.playstation.net" },
       { protocol: "https", hostname: "*.rawg.io" },
       { protocol: "https", hostname: "*.steamgriddb.com" },
+      // Wallpapers (library_hero) de la CDN pública de Steam, ver lib/covers.
+      { protocol: "https", hostname: "cdn.cloudflare.steamstatic.com" },
+      { protocol: "https", hostname: "shared.cloudflare.steamstatic.com" },
     ],
   },
 };

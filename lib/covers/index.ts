@@ -367,3 +367,62 @@ export async function findHeroImageUrl(gameName: string): Promise<string | null>
     return null;
   }
 }
+
+/** Base de la CDN pública de Steam donde viven los assets de cada appid. */
+const STEAM_CDN = "https://cdn.cloudflare.steamstatic.com/steam/apps";
+
+async function resolveSteamAppId(gameName: string): Promise<number | null> {
+  try {
+    const url = new URL("https://store.steampowered.com/api/storesearch");
+    url.searchParams.set("term", gameName);
+    url.searchParams.set("cc", "us");
+    url.searchParams.set("l", "english");
+
+    const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    if (!response.ok) return null;
+
+    const data: unknown = await response.json();
+    if (
+      typeof data !== "object" ||
+      data === null ||
+      !("items" in data) ||
+      !Array.isArray((data as { items: unknown }).items)
+    ) {
+      return null;
+    }
+
+    const first = (data as { items: unknown[] }).items[0];
+    if (typeof first !== "object" || first === null || !("id" in first)) return null;
+    const id = (first as { id: unknown }).id;
+    return typeof id === "number" ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+async function urlExists(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(3000) });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Wallpaper apaisado desde la CDN pública de Steam (`library_hero`, 1920x620;
+ * `page_bg_generated` como alternativa). No necesita ninguna API key: el appid
+ * se resuelve con la búsqueda pública de la store, igual que en
+ * `lib/external-guides/steam.ts`. Se verifica con un HEAD antes de devolver la
+ * URL porque no todos los appids tienen todos los assets.
+ */
+export async function findSteamHeroUrl(gameName: string): Promise<string | null> {
+  const appId = await resolveSteamAppId(gameName);
+  if (!appId) return null;
+
+  for (const file of ["library_hero.jpg", "page_bg_generated_v6b.jpg"]) {
+    const candidate = `${STEAM_CDN}/${appId}/${file}`;
+    if (await urlExists(candidate)) return candidate;
+  }
+  return null;
+}

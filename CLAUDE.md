@@ -151,9 +151,14 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   y después el timeline propio: el propio crece sin techo y empujaba el feed fuera de pantalla.
   La actividad completa de amigos (lista con reseñas, `FriendsDiaryFeed`) vive en
   `/diario/amigos`.
-- El fondo de `GameHero` usa el wallpaper si lo hay y, si no, la propia carátula difuminada,
-  con una `mask-image` que lo desvanece hacia abajo -- así la ficha nunca queda plana aunque
-  falten `STEAMGRIDDB_API_KEY`/`RAWG_API_KEY`.
+- El fondo de `GameHero` es un backdrop a ancho completo de la ventana (w-screen + left-1/2 +
+  -translate-x-1/2, con degradado al color de la página), tipo Letterbox. El wallpaper sale, en
+  orden, de RAWG, del "hero" de SteamGridDB (`findHeroImageUrl`) y de la CDN pública de Steam
+  (`findSteamHeroUrl`: `library_hero.jpg` del appid resuelto con la búsqueda pública de la
+  store, **sin ninguna API key** -- por eso funciona aunque falten `RAWG_API_KEY` y
+  `STEAMGRIDDB_API_KEY`). Si no hay ninguno, cae a la carátula difuminada. El backdrop va con
+  `z-0` y el contenido con `z-10`: con `-z-10` quedaba detrás del `bg-zinc-950` de la página y
+  no se veía.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).

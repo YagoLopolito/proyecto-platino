@@ -1,7 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { fetchGameDetails, findGameDetailsByName, findHeroImageUrl } from "@/lib/covers";
+import {
+  fetchGameDetails,
+  findGameDetailsByName,
+  findHeroImageUrl,
+  findSteamHeroUrl,
+} from "@/lib/covers";
 import { generateGameDescription } from "@/lib/ai";
 
 export interface GameCardData {
@@ -77,7 +82,11 @@ export async function getGameCardData(
           ? fetchGameDetails(game.external_catalog_id)
           : findGameDetailsByName(game.name)
         : Promise.resolve(null),
-      needsBackground ? findHeroImageUrl(game.name) : Promise.resolve(null),
+      // SteamGridDB primero (arte curado) y, si falta la key o no lo tiene, la
+      // CDN pública de Steam, que no necesita ninguna key.
+      needsBackground
+        ? findHeroImageUrl(game.name).then((hero) => hero ?? findSteamHeroUrl(game.name))
+        : Promise.resolve(null),
     ]);
 
     // Wallpaper: primero el "hero" de SteamGridDB (arte apaisado hecho para

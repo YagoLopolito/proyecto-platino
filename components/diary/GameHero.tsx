@@ -33,21 +33,22 @@ export function GameHero({
     game.developer,
   ].filter((value): value is string => Boolean(value));
 
+  // Sin wallpaper propio queda la carátula, que estirada a banner se ve mal:
+  // en ese caso se difumina. El wallpaper real va nítido, como en Letterbox.
+  const isFallbackBackground = game.backgroundUrl === null;
+
   return (
-    <div className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+    <div className="relative">
       {/*
-        * Fondo tipo wallpaper: el "hero" apaisado si lo hay y, si no, la propia
-        * carátula difuminada -- así la ficha nunca queda plana aunque falten
-        * las API keys de imágenes. Se desvanece hacia abajo con una máscara
-        * para que el texto de la mitad inferior siga leyéndose.
+        * Backdrop a ancho completo de la ventana (rompe el max-w del contenedor
+        * con el truco de w-screen + left-1/2 + -translate-x-1/2) y se funde con
+        * el fondo de la página hacia abajo, como la ficha de Letterbox. El
+        * -mt compensa el padding superior de la página para que arranque pegado
+        * a la barra de navegación.
         */}
       {backgroundImage && (
         <div
-          className="pointer-events-none absolute inset-0 overflow-hidden"
-          style={{
-            maskImage: "linear-gradient(to bottom, black 0%, black 45%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 45%, transparent 100%)",
-          }}
+          className="pointer-events-none absolute left-1/2 top-0 z-0 -mt-8 h-[280px] w-screen -translate-x-1/2 overflow-hidden sm:-mt-12 sm:h-[420px]"
           aria-hidden="true"
         >
           <Image
@@ -55,14 +56,23 @@ export function GameHero({
             alt=""
             fill
             priority
-            sizes="(max-width: 1024px) 100vw, 1024px"
-            className="scale-110 object-cover object-center opacity-40 blur-md"
+            quality={90}
+            sizes="100vw"
+            className={`object-cover object-top ${
+              isFallbackBackground ? "scale-110 opacity-40 blur-lg" : "opacity-70"
+            }`}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/70 to-zinc-900/30" />
+          {/* Degradado doble: oscurece de arriba para que se lea la nav, y
+              funde el final de la imagen con el fondo de la página. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/70 via-zinc-950/40 to-zinc-950" />
         </div>
       )}
 
-      <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:p-6">
+      <div
+        className={`relative z-10 flex flex-col gap-5 sm:flex-row ${
+          backgroundImage ? "pt-32 sm:pt-56" : ""
+        }`}
+      >
         {/*
           * Marco fijo con proporción de póster: las carátulas llegan en
           * formatos muy distintos (los íconos de PSN son cuadrados, las de RAWG
@@ -86,7 +96,7 @@ export function GameHero({
           )}
         </div>
 
-        <div className="min-w-0 flex-1 space-y-3">
+        <div className="min-w-0 flex-1 space-y-3 rounded-xl bg-zinc-950/70 p-4 backdrop-blur-sm">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold sm:text-3xl">{game.name}</h1>
             {meta.length > 0 && (
@@ -122,7 +132,7 @@ export function GameHero({
             <p className="text-xs text-zinc-500">✨ Descripción generada por IA.</p>
           )}
 
-          <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+          <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
             <p className="text-xs uppercase tracking-wide text-zinc-500">
               Puntuación de la comunidad
             </p>

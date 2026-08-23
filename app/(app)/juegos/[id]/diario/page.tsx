@@ -49,9 +49,11 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
   const otherEntries = (entries ?? []).filter((entry) => entry.user_id !== user.id);
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 text-zinc-50 sm:py-12">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
-        <GameBreadcrumb gameId={gameId} gameName={card.name} current="Diario" />
+    <div className="flex flex-1 flex-col overflow-x-clip bg-zinc-950 px-4 py-8 text-zinc-50 sm:py-12">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
+        <div className="relative z-10">
+          <GameBreadcrumb gameId={gameId} gameName={card.name} current="Diario" />
+        </div>
 
         {diaryOutcome.status === "error" ? (
           <ErrorState message={`No se pudo cargar la puntuación: ${diaryOutcome.message}`} />
