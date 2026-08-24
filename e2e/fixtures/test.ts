@@ -5,7 +5,7 @@ import path from "node:path";
 import { createTestServiceClient } from "../helpers/supabase";
 import type { TestUser } from "../helpers/auth";
 
-type RunInfo = { runId: string; userA: TestUser; userB: TestUser };
+type RunInfo = { runId: string; userA: TestUser; userB: TestUser; userC: TestUser };
 
 type Fixtures = {
   /** Cliente service role para seedear y verificar filas directo en la base. */

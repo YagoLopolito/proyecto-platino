@@ -46,7 +46,9 @@ test.describe("Advisor con IA", () => {
     await page.goto(`/juegos/${gameId}`);
     await page.getByRole("button", { name: "Generar plan" }).click();
 
-    await expect(page.getByRole("alert")).toContainText(/formato inválido/i);
+    // La página tiene un segundo role="alert" (el route-announcer de Next,
+    // siempre vacío) -- hay que acotar al del panel de IA.
+    await expect(page.getByRole("alert").filter({ hasText: /formato inválido/i })).toBeVisible();
     // El panel sigue ahí, sin plan roto: el label de IA sigue visible.
     await expect(page.getByText(/Contenido generado por IA/i)).toBeVisible();
   });
