@@ -8,6 +8,7 @@ import { getAuthorizationFromNpsso, getPsnAvatarUrl, getPsnTrophySummary } from 
 import { mapWithConcurrency } from "./concurrency";
 import { decryptSecret } from "./crypto";
 import { NpssoExpiredError } from "./errors";
+import { PSN_MOCKS_ENABLED, MOCK_EXPIRED_NPSSO, getMockTitles } from "./mocks";
 import { fetchUserTitlesWithTrophies, type FetchedTitle } from "./trophies";
 
 export type SyncResult = { titlesSynced: number; trophiesSynced: number };
@@ -231,15 +232,28 @@ export async function syncTrophiesForUser(
 
   const npsso = decryptSecret(account.npsso_encrypted);
 
-  let titles;
-  let authorization;
-  try {
-    authorization = await getAuthorizationFromNpsso(npsso);
-    titles = await fetchUserTitlesWithTrophies(authorization);
-  } catch (cause) {
-    await supabase.from("psn_accounts").update({ token_status: "expired" }).eq("user_id", userId);
-    if (cause instanceof NpssoExpiredError) throw cause;
-    throw new NpssoExpiredError(cause);
+  let titles: FetchedTitle[];
+  // Con E2E_MOCKS=1 nunca hay `authorization` real -- Sony bloquea el NPSSO
+  // desde IPs de datacenter (CLAUDE.md), así que ni el sync mockeado ni sus
+  // callers pueden depender de un objeto de autorización real (avatar/nivel
+  // de trofeos de PSN, ver más abajo).
+  let authorization: Awaited<ReturnType<typeof getAuthorizationFromNpsso>> | undefined;
+
+  if (PSN_MOCKS_ENABLED) {
+    if (npsso === MOCK_EXPIRED_NPSSO) {
+      await supabase.from("psn_accounts").update({ token_status: "expired" }).eq("user_id", userId);
+      throw new NpssoExpiredError();
+    }
+    titles = getMockTitles();
+  } else {
+    try {
+      authorization = await getAuthorizationFromNpsso(npsso);
+      titles = await fetchUserTitlesWithTrophies(authorization);
+    } catch (cause) {
+      await supabase.from("psn_accounts").update({ token_status: "expired" }).eq("user_id", userId);
+      if (cause instanceof NpssoExpiredError) throw cause;
+      throw new NpssoExpiredError(cause);
+    }
   }
 
   // Juegos que el usuario cargó desde el catálogo (para el diario) y todavía no
@@ -261,14 +275,17 @@ export async function syncTrophiesForUser(
   // El avatar puede cambiar en PSN sin que el usuario reconecte la cuenta; se
   // refresca acá para no depender de un flujo aparte. Si falla, no aborta el
   // sync -- es un dato secundario, no se pierde nada si queda desactualizado.
-  const avatarUrl = await getPsnAvatarUrl(authorization, account.account_id).catch(() => undefined);
+  // Bajo mocks no hay `authorization` real: se deja el avatar como está.
+  const avatarUrl = authorization
+    ? await getPsnAvatarUrl(authorization, account.account_id).catch(() => undefined)
+    : undefined;
 
   // Nivel y totales reales de PSN (no se recalculan desde user_trophies: la
   // biblioteca local puede estar incompleta y daría otro número). Mismo
   // criterio que el avatar: si falla, no aborta el sync.
-  const trophySummary = await getPsnTrophySummary(authorization, account.account_id).catch(
-    () => undefined,
-  );
+  const trophySummary = authorization
+    ? await getPsnTrophySummary(authorization, account.account_id).catch(() => undefined)
+    : undefined;
 
   await supabase
     .from("psn_accounts")

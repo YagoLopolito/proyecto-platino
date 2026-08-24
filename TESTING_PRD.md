@@ -157,7 +157,7 @@ así que hay exactamente cuatro puntos donde enchufar el mock.
 | --- | --- | --- |
 | `lib/psn/` | `getPsnIdentityFromNpsso` | NPSSO `E2E-VALID-NPSSO` → identidad fija; `E2E-EXPIRED-NPSSO` → `NpssoExpiredError`; cualquier otro → error genérico |
 | `lib/psn/sync.ts` | `syncUserTrophies` | Escribe en Supabase 3 juegos `[E2E]` con ~12 trofeos, uno de ellos platinado al 100% |
-| `lib/ai/client.ts` | `generateAiGamePlan` | Devuelve un plan válido contra `aiGamePlanSchema`; con `E2E_AI_FAIL=1` tira `AiSchemaValidationError` |
+| `lib/ai/client.ts` | `generateAiGamePlan` | Devuelve un plan válido contra `aiGamePlanSchema`; con `E2E_AI_FAIL=1` (o un `gameName` que arranque con `[E2E-AI-FAIL]` -- ver nota) tira `AiSchemaValidationError` |
 | `lib/covers/` | `findCoverUrl`, `searchCatalogGames` | Carátula local de `public/`; búsqueda devuelve 3 candidatos fijos + un caso de remaster para el dedup |
 | `lib/external-guides/` | `populateExternalGuidesForGame` | Inserta 1 guía de Steam + los 3 links de búsqueda |
 | `lib/steam/` | `steamFetch` (única salida a la Steam Web API) | Vanity `e2e-steam-user` → perfil público con 2 juegos (uno con 2 logros, uno sin ninguno); `e2e-steam-private` → perfil con los detalles del juego en privado; cualquier otro → perfil inexistente. Ver `lib/steam/mocks.ts` |
@@ -166,6 +166,14 @@ así que hay exactamente cuatro puntos donde enchufar el mock.
 componentes, páginas ni Server Actions. Si un test necesita un comportamiento nuevo, se
 agrega una variable de entorno al contrato de arriba y se documenta acá. Producción nunca
 setea `E2E_MOCKS`, y el build de Vercel no la define.
+
+**Nota sobre `E2E_AI_FAIL` (agregada al escribir AI-05):** es una variable de todo el
+proceso, fijada una sola vez cuando arranca el `webServer` de Playwright (igual que
+`E2E_MOCKS`) -- no se puede prender solo para un test sin reiniciar el servidor, y la suite
+comparte una única instancia para todos los specs. Por eso `lib/ai/mocks.ts` agrega un
+segundo gatillo evaluado en cada llamada: un `gameName` que arranca con el prefijo
+`[E2E-AI-FAIL]` fuerza el mismo `AiSchemaValidationError` sin depender del entorno. El test
+lo dispara actualizando el nombre del juego seedeado antes de generar el plan.
 
 ### 4.2 Suite `@live`
 
@@ -596,7 +604,18 @@ dentro del PR de testing:**
 | Fase | Contenido | Estado |
 | --- | --- | --- |
 | **A** | Setup: `playwright.config.ts`, fixtures, helpers, global setup/teardown, scripts, CI | ✅ Este PR |
-| **B** | Interruptor `E2E_MOCKS` en `lib/psn`, `lib/ai`, `lib/covers`, `lib/external-guides` | Siguiente |
-| **C** | Specs P0 (30 casos) | Siguiente |
-| **D** | Specs P1 (40 casos) + `data-testid` que requieran | Siguiente |
-| **E** | Specs P2, `@live`, smoke en Vercel | Siguiente |
+| **B** | Interruptor `E2E_MOCKS` en `lib/psn`, `lib/ai`, `lib/covers`, `lib/external-guides` | ✅ `lib/covers`/`lib/external-guides` ya venían del trabajo de Steam; esta pasada agregó `lib/psn/mocks.ts` y `lib/ai/mocks.ts` (ver §4.1 actualizado abajo) |
+| **C** | Specs P0 (30 casos) | 🟡 Parcial -- ver nota abajo |
+| **D** | Specs P1 (40 casos) + `data-testid` que requieran | Sin empezar |
+| **E** | Specs P2, `@live`, smoke en Vercel | Sin empezar (smoke ya existía de la Fase A) |
+
+**Nota Fase C (parcial):** de los 30 P0, quedaron cubiertos AUTH-01/02/03/04/09,
+PSN-03/04/06, SYNC-01/03/04/06/11, GAME-01/07, GUIDE-05/06/07, AI-02/05 y los 9 de Steam que
+ya traía `13-steam.spec.ts`. Quedan sin cubrir: LINK-03 (necesita un segundo `webServer` sin
+`SUPABASE_SERVICE_ROLE_KEY`, incompatible con la instancia compartida que usa el resto de la
+suite -- requiere resolver primero cómo aislarlo antes de escribir el test), y los P0 de
+DIARY (01/06/11/15), FRIEND (03/07/08), PROF-01 y SEC (01/02/03/04). No se pudo correr
+`npm run e2e` en este entorno por falta de credenciales de Supabase (`.env.test.local`/
+`.env.local` no existen acá); sí se verificó que la suite completa levanta sin errores de
+sintaxis con `npx playwright test --list` y que `npx tsc --noEmit`/`npm run lint` quedan
+limpios.

@@ -18,10 +18,9 @@ export async function login(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    // DEBUG TEMPORAL: mostramos el mensaje real de Supabase para diagnosticar
-    // un login que fallaba sin llegar a los logs de auth. Revertir a
-    // "Email o contraseña incorrectos." una vez resuelto.
-    return { error: `[DEBUG] ${error.name}: ${error.message} (status ${error.status ?? "?"})` };
+    // Mensaje genérico a propósito: no filtra si el fallo fue por password
+    // incorrecta o por un email inexistente (AUTH-04/AUTH-05 de TESTING_PRD.md).
+    return { error: "Email o contraseña incorrectos." };
   }
 
   redirect("/perfil");

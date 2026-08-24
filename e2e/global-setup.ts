@@ -23,11 +23,16 @@ export default async function globalSetup(config: FullConfig) {
 
   const userA = await createTestUser(supabase, "a");
   const userB = await createTestUser(supabase, "b");
+  // userC es descartable: solo la usa AUTH-09 (logout). supabase.auth.signOut()
+  // por defecto revoca el refresh token del lado del servidor (scope "global"),
+  // asi que loguear y desloguear a userA/userB ahi invalidaria la storageState
+  // compartida que el resto de la suite reutiliza para esos dos usuarios.
+  const userC = await createTestUser(supabase, "c");
 
   fs.mkdirSync(AUTH_DIR, { recursive: true });
   fs.writeFileSync(
     path.join(AUTH_DIR, "users.json"),
-    JSON.stringify({ runId, userA, userB }, null, 2),
+    JSON.stringify({ runId, userA, userB, userC }, null, 2),
   );
 
   const browser = await chromium.launch();

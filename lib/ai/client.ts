@@ -13,6 +13,7 @@ import {
   type GameDescriptionInput,
 } from "./prompt";
 import { parseAiGamePlan, type AiGamePlan } from "./schema";
+import { AI_MOCKS_ENABLED, getMockAiGamePlan } from "./mocks";
 
 /** Modelo gratuito de Groq (free tier, sin tarjeta) usado para generar el plan en JSON. */
 const MODEL = "openai/gpt-oss-120b";
@@ -54,6 +55,8 @@ async function requestPlanCompletion(client: Groq, userPrompt: string): Promise<
  * silencioso: el caller decide cómo mostrarlo, ver PRODUCT_SPEC.md sección 4).
  */
 export async function generateAiGamePlan(input: AiPlanInput): Promise<AiGamePlan> {
+  if (AI_MOCKS_ENABLED) return getMockAiGamePlan(input);
+
   const client = getClient();
   const userPrompt = buildAiPlanUserPrompt(input);
 

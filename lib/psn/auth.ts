@@ -8,6 +8,7 @@ import {
   type AuthTokensResponse,
 } from "psn-api";
 import { NpssoExpiredError } from "./errors";
+import { PSN_MOCKS_ENABLED, getMockPsnIdentity } from "./mocks";
 
 export type PsnIdentity = {
   accountId: string;
@@ -89,6 +90,8 @@ export async function getAuthorizationFromNpsso(npsso: string): Promise<AuthToke
  * rompe el flujo de conexión con un error genérico.
  */
 export async function getPsnIdentityFromNpsso(npsso: string): Promise<PsnIdentity> {
+  if (PSN_MOCKS_ENABLED) return getMockPsnIdentity(npsso);
+
   const authorization = await getAuthorizationFromNpsso(npsso);
 
   const trophySummary = await getUserTrophyProfileSummary(authorization, "me");
