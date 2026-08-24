@@ -55,6 +55,21 @@ test.describe("Auth", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test("AUTH-05: login con email inexistente muestra el mismo mensaje que AUTH-04", async ({
+    page,
+  }) => {
+    // El punto del caso es que el texto sea *idéntico* al de AUTH-04: si acá
+    // dijera algo distinto ("Email not confirmed", "user not found"), se
+    // podría enumerar qué cuentas existen probando emails (issue #126).
+    await page.goto("/login");
+    await page.getByLabel(/email/i).fill(`e2e-inexistente-${Date.now()}@example.com`);
+    await page.getByLabel(/contrase/i).fill("password-basura-que-no-es");
+    await page.getByRole("button", { name: /ingresar/i }).click();
+
+    await expect(page.getByText("Email o contraseña incorrectos.")).toBeVisible();
+    await expect(page).toHaveURL(/\/login/);
+  });
+
   test("AUTH-09: logout redirige a /login y las rutas protegidas vuelven a pedir sesión", async ({
     page,
     users,

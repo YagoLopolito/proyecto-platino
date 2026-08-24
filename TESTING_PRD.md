@@ -267,11 +267,10 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | AUTH-09 | Logout | Desde `/perfil`, botón salir | Redirect a `/login`; volver a `/perfil` redirige de nuevo | P0 |
 | AUTH-10 | Campos con `type` y `autocomplete` correctos | Inspeccionar inputs | `type=email` / `type=password`, `autocomplete` presente (issue #67) | P2 |
 
-> ⚠️ **Deuda detectada:** `app/login/actions.ts` todavía devuelve el mensaje de debug
-> `` `[DEBUG] ${error.name}: ${error.message}` `` (PR #75, marcado como temporal en un
-> comentario del propio código). Eso filtra detalles internos de Supabase al usuario final.
-> AUTH-04 debe assertear el mensaje genérico `"Email o contraseña incorrectos."`, lo que
-> obliga a revertir el debug. **Se abre un issue aparte antes de escribir el test.**
+> ✅ **Resuelto (issue #126):** el `[DEBUG]` de `app/login/actions.ts` ya no existe. Login y
+> registro devuelven siempre el mismo texto genérico y mandan el error crudo de Supabase a
+> `console.error` (logs del server). AUTH-04 y AUTH-05 assertean el mismo string exacto,
+> `"Email o contraseña incorrectos."`, justamente para que no se pueda enumerar cuentas.
 
 ### 6.2 Conexión PSN (`02-psn-connect.spec.ts`)
 
@@ -589,9 +588,9 @@ El smoke contra Vercel corre en un job aparte, disparado a mano
 Encontrada al revisar el código para armar la matriz. **Va a issues aparte, no se arregla
 dentro del PR de testing:**
 
-1. **`[DEBUG]` en el error de login** — `app/login/actions.ts` filtra `error.name`,
-   `error.message` y el status de Supabase al usuario final. El propio comentario del código
-   dice "revertir una vez resuelto" (PR #75). Bloquea AUTH-04.
+1. ~~**`[DEBUG]` en el error de login**~~ — resuelto en el issue #126: el mensaje genérico es
+   el único que llega al cliente, en login y en registro, y los errores de Supabase van a
+   `console.error`. Cubierto por AUTH-04/AUTH-05.
 2. **No hay forma de editar `users.display_name`** — documentado en `CLAUDE.md`; un usuario
    sin PSN queda como "Usuario sin nombre" para siempre. Afecta FRIEND-06.
 3. **`nextPlaythroughNumber` no es race-safe** — conocido y aceptado; no se testea la
