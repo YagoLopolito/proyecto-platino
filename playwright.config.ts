@@ -53,8 +53,19 @@ export default defineConfig({
     {
       // El grueso de la suite, ya logueado como userA.
       name: "authed",
-      testIgnore: /(01-auth|11-a11y-mobile|12-security-isolation|smoke)\.spec\.ts/,
+      testIgnore:
+        /(01-auth|03-sync-library|11-a11y-mobile|12-security-isolation|smoke)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], storageState: authFile },
+    },
+    {
+      // `03-sync-library` va sobre userB: conecta y desconecta `psn_accounts`
+      // todo el tiempo, y `02-psn-connect`/`13-steam` hacen lo mismo sobre
+      // userA en el worker de al lado. Con `fullyParallel` y usuarios
+      // compartidos se pisaban entre archivos (la serialización de
+      // `describe.serial` es intra-archivo, no entre archivos).
+      name: "authed-b",
+      testMatch: /03-sync-library\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], storageState: authFileB },
     },
     {
       name: "mobile",

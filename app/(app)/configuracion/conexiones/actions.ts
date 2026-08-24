@@ -14,6 +14,19 @@ export type ConnectionActionState = { error: string | null; success?: string | n
 /** Todas las tarjetas de Conexiones viven en esta ruta. */
 const CONNECTIONS_PATH = "/configuracion/conexiones";
 
+/**
+ * El mensaje crudo de Postgres/Supabase nunca llega al cliente: puede exponer
+ * nombres de tablas, columnas y policies de RLS. Queda en los logs del server
+ * (Vercel) y el usuario ve un texto propio.
+ */
+function logDbError(scope: string, error: { code?: string; message: string; details?: string | null }) {
+  console.error(`[conexiones] ${scope}`, {
+    code: error.code,
+    message: error.message,
+    details: error.details,
+  });
+}
+
 export async function connectPsnAccount(
   _prevState: ConnectionActionState,
   formData: FormData,
@@ -38,6 +51,7 @@ export async function connectPsnAccount(
     if (cause instanceof NpssoExpiredError) {
       return { error: cause.message };
     }
+    console.error("[conexiones] getPsnIdentityFromNpsso failed", cause);
     return { error: "No se pudo validar el NPSSO. Revisá que lo hayas copiado completo." };
   }
 
@@ -63,7 +77,8 @@ export async function connectPsnAccount(
   );
 
   if (error) {
-    return { error: `No se pudo guardar la conexión: ${error.message}` };
+    logDbError("connectPsnAccount", error);
+    return { error: "No se pudo guardar la conexión. Probá de nuevo en unos minutos." };
   }
 
   revalidatePath(CONNECTIONS_PATH);
@@ -89,7 +104,8 @@ export async function disconnectPsnAccount(
 
   const { error } = await supabase.from("psn_accounts").delete().eq("user_id", user.id);
   if (error) {
-    return { error: `No se pudo desconectar: ${error.message}` };
+    logDbError("disconnectPsnAccount", error);
+    return { error: "No se pudo desconectar. Probá de nuevo en unos minutos." };
   }
 
   revalidatePath(CONNECTIONS_PATH);
@@ -125,6 +141,7 @@ export async function connectSteamAccount(
     if (cause instanceof SteamApiKeyMissingError) {
       return { error: cause.message };
     }
+    console.error("[conexiones] resolveSteamProfile failed", cause);
     return { error: "No se pudo consultar Steam. Probá de nuevo en unos minutos." };
   }
 
@@ -146,7 +163,8 @@ export async function connectSteamAccount(
   );
 
   if (error) {
-    return { error: `No se pudo guardar la conexión: ${error.message}` };
+    logDbError("connectSteamAccount", error);
+    return { error: "No se pudo guardar la conexión. Probá de nuevo en unos minutos." };
   }
 
   revalidatePath(CONNECTIONS_PATH);
@@ -167,7 +185,8 @@ export async function disconnectSteamAccount(
 
   const { error } = await supabase.from("steam_accounts").delete().eq("user_id", user.id);
   if (error) {
-    return { error: `No se pudo desconectar: ${error.message}` };
+    logDbError("disconnectSteamAccount", error);
+    return { error: "No se pudo desconectar. Probá de nuevo en unos minutos." };
   }
 
   revalidatePath(CONNECTIONS_PATH);
@@ -210,6 +229,7 @@ export async function replaceSteamAccount(
     if (cause instanceof SteamProfileNotFoundError || cause instanceof SteamApiKeyMissingError) {
       return { error: cause.message };
     }
+    console.error("[conexiones] resolveSteamProfile failed", cause);
     return { error: "No se pudo consultar Steam. Probá de nuevo en unos minutos." };
   }
 
@@ -226,7 +246,8 @@ export async function replaceSteamAccount(
   );
 
   if (error) {
-    return { error: `No se pudo reemplazar la cuenta: ${error.message}` };
+    logDbError("replaceSteamAccount", error);
+    return { error: "No se pudo reemplazar la cuenta. Probá de nuevo en unos minutos." };
   }
 
   revalidatePath(CONNECTIONS_PATH);

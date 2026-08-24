@@ -7,6 +7,15 @@
 /** Prefijo de todo `np_comm_id` creado por los tests. */
 export const E2E_GAME_PREFIX = "E2E-";
 
+/**
+ * Prefijo de los `np_comm_id` que crea el sync mockeado de PSN
+ * (`NP_COMM_PREFIX` de `lib/psn/mocks.ts`, hardcodeado allá porque `lib/` no
+ * importa de `e2e/`). Arranca con `E2E_GAME_PREFIX`, así que el teardown lo
+ * barre igual; existe aparte porque contar juegos por `E2E-%` a secas también
+ * cuenta los que seedean los otros specs en el worker de al lado.
+ */
+export const E2E_PSN_MOCK_PREFIX = `${E2E_GAME_PREFIX}PSN-MOCK-`;
+
 /** Prefijo visible de todo `games.title` creado por los tests. */
 export const E2E_TITLE_PREFIX = "[E2E]";
 

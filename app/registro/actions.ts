@@ -18,6 +18,13 @@ export async function signup(
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
+    // Mismo criterio que el login: el mensaje crudo de Supabase queda en los
+    // logs del server, nunca en pantalla.
+    console.error("[auth] signup failed", {
+      name: error.name,
+      status: error.status,
+      message: error.message,
+    });
     return { error: "No se pudo crear la cuenta. ¿Ya existe ese email?" };
   }
 
