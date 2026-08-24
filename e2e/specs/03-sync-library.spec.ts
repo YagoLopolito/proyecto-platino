@@ -1,5 +1,6 @@
 import { test, expect } from "../fixtures/test";
 import { encryptNpssoForFixture } from "../helpers/psn";
+import { E2E_PSN_MOCK_PREFIX } from "../helpers/ids";
 
 /**
  * Sync y biblioteca (`/juegos`, `POST /api/psn/sync`, `GET /api/cron/sync`).
@@ -7,8 +8,13 @@ import { encryptNpssoForFixture } from "../helpers/psn";
  * (los P0). El fixture mockeado (`lib/psn/mocks.ts`, `E2E_MOCKS=1`) trae 3
  * juegos `[E2E]` con ~12 trofeos, uno de ellos platinado al 100%.
  *
- * Todos tocan la misma fila `psn_accounts` de userA: corren en serie dentro
- * de este archivo y cada uno la deja limpia al final.
+ * Todos tocan la misma fila `psn_accounts`: corren en serie dentro de este
+ * archivo y cada uno la deja limpia al final. Va sobre **userB**, no userA:
+ * `02-psn-connect` y `13-steam` también escriben esa fila para userA y corren
+ * en paralelo en el otro worker, así que compartir usuario hacía que la
+ * tarjeta de PSN apareciera ya conectada y el form de NPSSO quedara oculto.
+ * Por eso este archivo tiene su propio proyecto (`authed-b`) en
+ * `playwright.config.ts`, con la storageState de userB.
  */
 const CONNECTIONS = "/configuracion/conexiones";
 const MOCK_VALID_NPSSO = "E2E-VALID-NPSSO";
@@ -17,7 +23,7 @@ test.describe.configure({ mode: "serial" });
 
 test.describe("Sync y biblioteca", () => {
   test.afterEach(async ({ supabase, users }) => {
-    await supabase.from("psn_accounts").delete().eq("user_id", users.userA.id);
+    await supabase.from("psn_accounts").delete().eq("user_id", users.userB.id);
   });
 
   test("SYNC-01: sync manual trae los 3 juegos [E2E] a la biblioteca", async ({ page }) => {
@@ -45,7 +51,7 @@ test.describe("Sync y biblioteca", () => {
     users,
   }) => {
     await supabase.from("psn_accounts").insert({
-      user_id: users.userA.id,
+      user_id: users.userB.id,
       online_id: "[E2E] Vencido",
       account_id: "e2e-account-vencido",
       npsso_encrypted: encryptNpssoForFixture("E2E-EXPIRED-NPSSO"),
@@ -61,7 +67,7 @@ test.describe("Sync y biblioteca", () => {
     const { data } = await supabase
       .from("psn_accounts")
       .select("token_status")
-      .eq("user_id", users.userA.id)
+      .eq("user_id", users.userB.id)
       .single();
     expect(data?.token_status).toBe("expired");
   });
@@ -82,7 +88,13 @@ test.describe("Sync y biblioteca", () => {
     await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
     await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
 
-    const { data: games } = await supabase.from("games").select("id").like("np_comm_id", "E2E-%");
+    // Acotado al prefijo del mock de PSN, no a `E2E-%`: ese prefijo genérico
+    // también matchea los juegos que seedean 04/05/07, que corren en paralelo
+    // en el otro worker, y hacía fallar el conteo según quién ganara la carrera.
+    const { data: games } = await supabase
+      .from("games")
+      .select("id")
+      .like("np_comm_id", `${E2E_PSN_MOCK_PREFIX}%`);
     expect(games).toHaveLength(3);
 
     const gameIds = (games ?? []).map((g) => g.id);
@@ -110,7 +122,12 @@ test.describe("Sync y biblioteca", () => {
     await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
     await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
 
-    const { data: games } = await supabase.from("games").select("id").like("np_comm_id", "E2E-%");
+    // Mismo acotado que SYNC-04: `E2E-%` a secas se lleva los juegos de los
+    // otros specs y los conteos por tipo dejan de coincidir con el fixture.
+    const { data: games } = await supabase
+      .from("games")
+      .select("id")
+      .like("np_comm_id", `${E2E_PSN_MOCK_PREFIX}%`);
     const gameIds = (games ?? []).map((g) => g.id);
     const { data: trophies } = await supabase
       .from("trophies")
@@ -130,7 +147,7 @@ test.describe("Sync y biblioteca", () => {
     const { data: unlocked } = await supabase
       .from("user_trophies")
       .select("trophy_id")
-      .eq("user_id", users.userA.id)
+      .eq("user_id", users.userB.id)
       .in(
         "trophy_id",
         (
