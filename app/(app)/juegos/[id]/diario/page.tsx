@@ -36,19 +36,31 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
 
   // El diario es público (a diferencia de user_trophies) -- se muestran las
   // entradas de todos los usuarios para este juego, ver CLAUDE.md.
-  const [{ data: entries, error: entriesError }, diaryOutcome, card, screenshotsOutcome] =
-    await Promise.all([
-      supabase
-        .from("game_diary_entries")
-        .select(
-          "id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at, completed_at",
-        )
-        .eq("game_id", gameId)
-        .order("finished_on", { ascending: false }),
-      getGameDiarySummary(supabase, gameId, user.id),
-      getGameCardData(supabase, game),
-      getGameScreenshots(supabase, gameId, user.id),
-    ]);
+  const [
+    { data: entries, error: entriesError },
+    diaryOutcome,
+    card,
+    screenshotsOutcome,
+    { data: userGame },
+  ] = await Promise.all([
+    supabase
+      .from("game_diary_entries")
+      .select(
+        "id, user_id, playthrough_number, rating, review, finished_on, source, platinum_earned_at, completed_at",
+      )
+      .eq("game_id", gameId)
+      .order("finished_on", { ascending: false }),
+    getGameDiarySummary(supabase, gameId, user.id),
+    getGameCardData(supabase, game),
+    getGameScreenshots(supabase, gameId, user.id),
+    // Las horas son del usuario que mira (la ficha en sí es pública).
+    supabase
+      .from("user_games")
+      .select("playtime_minutes")
+      .eq("user_id", user.id)
+      .eq("game_id", gameId)
+      .maybeSingle(),
+  ]);
 
   const ownEntries = (entries ?? []).filter((entry) => entry.user_id === user.id);
   const otherEntries = (entries ?? []).filter((entry) => entry.user_id !== user.id);
@@ -70,6 +82,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
               rating_count: diaryOutcome.summary.ratingCount,
             }}
             distribution={diaryOutcome.summary.distribution}
+            playtimeMinutes={userGame?.playtime_minutes ?? null}
           />
         )}
 
@@ -77,7 +90,9 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
           <h2 className="text-sm font-semibold text-zinc-300">Capturas</h2>
           <ScreenshotUploader gameId={gameId} />
           {screenshotsOutcome.status === "error" ? (
-            <ErrorState message={`No se pudieron cargar las capturas: ${screenshotsOutcome.message}`} />
+            <ErrorState
+              message={`No se pudieron cargar las capturas: ${screenshotsOutcome.message}`}
+            />
           ) : (
             <ScreenshotGallery gameId={gameId} screenshots={screenshotsOutcome.screenshots} />
           )}

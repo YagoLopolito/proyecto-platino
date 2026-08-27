@@ -19,6 +19,7 @@ export type LibraryGame = {
   percent: number;
   counts: Record<PsnTrophyType, number>;
   source: string | null;
+  playtimeMinutes: number | null;
 };
 
 type SortOption = "recent" | "name" | "percent";

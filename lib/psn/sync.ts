@@ -8,7 +8,13 @@ import { getAuthorizationFromNpsso, getPsnAvatarUrl, getPsnTrophySummary } from 
 import { mapWithConcurrency } from "./concurrency";
 import { decryptSecret } from "./crypto";
 import { NpssoExpiredError } from "./errors";
-import { PSN_MOCKS_ENABLED, MOCK_EXPIRED_NPSSO, getMockTitles } from "./mocks";
+import {
+  PSN_MOCKS_ENABLED,
+  MOCK_EXPIRED_NPSSO,
+  getMockTitles,
+  getMockPlaytimeByName,
+} from "./mocks";
+import { fetchPsnPlaytimeByName } from "./playtime";
 import { fetchUserTitlesWithTrophies, type FetchedTitle } from "./trophies";
 
 export type SyncResult = { titlesSynced: number; trophiesSynced: number };
@@ -120,16 +126,25 @@ async function syncTitle(
   userId: string,
   title: FetchedTitle,
   catalogGameIdByName: Map<string, string>,
+  playtimeByName: Map<string, number>,
 ): Promise<{ titleSynced: boolean; trophiesSynced: number }> {
   const gameId = await resolveGameId(supabase, userId, title, catalogGameIdByName);
   if (!gameId) return { titleSynced: false, trophiesSynced: 0 };
 
-  await supabase
-    .from("user_games")
-    .upsert(
-      { user_id: userId, game_id: gameId, last_played_at: title.lastPlayedAt },
-      { onConflict: "user_id,game_id" },
-    );
+  // Las horas vienen de otro endpoint y cruzan por nombre (ver `playtime.ts`):
+  // si este título no matcheó, la columna ni se menciona en el upsert, así no
+  // se pisa con NULL un valor que ya estaba guardado.
+  const playtimeMinutes = playtimeByName.get(normalizeName(title.name));
+
+  await supabase.from("user_games").upsert(
+    {
+      user_id: userId,
+      game_id: gameId,
+      last_played_at: title.lastPlayedAt,
+      ...(playtimeMinutes !== undefined ? { playtime_minutes: playtimeMinutes } : {}),
+    },
+    { onConflict: "user_id,game_id" },
+  );
 
   if (title.groups.length > 0) {
     const groupRows = title.groups.map((group) => ({
@@ -199,7 +214,10 @@ async function syncTitle(
     try {
       await reconcilePlatinumDiaryEntry(supabase, userId, gameId, platinum.earnedAt);
     } catch (cause) {
-      console.error(`[psn-sync] no se pudo actualizar el diario por platino (${title.name}):`, cause);
+      console.error(
+        `[psn-sync] no se pudo actualizar el diario por platino (${title.name}):`,
+        cause,
+      );
     }
   }
 
@@ -268,8 +286,23 @@ export async function syncTrophiesForUser(
     (catalogGames ?? []).map((game) => [normalizeName(game.name), game.id] as const),
   );
 
+  // Horas jugadas: una llamada paginada por biblioteca, no una por juego. Es
+  // un dato secundario -- si el endpoint falla o cambia (API no oficial), el
+  // sync de trofeos tiene que seguir igual.
+  let playtimeByName = new Map<string, number>();
+  if (PSN_MOCKS_ENABLED) {
+    playtimeByName = getMockPlaytimeByName();
+  } else if (authorization) {
+    playtimeByName = await fetchPsnPlaytimeByName(authorization, account.account_id).catch(
+      (cause) => {
+        console.error("[psn-sync] no se pudieron traer las horas jugadas:", cause);
+        return new Map<string, number>();
+      },
+    );
+  }
+
   const results = await mapWithConcurrency(titles, TITLE_WRITE_CONCURRENCY, (title) =>
-    syncTitle(supabase, userId, title, catalogGameIdByName),
+    syncTitle(supabase, userId, title, catalogGameIdByName, playtimeByName),
   );
 
   // El avatar puede cambiar en PSN sin que el usuario reconecte la cuenta; se

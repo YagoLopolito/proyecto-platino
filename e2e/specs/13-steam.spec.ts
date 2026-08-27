@@ -95,12 +95,16 @@ test.describe("Steam", () => {
 
   test("STEAM-03: conectar con un SteamID inexistente da un mensaje claro", async ({ page }) => {
     await submitSteamForm(page, "no-existe-este-perfil-e2e");
-    await expect(
-      page.getByRole("region", { name: "Steam" }).getByRole("alert"),
-    ).toContainText(/No encontramos ese perfil de Steam/i);
+    await expect(page.getByRole("region", { name: "Steam" }).getByRole("alert")).toContainText(
+      /No encontramos ese perfil de Steam/i,
+    );
   });
 
-  test("STEAM-04: conectar deja la cuenta como no verificada", async ({ page, supabase, users }) => {
+  test("STEAM-04: conectar deja la cuenta como no verificada", async ({
+    page,
+    supabase,
+    users,
+  }) => {
     await connectSteam(page, VANITY_PUBLIC);
     const steamCard = page.getByRole("region", { name: "Steam" });
     await expect(steamCard).toContainText("[E2E] Steam User");
@@ -151,7 +155,10 @@ test.describe("Steam", () => {
       .from("user_trophies")
       .select("trophy_id")
       .eq("user_id", users.userA.id)
-      .in("trophy_id", (trophies ?? []).map((trophy) => trophy.id));
+      .in(
+        "trophy_id",
+        (trophies ?? []).map((trophy) => trophy.id),
+      );
     expect(unlocked).toHaveLength(1);
 
     // El playtime queda guardado: es lo que separa un juego real de un
@@ -170,6 +177,9 @@ test.describe("Steam", () => {
     await page.goto("/juegos");
     await expect(page.getByText("[E2E] Steam Game Con Logros")).toBeVisible();
     await expect(page.getByText("[E2E] Steam Game Sin Logros")).toHaveCount(0);
+    // Las 2 horas del fixture se muestran en la tarjeta, mismo formato que PSN.
+    const card = page.getByRole("listitem").filter({ hasText: "[E2E] Steam Game Con Logros" });
+    await expect(card.getByText("⏱ 2 h")).toBeVisible();
   });
 
   test("STEAM-06: un perfil en privado se guarda y explica cómo destrabarlo", async ({
@@ -219,10 +229,7 @@ test.describe("Steam", () => {
       .select("id")
       .eq("steam_appid", 999_000_001)
       .single();
-    const { data: trophies } = await supabase
-      .from("trophies")
-      .select("id")
-      .eq("game_id", game!.id);
+    const { data: trophies } = await supabase.from("trophies").select("id").eq("game_id", game!.id);
     await supabase.from("user_trophies").upsert(
       (trophies ?? []).map((trophy) => ({
         user_id: users.userA.id,
