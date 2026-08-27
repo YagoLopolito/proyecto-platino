@@ -50,7 +50,13 @@ export default function SteamSyncButton({ className = "" }: { className?: string
       const body = await response.json();
       setMessage({
         kind: "success",
-        text: `Sincronizado: ${body.titlesSynced} juegos, ${body.achievementsSynced} logros (${body.titlesWithoutAchievements} juegos sin logros).`,
+        text:
+          `Sincronizado: ${body.titlesSynced} juegos, ${body.achievementsSynced} logros ` +
+          `(${body.titlesWithoutAchievements} juegos sin logros).` +
+          (body.playtimeHidden
+            ? " Steam no reportó horas para ningún juego: en Steam › Editar perfil › Configuración" +
+              " de privacidad, desactivá \"Mantener en privado el tiempo total de juego\" si querés verlas acá."
+            : ""),
       });
       router.refresh();
     } catch {

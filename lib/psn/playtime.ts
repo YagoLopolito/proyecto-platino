@@ -14,10 +14,17 @@ import { normalizeName } from "@/lib/catalog/dedup";
  *
  * Es un dato secundario: si esta llamada falla, el sync de trofeos sigue.
  */
-const PAGE_LIMIT = 200;
+const PAGE_LIMIT = 100;
 
 /** Tope de páginas, por si la paginación de PSN devolviera algo inesperado. */
-const MAX_PAGES = 20;
+const MAX_PAGES = 30;
+
+/**
+ * Categorías pedidas explícitamente: el default del endpoint deja afuera
+ * títulos que sí están en la lista de trofeos (PS3/Vita/PC vía "unknown" y
+ * "pspc_game"), y sin ellas la mayoría de la biblioteca quedaba sin horas.
+ */
+const CATEGORIES = "ps4_game,ps5_native_game,pspc_game,unknown";
 
 /**
  * `playDuration` viene como duración ISO 8601 con precisión de 1 segundo
@@ -33,20 +40,29 @@ export function parsePlayDurationMinutes(playDuration: string | null | undefined
   return Number.isFinite(total) ? Math.round(total) : null;
 }
 
-/** Minutos jugados por nombre de juego normalizado, para cruzar con los títulos de trofeos. */
-export async function fetchPsnPlaytimeByName(
+export type PsnPlaytimeResult = {
+  /** Minutos jugados por nombre de juego normalizado, para cruzar con los títulos de trofeos. */
+  byName: Map<string, number>;
+  /** Cuántos títulos devolvió PSN en total (para el log de resumen del sync). */
+  titlesFetched: number;
+};
+
+export async function fetchPsnPlaytime(
   authorization: AuthorizationPayload,
   accountId: string,
-): Promise<Map<string, number>> {
+): Promise<PsnPlaytimeResult> {
   const byName = new Map<string, number>();
   let offset = 0;
+  let titlesFetched = 0;
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
     const response = await getUserPlayedGames(authorization, accountId, {
       limit: PAGE_LIMIT,
       offset,
+      categories: CATEGORIES,
     });
     const titles = response.titles ?? [];
+    titlesFetched += titles.length;
 
     for (const title of titles) {
       const minutes = parsePlayDurationMinutes(title.playDuration);
@@ -58,9 +74,13 @@ export async function fetchPsnPlaytimeByName(
       byName.set(key, Math.max(byName.get(key) ?? 0, minutes));
     }
 
+    // El corte NO puede ser `titles.length < PAGE_LIMIT`: PSN devuelve páginas
+    // más chicas que el limit pedido y con eso se cortaba en la primera,
+    // dejando sin horas a toda la biblioteca salvo los últimos jugados.
     offset += titles.length;
-    if (titles.length < PAGE_LIMIT || offset >= (response.totalItemCount ?? offset)) break;
+    const total = response.totalItemCount ?? 0;
+    if (titles.length === 0 || offset >= total) break;
   }
 
-  return byName;
+  return { byName, titlesFetched };
 }

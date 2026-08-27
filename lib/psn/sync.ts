@@ -14,7 +14,7 @@ import {
   getMockTitles,
   getMockPlaytimeByName,
 } from "./mocks";
-import { fetchPsnPlaytimeByName } from "./playtime";
+import { fetchPsnPlaytime } from "./playtime";
 import { fetchUserTitlesWithTrophies, type FetchedTitle } from "./trophies";
 
 export type SyncResult = { titlesSynced: number; trophiesSynced: number };
@@ -293,11 +293,16 @@ export async function syncTrophiesForUser(
   if (PSN_MOCKS_ENABLED) {
     playtimeByName = getMockPlaytimeByName();
   } else if (authorization) {
-    playtimeByName = await fetchPsnPlaytimeByName(authorization, account.account_id).catch(
-      (cause) => {
-        console.error("[psn-sync] no se pudieron traer las horas jugadas:", cause);
-        return new Map<string, number>();
-      },
+    const playtime = await fetchPsnPlaytime(authorization, account.account_id).catch((cause) => {
+      console.error("[psn-sync] no se pudieron traer las horas jugadas:", cause);
+      return { byName: new Map<string, number>(), titlesFetched: 0 };
+    });
+    playtimeByName = playtime.byName;
+    // Resumen sin nombres: si el cruce por nombre falla (remasters, ediciones)
+    // o PSN deja de reportar `playDuration`, se ve acá y no hay que adivinar
+    // mirando la base.
+    console.info(
+      `[psn-sync] horas jugadas: ${playtime.titlesFetched} títulos devueltos por PSN, ${playtimeByName.size} con horas, sobre ${titles.length} títulos con trofeos.`,
     );
   }
 
