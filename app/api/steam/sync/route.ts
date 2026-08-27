@@ -29,6 +29,7 @@ export async function POST() {
     const result = await syncSteamAchievementsForUser(supabase, user.id);
     return NextResponse.json(result);
   } catch (error) {
+    console.error("[steam-sync] falló el sync manual:", error);
     // El perfil en privado no es un error de la app ni de Steam: es una opción
     // de privacidad que solo el usuario puede cambiar. Va con su propio código
     // para que la UI muestre las instrucciones en vez de "probá más tarde".

@@ -24,6 +24,10 @@ export async function POST() {
     const result = await syncTrophiesForUser(supabase, user.id);
     return NextResponse.json(result);
   } catch (error) {
+    // El detalle solo va al log del servidor: al cliente sigue yendo un
+    // mensaje acotado. Sin esto, un sync que falla temprano (NPSSO cifrado con
+    // otra clave, PSN caída) queda como un 500 mudo imposible de diagnosticar.
+    console.error("[psn-sync] falló el sync manual:", error);
     if (error instanceof NpssoExpiredError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
