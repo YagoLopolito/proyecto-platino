@@ -297,7 +297,9 @@ export async function syncSteamAchievementsForUser(
   // La cuota son 100.000 llamadas/día para TODA la app: saber cuánto gasta un
   // sync es lo único que avisa a tiempo que el margen se está achicando.
   console.log(
-    `[steam-sync] ${owned.length} juegos, ${getSteamCallCount() - callsBefore} llamadas a la Steam Web API.`,
+    `[steam-sync] ${owned.length} juegos (${owned.filter((game) => game.playtimeMinutes > 0).length} con horas), ` +
+      `${results.filter((r) => r.titleSynced).length} guardados, ` +
+      `${getSteamCallCount() - callsBefore} llamadas a la Steam Web API.`,
   );
 
   return {
