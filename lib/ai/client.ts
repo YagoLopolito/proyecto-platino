@@ -13,7 +13,7 @@ import {
   type GameDescriptionInput,
 } from "./prompt";
 import { parseAiGamePlan, type AiGamePlan } from "./schema";
-import { AI_MOCKS_ENABLED, getMockAiGamePlan } from "./mocks";
+import { AI_MOCKS_ENABLED, getMockAiGamePlan, getMockTrophyHint } from "./mocks";
 
 /** Modelo gratuito de Groq (free tier, sin tarjeta) usado para generar el plan en JSON. */
 const MODEL = "openai/gpt-oss-120b";
@@ -80,6 +80,8 @@ export async function generateAiGamePlan(input: AiPlanInput): Promise<AiGamePlan
  * descripción oficial de PSN es ambigua o insuficiente.
  */
 export async function generateTrophyHint(input: TrophyHintInput): Promise<string> {
+  if (AI_MOCKS_ENABLED) return getMockTrophyHint(input);
+
   const client = getClient();
   try {
     const response = await client.chat.completions.create({

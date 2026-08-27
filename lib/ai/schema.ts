@@ -26,6 +26,27 @@ export const aiGamePlanSchema = z.object({
   ),
   orden_sugerido: z.array(z.string()),
   tips_generales: z.array(z.string()),
+  // Trofeos que exigen una condición de dificultad/desafío (dificultad máxima,
+  // speedrun, sin morir, permadeath, etc.). `.default([])` para que los planes
+  // ya cacheados en `ai_game_plans` (generados antes de este campo) sigan
+  // parseando sin migración ni regeneración.
+  desafios_de_dificultad: z
+    .array(
+      z.object({
+        trofeo_id: z.string(),
+        categoria: z.enum([
+          "dificultad_maxima",
+          "speedrun",
+          "sin_morir",
+          "permadeath",
+          "sin_recursos",
+          "otro_desafio",
+        ]),
+        motivo: z.string().min(1),
+        consejo: z.string(),
+      }),
+    )
+    .default([]),
   modos: z
     .array(
       z.object({

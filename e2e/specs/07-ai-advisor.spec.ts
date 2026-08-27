@@ -52,4 +52,55 @@ test.describe("Advisor con IA", () => {
     // El panel sigue ahí, sin plan roto: el label de IA sigue visible.
     await expect(page.getByText(/Contenido generado por IA/i)).toBeVisible();
   });
+
+  test("AI-09: el plan marca los trofeos de dificultad con su categoría", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Advisor Tres",
+      np: 303,
+    });
+
+    await page.goto(`/juegos/${gameId}`);
+    await page.getByRole("button", { name: "Generar plan" }).click();
+
+    // El plan de fixture (`lib/ai/mocks.ts`) trae un desafío
+    // `dificultad_maxima` sobre el primer trofeo.
+    await expect(page.getByRole("heading", { name: /Trofeos de dificultad/i })).toBeVisible();
+    await expect(page.getByText("Dificultad máxima")).toBeVisible();
+    await expect(
+      page.getByText("[E2E] Pide terminar el juego en la dificultad más alta."),
+    ).toBeVisible();
+  });
+
+  test("AI-10: clickear un trofeo del plan lleva al trofeo y abre su ayuda", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId, trophyIds } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 3,
+      nameSuffix: "Advisor Cuatro",
+      np: 304,
+    });
+
+    await page.goto(`/juegos/${gameId}`);
+    await page.getByRole("button", { name: "Generar plan" }).click();
+
+    const advisor = page.locator("#advisor");
+    const chip = advisor
+      .getByRole("button", { name: /Advisor Cuatro - Trofeo 1/ })
+      .first();
+    await expect(chip).toBeVisible();
+    await chip.click();
+
+    // El trofeo de la lista de arriba queda enfocado y con la ayuda ya pedida:
+    // el usuario no tiene que buscarlo ni volver a clickear "Cómo desbloquearlo".
+    const trophyRow = page.locator(`#trofeo-${trophyIds[0]}`);
+    await expect(trophyRow.getByText(/\[E2E\] Ayuda mockeada/)).toBeVisible();
+    await expect(trophyRow.getByRole("button", { name: "Ocultar ayuda" })).toBeVisible();
+  });
 });

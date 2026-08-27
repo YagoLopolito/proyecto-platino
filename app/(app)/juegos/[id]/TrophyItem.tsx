@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { explainTrophy } from "./actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
@@ -27,6 +27,7 @@ export default function TrophyItem({
   rarity,
   earnedRate,
   progressTarget,
+  focusToken,
 }: {
   gameId: string;
   trophyId: string;
@@ -39,33 +40,58 @@ export default function TrophyItem({
   rarity: number | null;
   earnedRate: number | null;
   progressTarget: string | null;
+  /**
+   * Cambia cada vez que el advisor pide enfocar ESTE trofeo (`null` si no es
+   * el enfocado). Es un contador y no un booleano para que volver a clickear
+   * el mismo trofeo scrollee de nuevo en vez de no cambiar nada.
+   */
+  focusToken: number | null;
 }) {
   const [open, setOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const itemRef = useRef<HTMLLIElement>(null);
+  const requestedRef = useRef(false);
 
-  function handleToggle() {
-    const willOpen = !open;
-    setOpen(willOpen);
-
-    if (willOpen && hint === null && error === null && !pending) {
-      const formData = new FormData();
-      formData.set("gameId", gameId);
-      formData.set("trophyId", trophyId);
-      startTransition(async () => {
-        const result = await explainTrophy({ hint: null, error: null }, formData);
-        setHint(result.hint);
-        setError(result.error);
-      });
-    }
+  // Abrir la ayuda cuando llega el foco desde el advisor se resuelve durante el
+  // render comparando contra el token ya visto, no con un setState dentro de un
+  // useEffect (regla `react-hooks/set-state-in-effect`, ver CLAUDE.md).
+  const [seenFocusToken, setSeenFocusToken] = useState(focusToken);
+  if (focusToken !== seenFocusToken) {
+    setSeenFocusToken(focusToken);
+    if (focusToken !== null) setOpen(true);
   }
+
+  // El scroll sí va en un effect: es una acción sobre el DOM, no estado, y
+  // tiene que correr después de que el ítem esté montado y visible.
+  useEffect(() => {
+    if (focusToken === null) return;
+    itemRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusToken]);
+
+  // La ayuda se pide una sola vez, la abra el usuario o el advisor.
+  useEffect(() => {
+    if (!open || requestedRef.current) return;
+    requestedRef.current = true;
+
+    const formData = new FormData();
+    formData.set("gameId", gameId);
+    formData.set("trophyId", trophyId);
+    startTransition(async () => {
+      const result = await explainTrophy({ hint: null, error: null }, formData);
+      setHint(result.hint);
+      setError(result.error);
+    });
+  }, [open, gameId, trophyId, startTransition]);
 
   return (
     <li
-      className={`rounded-lg border p-3 sm:p-4 ${
+      ref={itemRef}
+      id={`trofeo-${trophyId}`}
+      className={`scroll-mt-20 rounded-lg border p-3 sm:p-4 ${
         isObtained ? "border-green-800/60 bg-green-950/10" : "border-zinc-800 bg-zinc-900"
-      }`}
+      } ${focusToken !== null ? "ring-2 ring-blue-500/70" : ""}`}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -114,7 +140,7 @@ export default function TrophyItem({
         </div>
         <button
           type="button"
-          onClick={handleToggle}
+          onClick={() => setOpen((current) => !current)}
           className="w-full shrink-0 rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:border-blue-500 hover:text-blue-300 sm:w-auto sm:py-1"
         >
           {open ? "Ocultar ayuda" : "❓ Cómo desbloquearlo"}
