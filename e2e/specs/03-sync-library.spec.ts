@@ -72,7 +72,10 @@ test.describe("Sync y biblioteca", () => {
     expect(data?.token_status).toBe("expired");
   });
 
-  test("SYNC-04: sincronizar dos veces no duplica juegos ni trofeos", async ({ page, supabase }) => {
+  test("SYNC-04: sincronizar dos veces no duplica juegos ni trofeos", async ({
+    page,
+    supabase,
+  }) => {
     await page.goto(CONNECTIONS);
     const psnCard = page.getByRole("region", { name: "PlayStation Network" });
     await psnCard.getByLabel("NPSSO").fill(MOCK_VALID_NPSSO);
@@ -150,12 +153,57 @@ test.describe("Sync y biblioteca", () => {
       .eq("user_id", users.userB.id)
       .in(
         "trophy_id",
-        (
-          await supabase.from("trophies").select("id").in("game_id", gameIds)
-        ).data?.map((t) => t.id) ?? [],
+        (await supabase.from("trophies").select("id").in("game_id", gameIds)).data?.map(
+          (t) => t.id,
+        ) ?? [],
       );
     // Juego 1: 5 obtenidos. Juego 2: 1 obtenido. Juego 3: 0. Total 6.
     expect(unlocked).toHaveLength(6);
+  });
+
+  test("SYNC-13: las horas jugadas de PSN se guardan y se muestran en la tarjeta y en el diario", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    await page.goto(CONNECTIONS);
+    const psnCard = page.getByRole("region", { name: "PlayStation Network" });
+    await psnCard.getByLabel("NPSSO").fill(MOCK_VALID_NPSSO);
+    await psnCard.getByRole("button", { name: /Conectar cuenta PSN/i }).click();
+    await expect(psnCard.getByTestId("connection-status")).toHaveAttribute(
+      "data-status",
+      "connected",
+    );
+    await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
+    await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
+
+    // El fixture reporta horas solo para "PSN Game Uno" (754 minutos): el
+    // segundo juego cubre el caso "PSN no reportó horas", que con títulos
+    // viejos es lo normal.
+    const { data: game } = await supabase
+      .from("games")
+      .select("id")
+      .eq("np_comm_id", `${E2E_PSN_MOCK_PREFIX}1`)
+      .single();
+    const gameId = game?.id as string;
+
+    const { data: userGame } = await supabase
+      .from("user_games")
+      .select("playtime_minutes")
+      .eq("user_id", users.userB.id)
+      .eq("game_id", gameId)
+      .single();
+    expect(userGame?.playtime_minutes).toBe(754);
+
+    await page.goto("/juegos");
+    const card = page.getByRole("listitem").filter({ hasText: "[E2E] PSN Game Uno" });
+    await expect(card.getByText("⏱ 13 h")).toBeVisible();
+    // Sin horas reportadas no se muestra nada, ni un "0 h".
+    const cardSinHoras = page.getByRole("listitem").filter({ hasText: "[E2E] PSN Game Dos" });
+    await expect(cardSinHoras.getByText(/⏱/)).toHaveCount(0);
+
+    await page.goto(`/juegos/${gameId}/diario`);
+    await expect(page.getByText("13 h jugadas")).toBeVisible();
   });
 
   test("SYNC-11: /api/cron/sync sin CRON_SECRET responde 401", async ({ request }) => {

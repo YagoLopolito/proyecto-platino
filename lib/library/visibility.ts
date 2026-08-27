@@ -9,9 +9,9 @@
 export type LibraryVisibilityInput = {
   source: string | null;
   /**
-   * Minutos jugados según Steam. NULL = no se sabe (juegos de PSN, catálogo y
-   * carga manual, y también los de Steam sincronizados antes de que se guardara
-   * este dato).
+   * Minutos jugados (Steam y PSN, ver `lib/playtime.ts`). NULL = no se sabe
+   * (juegos de catálogo y carga manual, títulos de PSN sin horas reportadas, y
+   * los sincronizados antes de que se guardara este dato).
    */
   playtimeMinutes: number | null;
   /** Trofeos/logros ya desbloqueados en ese juego. */

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { GameCardData } from "@/lib/catalog/details";
 import { GameScore } from "@/components/diary/GameScore";
+import { formatPlaytime } from "@/lib/playtime";
 
 const DESCRIPTION_PREVIEW_CHARS = 340;
 
@@ -14,11 +15,19 @@ export function GameHero({
   game,
   score,
   distribution,
+  playtimeMinutes,
 }: {
   game: GameCardData;
   score: { average_rating: number | null; rating_count: number | null };
   distribution: number[];
+  /**
+   * Horas del usuario que está mirando, no del juego: el diario es público
+   * pero `user_games` es de cada uno. NULL/0 = no se muestra nada (juegos de
+   * catálogo, o de PSN sin horas reportadas).
+   */
+  playtimeMinutes?: number | null;
 }) {
+  const playtime = formatPlaytime(playtimeMinutes);
   const description = game.description?.trim() || null;
   const isLong = description !== null && description.length > DESCRIPTION_PREVIEW_CHARS;
   const totalVotes = distribution.reduce((sum, count) => sum + count, 0);
@@ -40,12 +49,12 @@ export function GameHero({
   return (
     <div className="relative">
       {/*
-        * Backdrop a ancho completo de la ventana (rompe el max-w del contenedor
-        * con el truco de w-screen + left-1/2 + -translate-x-1/2) y se funde con
-        * el fondo de la página hacia abajo, como la ficha de Letterbox. El
-        * -mt compensa el padding superior de la página para que arranque pegado
-        * a la barra de navegación.
-        */}
+       * Backdrop a ancho completo de la ventana (rompe el max-w del contenedor
+       * con el truco de w-screen + left-1/2 + -translate-x-1/2) y se funde con
+       * el fondo de la página hacia abajo, como la ficha de Letterbox. El
+       * -mt compensa el padding superior de la página para que arranque pegado
+       * a la barra de navegación.
+       */}
       {backgroundImage && (
         <div
           className="pointer-events-none absolute left-1/2 top-0 z-0 -mt-6 h-[220px] w-screen -translate-x-1/2 overflow-hidden sm:-mt-12 sm:h-[420px]"
@@ -74,11 +83,11 @@ export function GameHero({
         }`}
       >
         {/*
-          * Marco fijo con proporción de póster: las carátulas llegan en
-          * formatos muy distintos (los íconos de PSN son cuadrados, las de RAWG
-          * apaisadas), y sin un marco la imagen quedaba chica al lado del resto
-          * de la ficha. object-cover recorta para llenarlo siempre igual.
-          */}
+         * Marco fijo con proporción de póster: las carátulas llegan en
+         * formatos muy distintos (los íconos de PSN son cuadrados, las de RAWG
+         * apaisadas), y sin un marco la imagen quedaba chica al lado del resto
+         * de la ficha. object-cover recorta para llenarlo siempre igual.
+         */}
         <div className="relative aspect-[3/4] w-32 shrink-0 self-start overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800 shadow-lg min-[420px]:w-40 sm:w-56">
           {game.coverUrl ? (
             <Image
@@ -102,6 +111,11 @@ export function GameHero({
             {meta.length > 0 && (
               <p className="text-xs text-zinc-400 sm:text-sm">{meta.join(" · ")}</p>
             )}
+            {playtime && (
+              <p className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-0.5 text-xs text-zinc-300">
+                <span aria-hidden="true">⏱</span> {playtime} jugadas
+              </p>
+            )}
           </div>
 
           {description ? (
@@ -123,9 +137,7 @@ export function GameHero({
               <p className="text-sm leading-relaxed text-zinc-300">{description}</p>
             )
           ) : (
-            <p className="text-sm text-zinc-500">
-              Sin descripción disponible para este juego.
-            </p>
+            <p className="text-sm text-zinc-500">Sin descripción disponible para este juego.</p>
           )}
 
           {description && game.descriptionSource === "ai" && (
@@ -138,7 +150,10 @@ export function GameHero({
             </p>
             <GameScore score={score} />
             {totalVotes > 0 && (
-              <ul className="flex items-end gap-1 pt-1 sm:gap-1.5" aria-label="Distribución de valoraciones">
+              <ul
+                className="flex items-end gap-1 pt-1 sm:gap-1.5"
+                aria-label="Distribución de valoraciones"
+              >
                 {distribution.map((count, index) => (
                   <li key={index} className="flex flex-1 flex-col items-center gap-1">
                     <span className="text-[10px] tabular-nums text-zinc-500">{count || ""}</span>

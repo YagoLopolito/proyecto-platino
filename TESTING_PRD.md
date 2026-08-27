@@ -303,6 +303,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-10 | Juegos `source='catalog'` no aparecen | Un juego de catálogo del diario no se lista en `/juegos` | P1 |
 | SYNC-11 | `/api/cron/sync` sin `CRON_SECRET` | 401 | **P0 (seguridad)** |
 | SYNC-12 | `/api/cron/sync` con bearer correcto | 200 con resumen por cuenta | P1 |
+| SYNC-13 | Horas jugadas de PSN | `playtime_minutes` guardado desde `playDuration`, visible en la tarjeta de `/juegos` y en la ficha de diario; un juego sin horas reportadas no muestra nada | P1 |
 
 ### 6.4 Detalle de juego (`04-game-detail.spec.ts`)
 
@@ -443,7 +444,7 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 | STEAM-02 | Conexiones lista las plataformas | Una tarjeta para PSN y otra para Steam | P0 |
 | STEAM-03 | SteamID inexistente | Mensaje propio ("No encontramos ese perfil"), no un error genérico | P0 |
 | STEAM-04 | Conectar por vanity URL | Fila en `steam_accounts` con `verified = false`, y la UI lo aclara | P0 |
-| STEAM-05 | Sync de logros | 2 juegos `source = 'steam'`, logros con `type = 'achievement'`, el juego sin logros marcado con `steam_has_achievements = false`, 1 logro en `user_trophies`, `playtime_minutes` guardado, el ícono normalizado al host que acepta `next/image`, y la biblioteca esconde el juego con 0 horas y 0 logros | P0 |
+| STEAM-05 | Sync de logros | 2 juegos `source = 'steam'`, logros con `type = 'achievement'`, el juego sin logros marcado con `steam_has_achievements = false`, 1 logro en `user_trophies`, `playtime_minutes` guardado y visible como horas en la tarjeta, el ícono normalizado al host que acepta `next/image`, y la biblioteca esconde el juego con 0 horas y 0 logros | P0 |
 | STEAM-06 | Perfil en privado | La cuenta se guarda igual con `profile_visibility = 'private'` y la tarjeta explica cómo cambiarlo | P0 |
 | STEAM-07 | Desconectar | La fila de `steam_accounts` desaparece; los juegos sincronizados se mantienen | P1 |
 | STEAM-08 | Diario al 100% | Un juego de Steam con todos sus logros crea una entrada `source = 'completion_sync'` con `completed_at` y **sin** tocar `platinum_earned_at`; la fecha es la del último logro | P0 |
