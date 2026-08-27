@@ -15,6 +15,15 @@ export type SteamSyncResult = {
   achievementsSynced: number;
   /** Juegos que se registraron en la biblioteca pero no tienen logros. */
   titlesWithoutAchievements: number;
+  /**
+   * Steam devolvió `playtime_forever = 0` para TODOS los juegos de una
+   * biblioteca que no está vacía. No es un caso raro ni un bug del sync: es la
+   * opción "Mantener en privado el tiempo total de juego" de la privacidad de
+   * Steam, que se puede tener activada con el resto del perfil público (los
+   * logros siguen sincronizando). La UI lo explica en vez de mostrar una
+   * biblioteca entera sin horas y sin motivo.
+   */
+  playtimeHidden: boolean;
 };
 
 /** Mismo criterio que el sync de PSN: pocos títulos en vuelo a la vez. */
@@ -288,12 +297,15 @@ export async function syncSteamAchievementsForUser(
   // La cuota son 100.000 llamadas/día para TODA la app: saber cuánto gasta un
   // sync es lo único que avisa a tiempo que el margen se está achicando.
   console.log(
-    `[steam-sync] ${owned.length} juegos, ${getSteamCallCount() - callsBefore} llamadas a la Steam Web API.`,
+    `[steam-sync] ${owned.length} juegos (${owned.filter((game) => game.playtimeMinutes > 0).length} con horas), ` +
+      `${results.filter((r) => r.titleSynced).length} guardados, ` +
+      `${getSteamCallCount() - callsBefore} llamadas a la Steam Web API.`,
   );
 
   return {
     titlesSynced: results.filter((r) => r.titleSynced).length,
     achievementsSynced: results.reduce((sum, r) => sum + r.achievements, 0),
     titlesWithoutAchievements: results.filter((r) => r.withoutAchievements).length,
+    playtimeHidden: owned.length > 0 && owned.every((game) => game.playtimeMinutes === 0),
   };
 }
