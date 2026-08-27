@@ -14,7 +14,7 @@ import {
   getMockTitles,
   getMockPlaytimeByName,
 } from "./mocks";
-import { fetchPsnPlaytime } from "./playtime";
+import { fetchPsnPlaytime, playtimeMatchKey } from "./playtime";
 import { fetchUserTitlesWithTrophies, type FetchedTitle } from "./trophies";
 
 export type SyncResult = { titlesSynced: number; trophiesSynced: number };
@@ -134,7 +134,7 @@ async function syncTitle(
   // Las horas vienen de otro endpoint y cruzan por nombre (ver `playtime.ts`):
   // si este título no matcheó, la columna ni se menciona en el upsert, así no
   // se pisa con NULL un valor que ya estaba guardado.
-  const playtimeMinutes = playtimeByName.get(normalizeName(title.name));
+  const playtimeMinutes = playtimeByName.get(playtimeMatchKey(title.name));
 
   await supabase.from("user_games").upsert(
     {
@@ -301,9 +301,21 @@ export async function syncTrophiesForUser(
     // Resumen sin nombres: si el cruce por nombre falla (remasters, ediciones)
     // o PSN deja de reportar `playDuration`, se ve acá y no hay que adivinar
     // mirando la base.
+    const sinHoras = titles.filter((title) => !playtimeByName.has(playtimeMatchKey(title.name)));
     console.info(
-      `[psn-sync] horas jugadas: ${playtime.titlesFetched} títulos devueltos por PSN, ${playtimeByName.size} con horas, sobre ${titles.length} títulos con trofeos.`,
+      `[psn-sync] horas jugadas: ${playtime.titlesFetched} títulos devueltos por PSN, ${playtimeByName.size} con horas, ` +
+        `${titles.length - sinHoras.length}/${titles.length} títulos con trofeos cruzados.`,
     );
+    // Cuando el cruce falla para la mayoría, los nombres de los dos lados son
+    // lo único que dice por qué. Solo nombres de juegos, y solo en ese caso.
+    if (sinHoras.length > titles.length / 2) {
+      console.info(
+        `[psn-sync] sin cruzar (trofeos): ${sinHoras.slice(0, 5).map((t) => t.name).join(" | ")}`,
+      );
+      console.info(
+        `[psn-sync] claves de la lista de juegos: ${[...playtimeByName.keys()].slice(0, 5).join(" | ")}`,
+      );
+    }
   }
 
   const results = await mapWithConcurrency(titles, TITLE_WRITE_CONCURRENCY, (title) =>
