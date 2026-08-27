@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TrophyItem from "./TrophyItem";
+import { FOCUS_TROPHY_EVENT, type FocusTrophyDetail } from "./focusTrophy";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EmptyState } from "@/components/EmptyState";
 import { RARITY_LABEL } from "@/components/trophyRarity";
@@ -55,6 +56,25 @@ export default function TrophyList({
   const [type, setType] = useState<TypeFilter>("all");
   const [rarity, setRarity] = useState<string>("all");
   const [sort, setSort] = useState<SortOption>("default");
+  const [focus, setFocus] = useState<{ trophyId: string; token: number } | null>(null);
+
+  // Foco pedido desde el advisor con IA (ver `focusTrophy.ts`). Se limpian los
+  // filtros antes de enfocar: si el trofeo estaba filtrado, su fila ni siquiera
+  // está montada y no habría nada que abrir ni a dónde scrollear.
+  useEffect(() => {
+    function handleFocusTrophy(event: Event) {
+      const trophyId = (event as CustomEvent<FocusTrophyDetail>).detail?.trophyId;
+      if (!trophyId) return;
+      setQuery("");
+      setStatus("all");
+      setType("all");
+      setRarity("all");
+      setFocus((current) => ({ trophyId, token: (current?.token ?? 0) + 1 }));
+    }
+
+    window.addEventListener(FOCUS_TROPHY_EVENT, handleFocusTrophy);
+    return () => window.removeEventListener(FOCUS_TROPHY_EVENT, handleFocusTrophy);
+  }, []);
 
   const filteredGroups = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -209,7 +229,7 @@ export default function TrophyList({
               />
               <ul className="space-y-2">
                 {group.trophies.map((trophy) => (
-                  <TrophyRow key={trophy.id} gameId={gameId} trophy={trophy} />
+                  <TrophyRow key={trophy.id} gameId={gameId} trophy={trophy} focus={focus} />
                 ))}
               </ul>
             </div>
@@ -218,7 +238,7 @@ export default function TrophyList({
         <ul className="space-y-2">
           {filteredGroups.flatMap((group) =>
             group.trophies.map((trophy) => (
-              <TrophyRow key={trophy.id} gameId={gameId} trophy={trophy} />
+              <TrophyRow key={trophy.id} gameId={gameId} trophy={trophy} focus={focus} />
             )),
           )}
         </ul>
@@ -227,9 +247,18 @@ export default function TrophyList({
   );
 }
 
-function TrophyRow({ gameId, trophy }: { gameId: string; trophy: TrophyListItem }) {
+function TrophyRow({
+  gameId,
+  trophy,
+  focus,
+}: {
+  gameId: string;
+  trophy: TrophyListItem;
+  focus: { trophyId: string; token: number } | null;
+}) {
   return (
     <TrophyItem
+      focusToken={focus?.trophyId === trophy.id ? focus.token : null}
       gameId={gameId}
       trophyId={trophy.id}
       name={trophy.name}

@@ -1,6 +1,6 @@
 import "server-only";
 import { AiSchemaValidationError } from "./errors";
-import type { AiPlanInput } from "./prompt";
+import type { AiPlanInput, TrophyHintInput } from "./prompt";
 import type { AiGamePlan } from "./schema";
 
 /**
@@ -65,8 +65,27 @@ export function getMockAiGamePlan(input: AiPlanInput): AiGamePlan {
           },
         ]
       : [],
+    desafios_de_dificultad: firstTrophy
+      ? [
+          {
+            trofeo_id: firstTrophy,
+            categoria: "dificultad_maxima" as const,
+            motivo: "[E2E] Pide terminar el juego en la dificultad más alta.",
+            consejo: "[E2E] Arrancá directo en esa dificultad para no rejugar.",
+          },
+        ]
+      : [],
     orden_sugerido: trophyIds,
     tips_generales: ["[E2E] Guardá seguido.", "[E2E] Subí la dificultad al final si podés."],
     modos: [],
   };
+}
+
+/**
+ * Ayuda de un solo trofeo, determinista. Mismo motivo que el plan: el free
+ * tier de Groq no aguanta una llamada por trofeo en cada corrida de CI, y el
+ * texto exacto es lo que asertan los tests del advisor.
+ */
+export function getMockTrophyHint(input: TrophyHintInput): string {
+  return `[E2E] Ayuda mockeada para "${input.trophyName}".`;
 }

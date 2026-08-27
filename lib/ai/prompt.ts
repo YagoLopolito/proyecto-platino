@@ -34,6 +34,7 @@ Reglas:
   "notas_run_unica": "string",
   "grupos_de_partidas": [{ "run": number, "objetivo": "string", "trofeos_relacionados": ["<trofeo_id>", "..."] }],
   "missables": [{ "trofeo_id": "<trofeo_id>", "motivo": "string", "momento_limite": "string" }],
+  "desafios_de_dificultad": [{ "trofeo_id": "<trofeo_id>", "categoria": "dificultad_maxima" | "speedrun" | "sin_morir" | "permadeath" | "sin_recursos" | "otro_desafio", "motivo": "string", "consejo": "string" }],
   "orden_sugerido": ["<trofeo_id>", "..."],
   "tips_generales": ["string", "..."],
   "modos": [{ "modo": "string", "trofeos_relacionados": ["<trofeo_id>", "..."] }]
@@ -46,6 +47,9 @@ Reglas:
 - Prestá especial atención a trofeos "missable" (perdibles): los que solo se pueden conseguir en una misión/capítulo/decisión específica y quedan inaccesibles después (por un punto de no retorno, una elección que excluye otra, un evento que ocurre una sola vez en toda la partida, o contenido de una sola visita). Inferí esto de la descripción de cada trofeo, aunque no lo diga explícitamente con la palabra "missable".
 - Para CADA trofeo perdible que detectes, agregalo a "missables" con "motivo" explicando por qué es perdible y "momento_limite" indicando el momento exacto (capítulo, misión o decisión) antes del cual hay que conseguirlo. Si no estás seguro de que un trofeo sea perdible, no lo incluyas ahí.
 - Si detectás algún missable, mencionalo también en "notas_run_unica" o en el "objetivo" del grupo de partidas correspondiente, para que quede visible sin tener que leer toda la lista de missables.
+- Detectá los trofeos de DIFICULTAD / DESAFÍO y ponelos en "desafios_de_dificultad": los que exigen terminar el juego (o una parte) en la dificultad más alta ("dificultad_maxima": hardcore, sobreviviente, professional, ultra violence, etc.), completarlo en un tiempo límite o a contrarreloj ("speedrun"), no morir ni recibir daño ("sin_morir"), un modo con muerte permanente o una sola vida ("permadeath"), o hacerlo con recursos/armas/objetos restringidos ("sin_recursos"). Cualquier otro desafío de habilidad exigente va como "otro_desafio".
+- Inferí esto del nombre y la descripción del trofeo aunque no use esas palabras exactas; si no estás seguro, no lo incluyas. En "motivo" explicá qué exige el trofeo y en "consejo" cómo encararlo (ej.: si conviene arrancar directo en la dificultad más alta para no tener que rejugar, si la dificultad es acumulativa con las menores, si conviene dejarlo para el final).
+- Si algún desafío de dificultad obliga a jugar de una forma desde el principio (típicamente arrancar en la dificultad máxima), decilo también en "notas_run_unica" o en el "objetivo" del grupo de partidas, para que se vea antes de empezar.
 - Agrupá los trofeos pendientes por modo de juego en "modos" cuando el juego tenga más de un modo relevante para trofeos (ej.: "Modo historia" / "Campaña" vs "Modo online" vs modos especiales propios del juego, como "Modo Mercenarios" en Resident Evil, "Modo horda", "Multijugador competitivo", DLC, etc.). Inferilo de los nombres/descripciones de los trofeos (menciones a "online", "multiplayer", "co-op", el nombre de un modo especial, etc.).
 - Cada entrada de "modos" agrupa los "trofeos_relacionados" (ids) de ESE modo específico. Un trofeo puede aparecer en un solo modo. Si todos los trofeos pendientes son de un único modo (ej. solo campaña), dejá "modos" vacío: no tiene sentido separar si no hay nada que separar.`;
 

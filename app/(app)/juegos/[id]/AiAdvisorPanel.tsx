@@ -3,6 +3,7 @@
 import { useActionState, type ReactNode } from "react";
 import { generateAiPlan, type AiPlanActionState } from "./ai-actions";
 import { TrophyTypeIcon, type TrophyType, trophyTypeLabel } from "@/components/TrophyTypeIcon";
+import { focusTrophy } from "./focusTrophy";
 import type { AiGamePlan } from "@/lib/ai";
 
 const initialAiPlanState: AiPlanActionState = { plan: null, error: null };
@@ -20,7 +21,9 @@ function findTrophy(trophies: AdvisorTrophy[], trophyId: string) {
 }
 
 /** Chip de trofeo: nombre + tipo, tachado/atenuado si ya se obtuvo, con la
- * descripción (cómo desbloquearlo) como tooltip nativo al hacer hover. */
+ * descripción como tooltip nativo al hacer hover. Al clickearlo lleva al
+ * trofeo en la lista de arriba y le abre la ayuda de "cómo desbloquearlo"
+ * (ver `focusTrophy.ts`). */
 function TrophyChip({ trophies, trophyId }: { trophies: AdvisorTrophy[]; trophyId: string }) {
   const trophy = findTrophy(trophies, trophyId);
   if (!trophy) {
@@ -28,9 +31,13 @@ function TrophyChip({ trophies, trophyId }: { trophies: AdvisorTrophy[]; trophyI
   }
 
   return (
-    <span
-      title={trophy.description ?? "Sin descripción cargada."}
-      className={`inline-flex cursor-help items-center gap-1 rounded border px-1.5 py-0.5 ${
+    <button
+      type="button"
+      onClick={() => focusTrophy(trophy.id)}
+      title={`${trophy.description ?? "Sin descripción cargada."}
+
+Clic para ver cómo desbloquearlo.`}
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-left hover:border-blue-500 hover:text-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
         trophy.obtained
           ? "border-green-800 bg-green-950/30 text-green-500 line-through decoration-green-700"
           : "border-zinc-700 bg-zinc-950 text-zinc-200"
@@ -40,9 +47,19 @@ function TrophyChip({ trophies, trophyId }: { trophies: AdvisorTrophy[]; trophyI
       {trophy.name}
       <span className="text-[10px] text-zinc-500">({trophyTypeLabel(trophy.type)})</span>
       {trophy.obtained && <span className="text-green-500">✓</span>}
-    </span>
+    </button>
   );
 }
+
+/** Etiqueta legible de cada categoría de desafío que devuelve el modelo. */
+const CHALLENGE_LABELS: Record<AiGamePlan["desafios_de_dificultad"][number]["categoria"], string> = {
+  dificultad_maxima: "Dificultad máxima",
+  speedrun: "Contrarreloj",
+  sin_morir: "Sin morir",
+  permadeath: "Muerte permanente",
+  sin_recursos: "Recursos limitados",
+  otro_desafio: "Desafío de habilidad",
+};
 
 function SectionCard({
   icon,
@@ -130,6 +147,28 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
         </SectionCard>
       )}
 
+      {(plan.desafios_de_dificultad ?? []).length > 0 && (
+        <SectionCard icon="🔥" title="Trofeos de dificultad" accent="border-l-red-600">
+          <ul className="space-y-2">
+            {(plan.desafios_de_dificultad ?? []).map((d, i) => (
+              <li
+                key={`${d.trofeo_id}-${i}`}
+                className="rounded border border-red-900/50 bg-red-950/20 p-2.5"
+              >
+                <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                  <TrophyChip trophies={trophies} trophyId={d.trofeo_id} />
+                  <span className="rounded-full border border-red-800 bg-red-950/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-red-300">
+                    {CHALLENGE_LABELS[d.categoria] ?? d.categoria}
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400">{d.motivo}</p>
+                {d.consejo && <p className="mt-1 text-xs text-red-300">{d.consejo}</p>}
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+      )}
+
       {(plan.modos ?? []).length > 0 && (
         <SectionCard icon="🎮" title="Modos de juego" accent="border-l-teal-600">
           <ul className="space-y-2">
@@ -204,7 +243,8 @@ export default function AiAdvisorPanel({
           </h2>
           <p className="text-xs text-zinc-500">
             Contenido generado por IA: puede tener errores, verificá contra la guía oficial si el
-            trofeo es importante. Pasá el mouse sobre un trofeo para ver cómo desbloquearlo.
+            trofeo es importante. Clickeá un trofeo para ir a él en la lista y ver cómo
+            desbloquearlo.
           </p>
         </div>
         <form action={formAction}>
