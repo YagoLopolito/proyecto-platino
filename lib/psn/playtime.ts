@@ -40,8 +40,19 @@ export function parsePlayDurationMinutes(playDuration: string | null | undefined
   return Number.isFinite(total) ? Math.round(total) : null;
 }
 
+/**
+ * Clave de cruce. `normalizeName` deja espacios donde había puntuación o
+ * caracteres no ASCII, y ahí es donde las dos fuentes se separan: la lista de
+ * juegos y la de trofeos escriben distinto el mismo título (dos puntos, guiones,
+ * "®"/"™", el "ō" de MARVEL Tōkon). Sacando también los espacios, esas
+ * diferencias dejan de importar sin volver difuso el resto del nombre.
+ */
+export function playtimeMatchKey(name: string): string {
+  return normalizeName(name).replaceAll(" ", "");
+}
+
 export type PsnPlaytimeResult = {
-  /** Minutos jugados por nombre de juego normalizado, para cruzar con los títulos de trofeos. */
+  /** Minutos jugados por `playtimeMatchKey`, para cruzar con los títulos de trofeos. */
   byName: Map<string, number>;
   /** Cuántos títulos devolvió PSN en total (para el log de resumen del sync). */
   titlesFetched: number;
@@ -67,7 +78,7 @@ export async function fetchPsnPlaytime(
     for (const title of titles) {
       const minutes = parsePlayDurationMinutes(title.playDuration);
       if (minutes === null || minutes <= 0) continue;
-      const key = normalizeName(title.name ?? title.localizedName ?? "");
+      const key = playtimeMatchKey(title.name ?? title.localizedName ?? "");
       if (!key) continue;
       // Un mismo juego puede venir repetido (versión PS4 y PS5 del mismo
       // título): nos quedamos con el contador más alto, no con el último.
