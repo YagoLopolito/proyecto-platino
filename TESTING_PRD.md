@@ -354,6 +354,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | AI-07 | Estado de carga | Botón deshabilitado + spinner mientras genera | P2 |
 | AI-08 | `@live`: Groq real | Plan válido contra el schema de Zod | P2 |
 | AI-10 | Clic en un trofeo del plan | Lleva al trofeo en la lista de arriba y le abre la ayuda de "cómo desbloquearlo" ya cargada | P1 |
+| AI-11 | Siguiente trofeo | La tarjeta "Siguiente trofeo" muestra un trofeo pendiente con los pasos para desbloquearlo, y clickearlo lleva al trofeo en la lista | P1 |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)

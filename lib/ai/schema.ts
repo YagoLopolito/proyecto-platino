@@ -25,6 +25,17 @@ export const aiGamePlanSchema = z.object({
     }),
   ),
   orden_sugerido: z.array(z.string()),
+  // El próximo trofeo concreto que conviene encarar, con los pasos para
+  // conseguirlo. `.nullable().default(null)` para que los planes ya cacheados
+  // en `ai_game_plans` (generados antes de este campo) sigan parseando.
+  siguiente_trofeo: z
+    .object({
+      trofeo_id: z.string(),
+      por_que: z.string(),
+      pasos: z.array(z.string()).default([]),
+    })
+    .nullable()
+    .default(null),
   tips_generales: z.array(z.string()),
   // Trofeos que exigen una condición de dificultad/desafío (dificultad máxima,
   // speedrun, sin morir, permadeath, etc.). `.default([])` para que los planes

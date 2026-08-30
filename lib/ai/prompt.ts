@@ -36,10 +36,12 @@ Reglas:
   "missables": [{ "trofeo_id": "<trofeo_id>", "motivo": "string", "momento_limite": "string" }],
   "desafios_de_dificultad": [{ "trofeo_id": "<trofeo_id>", "categoria": "dificultad_maxima" | "speedrun" | "sin_morir" | "permadeath" | "sin_recursos" | "otro_desafio", "motivo": "string", "consejo": "string" }],
   "orden_sugerido": ["<trofeo_id>", "..."],
+  "siguiente_trofeo": { "trofeo_id": "<trofeo_id>", "por_que": "string", "pasos": ["string", "..."] },
   "tips_generales": ["string", "..."],
   "modos": [{ "modo": "string", "trofeos_relacionados": ["<trofeo_id>", "..."] }]
 }
 - Los valores de "trofeo_id" deben ser exactamente los "id" que te paso en la lista de trofeos, nunca nombres inventados.
+- "siguiente_trofeo" es EL trofeo que el usuario tiene que encarar ahora: el primero de "orden_sugerido", siempre uno con "ya_obtenido": false. En "por_que" explicá en una oración por qué va primero (es el más rápido, habilita otros, es perdible y se acerca el punto de no retorno, etc.) y en "pasos" poné de 2 a 5 pasos concretos y accionables para desbloquearlo (dónde, cuándo y cómo). Si no queda ningún trofeo pendiente, poné "siguiente_trofeo": null.
 - Si el juego se puede platinar en una sola partida, "grupos_de_partidas" puede quedar vacío y "puede_platinar_en_una_run" en true.
 - Si hay guías propias cargadas para el juego, tenelas en cuenta y no las contradigas.
 - No inventes trofeos que no estén en la lista.
