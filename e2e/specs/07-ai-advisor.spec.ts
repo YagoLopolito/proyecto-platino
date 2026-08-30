@@ -103,4 +103,30 @@ test.describe("Advisor con IA", () => {
     await expect(trophyRow.getByText(/\[E2E\] Ayuda mockeada/)).toBeVisible();
     await expect(trophyRow.getByRole("button", { name: "Ocultar ayuda" })).toBeVisible();
   });
+
+  test("AI-11: la tarjeta de siguiente trofeo muestra el trofeo pendiente y sus pasos", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId, trophyIds } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 3,
+      nameSuffix: "Advisor Cinco",
+      np: 305,
+    });
+
+    await page.goto(`/juegos/${gameId}`);
+    await page.getByRole("button", { name: "Generar plan" }).click();
+
+    const advisor = page.locator("#advisor");
+    await expect(advisor.getByRole("heading", { name: /Siguiente trofeo/i })).toBeVisible();
+    await expect(advisor.getByText("[E2E] Es el más rápido de los que te faltan.")).toBeVisible();
+    await expect(advisor.getByText("[E2E] Paso uno.")).toBeVisible();
+
+    // La tarjeta es un atajo al trofeo de la lista de arriba, igual que los chips.
+    await advisor.getByRole("button", { name: /Advisor Cinco - Trofeo 1/ }).first().click();
+    await expect(
+      page.locator(`#trofeo-${trophyIds[0]}`).getByText(/\[E2E\] Ayuda mockeada/),
+    ).toBeVisible();
+  });
 });
