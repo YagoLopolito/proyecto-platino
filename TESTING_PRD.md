@@ -360,6 +360,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | AI-10 | Clic en un trofeo del plan | Lleva al trofeo en la lista de arriba y le abre la ayuda de "cómo desbloquearlo" ya cargada | P1 |
 | AI-11 | Siguiente trofeo | La tarjeta "Siguiente trofeo" muestra un trofeo pendiente con los pasos para desbloquearlo, y clickearlo lleva al trofeo en la lista | P1 |
 | AI-12 | Trofeos de acumulación | El plan lista los trofeos que piden juntar una cantidad, con su objetivo, su categoría y el aviso cuando no se pueden farmear después | P1 |
+| AI-13 | Tamaño del prompt del plan | El prompt de un juego de 53/80/120 trofeos entra en el presupuesto de tokens del free tier, y los trofeos ya obtenidos no se mandan | P0 |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)

@@ -1,4 +1,10 @@
 import { test, expect } from "../fixtures/test";
+import {
+  AI_PLAN_SYSTEM_PROMPT,
+  buildAiPlanUserPrompt,
+  estimateTokens,
+  INPUT_TOKEN_BUDGET,
+} from "../../lib/ai/plan-prompt";
 import { seedGameWithTrophies } from "../helpers/seed";
 
 /**
@@ -152,5 +158,46 @@ test.describe("Advisor con IA", () => {
     await expect(
       page.locator(`#trofeo-${trophyIds[0]}`).getByText(/\[E2E\] Ayuda mockeada/),
     ).toBeVisible();
+  });
+});
+
+/**
+ * AI-13: tamaño del prompt del plan. El free tier de Groq permite 8000 tokens
+ * por minuto contando prompt + respuesta; con `max_tokens: 2800` de salida, la
+ * entrada tiene que entrar en el presupuesto o el proveedor devuelve 413
+ * `rate_limit_exceeded`. Le pasaba a los juegos de 50+ trofeos, que son justo
+ * donde un plan sirve más.
+ */
+test.describe("Prompt del plan de IA", () => {
+  const buildInput = (n: number, obtained: number) => ({
+    gameName: "[E2E] Juego Grande",
+    platform: "PS5",
+    trophies: Array.from({ length: n }, (_, i) => ({
+      id: `t${i + 1}`,
+      name: `Nombre de trofeo razonablemente largo numero ${i + 1}`,
+      description:
+        "Derrota a 40 enemigos usando unicamente el blaster estandar durante la campana principal",
+      type: (i === 0 ? "platinum" : "bronze") as "platinum" | "bronze",
+      hidden: i % 7 === 0,
+      obtained: i < obtained,
+    })),
+    guides: [],
+  });
+
+  for (const trofeos of [53, 80, 120]) {
+    test(`AI-13: el prompt de un juego de ${trofeos} trofeos entra en el presupuesto`, async () => {
+      const prompt = buildAiPlanUserPrompt(buildInput(trofeos, 0));
+      const total = estimateTokens(AI_PLAN_SYSTEM_PROMPT) + estimateTokens(prompt);
+      expect(total).toBeLessThanOrEqual(INPUT_TOKEN_BUDGET);
+    });
+  }
+
+  test("AI-13: los trofeos ya obtenidos no se mandan, sólo su cantidad", async () => {
+    const prompt = buildAiPlanUserPrompt(buildInput(20, 8));
+
+    expect(prompt).toContain("ya desbloqueó 8 de 20 trofeos");
+    // Los ids de los 8 obtenidos (t1..t8) no aparecen; los pendientes sí.
+    expect(prompt).not.toContain("t1|");
+    expect(prompt).toContain("t9|");
   });
 });
