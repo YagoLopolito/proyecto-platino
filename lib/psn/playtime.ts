@@ -66,20 +66,48 @@ export type PsnPlaytimeResult = {
   titlesFetched: number;
 };
 
+/**
+ * Una página de la lista de juegos jugados. Inyectable sólo para poder testear
+ * el bucle sin red: el default es el endpoint real (misma razón por la que
+ * `decideNextPage` vive aparte en `pagination.ts`).
+ */
+export type PlaytimePageFetcher = (offset: number) => Promise<{
+  titles?: Array<{ name?: string; localizedName?: string; playDuration?: string }> | null;
+  nextOffset?: number | null;
+  totalItemCount?: number | null;
+}>;
+
 export async function fetchPsnPlaytime(
   authorization: AuthorizationPayload,
   accountId: string,
+  fetchPage: PlaytimePageFetcher = (offset) =>
+    getUserPlayedGames(authorization, accountId, {
+      limit: PAGE_LIMIT,
+      offset,
+      categories: CATEGORIES,
+    }),
 ): Promise<PsnPlaytimeResult> {
   const byName = new Map<string, number>();
   let offset = 0;
   let titlesFetched = 0;
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
-    const response = await getUserPlayedGames(authorization, accountId, {
-      limit: PAGE_LIMIT,
-      offset,
-      categories: CATEGORIES,
-    });
+    // Si una página falla, se corta el recorrido pero se devuelve lo ya
+    // juntado: perder todo por un error en la página 3 deja la columna sin
+    // tocar en TODA la biblioteca, y como el upsert no pisa con NULL, el
+    // resultado son horas viejas congeladas en los pocos juegos que alguna
+    // vez cruzaron -- indistinguible de "el cruce por nombre falla".
+    let response: Awaited<ReturnType<PlaytimePageFetcher>>;
+    try {
+      response = await fetchPage(offset);
+    } catch (cause) {
+      console.error(
+        `[psn-sync] horas jugadas p${page}: falló la request (offset=${offset}), ` +
+          `se sigue con ${byName.size} títulos ya obtenidos:`,
+        cause,
+      );
+      break;
+    }
     const titles = response.titles ?? [];
     titlesFetched += titles.length;
 

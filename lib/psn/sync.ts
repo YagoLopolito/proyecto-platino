@@ -14,7 +14,7 @@ import {
   getMockTitles,
   getMockPlaytimeByName,
 } from "./mocks";
-import { fetchPsnPlaytime, playtimeMatchKey } from "./playtime";
+import { fetchPsnPlaytime, playtimeMatchKey, type PsnPlaytimeResult } from "./playtime";
 import { fetchUserTitlesWithTrophies, type FetchedTitle } from "./trophies";
 
 export type SyncResult = { titlesSynced: number; trophiesSynced: number };
@@ -256,6 +256,8 @@ export async function syncTrophiesForUser(
   // callers pueden depender de un objeto de autorización real (avatar/nivel
   // de trofeos de PSN, ver más abajo).
   let authorization: Awaited<ReturnType<typeof getAuthorizationFromNpsso>> | undefined;
+  // Se dispara junto con los trofeos y se espera recién al final (ver abajo).
+  let playtimePromise: Promise<PsnPlaytimeResult> | undefined;
 
   if (PSN_MOCKS_ENABLED) {
     if (npsso === MOCK_EXPIRED_NPSSO) {
@@ -266,6 +268,16 @@ export async function syncTrophiesForUser(
   } else {
     try {
       authorization = await getAuthorizationFromNpsso(npsso);
+      // Las horas salen de otro endpoint y no dependen de los trofeos, así que
+      // se piden EN PARALELO con ellos. En serie no llegaban: traer los
+      // trofeos es una request por título (cientos), y cuando terminaba ya no
+      // quedaba presupuesto -- la función moría en la página 1 de la
+      // paginación de horas, sin error, y sólo quedaban grabados los primeros
+      // 100 títulos (los más recientes, que es como PSN ordena la lista).
+      playtimePromise = fetchPsnPlaytime(authorization, account.account_id).catch((cause) => {
+        console.error("[psn-sync] no se pudieron traer las horas jugadas:", cause);
+        return { byName: new Map<string, number>(), titlesFetched: 0 };
+      });
       titles = await fetchUserTitlesWithTrophies(authorization);
     } catch (cause) {
       await supabase.from("psn_accounts").update({ token_status: "expired" }).eq("user_id", userId);
@@ -292,11 +304,10 @@ export async function syncTrophiesForUser(
   let playtimeByName = new Map<string, number>();
   if (PSN_MOCKS_ENABLED) {
     playtimeByName = getMockPlaytimeByName();
-  } else if (authorization) {
-    const playtime = await fetchPsnPlaytime(authorization, account.account_id).catch((cause) => {
-      console.error("[psn-sync] no se pudieron traer las horas jugadas:", cause);
-      return { byName: new Map<string, number>(), titlesFetched: 0 };
-    });
+  } else if (playtimePromise) {
+    // Ya viene corriendo desde antes de los trofeos: acá normalmente no se
+    // espera nada, sólo se recoge el resultado.
+    const playtime = await playtimePromise;
     playtimeByName = playtime.byName;
     // Resumen sin nombres: si el cruce por nombre falla (remasters, ediciones)
     // o PSN deja de reportar `playDuration`, se ve acá y no hay que adivinar
