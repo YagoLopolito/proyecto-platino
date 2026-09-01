@@ -306,6 +306,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-13 | Horas jugadas de PSN | `playtime_minutes` guardado desde `playDuration`, visible en la tarjeta de `/juegos` y en la ficha de diario; un juego sin horas reportadas no muestra nada | P1 |
 | SYNC-14 | Paginación de horas de PSN | `decideNextPage` no corta en la primera página cuando falta `totalItemCount` y recorre una biblioteca grande en páginas chicas | P1 |
 | SYNC-15 | Fallo parcial de horas de PSN | Si una página de la lista de juegos jugados falla, `fetchPsnPlaytime` devuelve las páginas ya obtenidas en vez de perder el mapa entero | P1 |
+| SYNC-16 | RLS de `user_games` | El usuario puede actualizar su propia fila: el segundo upsert del sync (ON CONFLICT DO UPDATE) no lo rechaza la RLS | P0 |
 
 ### 6.4 Detalle de juego (`04-game-detail.spec.ts`)
 
