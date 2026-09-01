@@ -20,6 +20,12 @@ import { fetchUserTitlesWithTrophies, type FetchedTitle } from "./trophies";
 export type SyncResult = { titlesSynced: number; trophiesSynced: number };
 
 /** Cuántos títulos se procesan en simultáneo contra la base. */
+/**
+ * Cuántos nombres se loguean de cada lado cuando el cruce de horas falla. Es
+ * un diagnóstico, no un dump: alcanza para ver el patrón sin llenar los logs.
+ */
+const DIAGNOSTIC_NAME_SAMPLE = 15;
+
 const TITLE_WRITE_CONCURRENCY = 3;
 
 function parseEarnedRate(value: string | null): number | null {
@@ -326,14 +332,22 @@ export async function syncTrophiesForUser(
       `[psn-sync] horas jugadas: ${playtime.titlesFetched} títulos devueltos por PSN, ${playtimeByName.size} con horas, ` +
         `${titles.length - sinHoras.length}/${titles.length} títulos con trofeos cruzados.`,
     );
-    // Cuando el cruce falla para la mayoría, los nombres de los dos lados son
-    // lo único que dice por qué. Solo nombres de juegos, y solo en ese caso.
-    if (sinHoras.length > titles.length / 2) {
+    // Los nombres de los dos lados son lo único que explica un fallo de cruce,
+    // y se necesitan JUSTO cuando falla una minoría: con el umbral anterior
+    // (más de la mitad) este log no salía nunca y había que ir a mirar la base
+    // a mano. Se imprimen acotados y son sólo nombres de juegos.
+    if (sinHoras.length > 0) {
+      const matchedKeys = new Set(
+        titles.map((title) => playtimeMatchKey(title.name)).filter((key) => playtimeByName.has(key)),
+      );
+      const huerfanas = [...playtimeByName.keys()].filter((key) => !matchedKeys.has(key));
       console.info(
-        `[psn-sync] sin cruzar (trofeos): ${sinHoras.slice(0, 5).map((t) => t.name).join(" | ")}`,
+        `[psn-sync] sin cruzar (trofeos, ${sinHoras.length}): ` +
+          sinHoras.slice(0, DIAGNOSTIC_NAME_SAMPLE).map((t) => t.name).join(" | "),
       );
       console.info(
-        `[psn-sync] claves de la lista de juegos: ${[...playtimeByName.keys()].slice(0, 5).join(" | ")}`,
+        `[psn-sync] sin cruzar (juegos jugados, ${huerfanas.length}): ` +
+          huerfanas.slice(0, DIAGNOSTIC_NAME_SAMPLE).join(" | "),
       );
     }
   }

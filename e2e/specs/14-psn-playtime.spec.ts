@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { decideNextPage } from "../../lib/psn/pagination";
 import {
   collectPlaytimePages,
+  playtimeMatchKey,
   type PlaytimePageFetcher,
 } from "../../lib/psn/playtime-pages";
 
@@ -100,5 +101,44 @@ test.describe("Horas jugadas de PSN: fallo parcial", () => {
 
     expect(result.titlesFetched).toBe(3);
     expect(result.byName.size).toBe(3);
+  });
+});
+
+/**
+ * SYNC-17: la clave con la que se cruzan las dos listas de PSN. Los nombres de
+ * acá salen de la biblioteca real del usuario, donde 49 de 213 títulos no
+ * cruzaban: la lista de TROFEOS le agrega al nombre el sufijo del set
+ * ("EA SPORTS FC™ 26 Trophies") y la de juegos jugados no.
+ */
+test.describe("Cruce de nombres entre las dos listas de PSN", () => {
+  test("SYNC-17: el sufijo del set de trofeos no rompe el cruce", async () => {
+    expect(playtimeMatchKey("EA SPORTS FC™ 26 Trophies")).toBe(
+      playtimeMatchKey("EA SPORTS FC™ 26"),
+    );
+    expect(playtimeMatchKey("Risk of Rain 2 Trophy Set")).toBe(playtimeMatchKey("Risk of Rain 2"));
+    expect(playtimeMatchKey("Injustice 2 Trophies")).toBe(playtimeMatchKey("Injustice 2"));
+    // El salto de línea con el que PSN termina algunos nombres tampoco.
+    expect(playtimeMatchKey("Arcade Paradise Trophies\n")).toBe(
+      playtimeMatchKey("Arcade Paradise"),
+    );
+  });
+
+  test("SYNC-17: el sufijo de plataforma tampoco", async () => {
+    expect(playtimeMatchKey("Grand Theft Auto V (PlayStation®5)")).toBe(
+      playtimeMatchKey("Grand Theft Auto V"),
+    );
+  });
+
+  test("SYNC-17: no se comen palabras del medio ni juegos distintos colapsan", async () => {
+    // "Trophy" adentro del título es parte del nombre, no un sufijo.
+    expect(playtimeMatchKey("Trophy Hunter Adventures")).not.toBe(
+      playtimeMatchKey("Hunter Adventures"),
+    );
+    // Pegar horas del juego equivocado es peor que no tener horas: los Spyro
+    // numerados tienen que seguir siendo claves distintas.
+    expect(playtimeMatchKey("Spyro the Dragon")).not.toBe(playtimeMatchKey("Spyro 2: Ripto's Rage!"));
+    expect(playtimeMatchKey("Spyro 2: Ripto's Rage!")).not.toBe(
+      playtimeMatchKey("Spyro 3: Year of the Dragon"),
+    );
   });
 });
