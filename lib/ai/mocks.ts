@@ -76,6 +76,13 @@ export function getMockAiGamePlan(input: AiPlanInput): AiGamePlan {
         ]
       : [],
     orden_sugerido: trophyIds,
+    siguiente_trofeo: firstTrophy
+      ? {
+          trofeo_id: firstTrophy,
+          por_que: "[E2E] Es el más rápido de los que te faltan.",
+          pasos: ["[E2E] Paso uno.", "[E2E] Paso dos."],
+        }
+      : null,
     tips_generales: ["[E2E] Guardá seguido.", "[E2E] Subí la dificultad al final si podés."],
     modos: [],
   };

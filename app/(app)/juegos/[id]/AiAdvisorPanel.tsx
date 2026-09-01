@@ -61,6 +61,79 @@ const CHALLENGE_LABELS: Record<AiGamePlan["desafios_de_dificultad"][number]["cat
   otro_desafio: "Desafío de habilidad",
 };
 
+/**
+ * Resuelve cuál es el próximo trofeo a encarar. El plan está cacheado y los
+ * trofeos se siguen sincronizando, así que la sugerencia del modelo puede
+ * haber quedado obsoleta: si ese trofeo ya se obtuvo (o no está en la lista),
+ * se cae al primer pendiente del orden sugerido, y recién ahí al primer
+ * pendiente del juego. Así la tarjeta nunca propone algo ya desbloqueado.
+ */
+function resolveNextTrophy(
+  plan: AiGamePlan,
+  trophies: AdvisorTrophy[],
+): { trophy: AdvisorTrophy; porQue: string; pasos: string[] } | null {
+  const suggested = plan.siguiente_trofeo;
+  if (suggested) {
+    const trophy = findTrophy(trophies, suggested.trofeo_id);
+    if (trophy && !trophy.obtained) {
+      return { trophy, porQue: suggested.por_que, pasos: suggested.pasos ?? [] };
+    }
+  }
+
+  const fromOrder = plan.orden_sugerido
+    .map((id) => findTrophy(trophies, id))
+    .find((t) => t !== undefined && !t.obtained);
+  const fallback = fromOrder ?? trophies.find((t) => !t.obtained);
+  return fallback ? { trophy: fallback, porQue: "", pasos: [] } : null;
+}
+
+/** Tarjeta destacada arriba del plan: qué trofeo encarar ahora y cómo. */
+function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTrophy[] }) {
+  const next = resolveNextTrophy(plan, trophies);
+
+  if (!next) {
+    return (
+      <div className="rounded-lg border border-green-800/60 bg-green-950/20 p-3 text-sm text-green-300">
+        🎉 No te queda ningún trofeo pendiente en este juego.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-emerald-700/60 bg-emerald-950/20 p-3">
+      <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-300">
+        <span aria-hidden="true">🎯</span>
+        Siguiente trofeo
+      </h4>
+      <button
+        type="button"
+        onClick={() => focusTrophy(next.trophy.id)}
+        className="flex w-full items-center gap-2 rounded border border-emerald-800/60 bg-zinc-950 p-2 text-left hover:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+      >
+        <TrophyTypeIcon type={next.trophy.type} className="h-5 w-5 shrink-0" />
+        <span className="min-w-0">
+          <span className="block font-medium text-zinc-100">{next.trophy.name}</span>
+          <span className="block text-xs text-zinc-400">
+            {next.trophy.description ?? "Sin descripción cargada."}
+          </span>
+        </span>
+      </button>
+      {next.porQue && <p className="mt-2 text-xs text-emerald-300">{next.porQue}</p>}
+      {next.pasos.length > 0 ? (
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-zinc-300">
+          {next.pasos.map((paso, i) => (
+            <li key={i}>{paso}</li>
+          ))}
+        </ol>
+      ) : (
+        <p className="mt-2 text-xs text-zinc-500">
+          Clickeá el trofeo para ver cómo desbloquearlo.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function SectionCard({
   icon,
   title,
@@ -89,6 +162,8 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
   return (
     <div className="space-y-4 text-sm text-zinc-200">
       <p className="leading-relaxed text-zinc-300">{plan.resumen}</p>
+
+      <NextTrophyCard plan={plan} trophies={trophies} />
 
       <div className="flex flex-wrap items-center gap-3 rounded-lg border border-blue-800/50 bg-blue-950/20 p-3">
         <span className="text-xl">{plan.puede_platinar_en_una_run ? "🏆" : "🔁"}</span>
