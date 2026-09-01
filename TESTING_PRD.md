@@ -305,6 +305,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-12 | `/api/cron/sync` con bearer correcto | 200 con resumen por cuenta | P1 |
 | SYNC-13 | Horas jugadas de PSN | `playtime_minutes` guardado desde `playDuration`, visible en la tarjeta de `/juegos` y en la ficha de diario; un juego sin horas reportadas no muestra nada | P1 |
 | SYNC-14 | Paginación de horas de PSN | `decideNextPage` no corta en la primera página cuando falta `totalItemCount` y recorre una biblioteca grande en páginas chicas | P1 |
+| SYNC-15 | Fallo parcial de horas de PSN | Si una página de la lista de juegos jugados falla, `fetchPsnPlaytime` devuelve las páginas ya obtenidas en vez de perder el mapa entero | P1 |
 
 ### 6.4 Detalle de juego (`04-game-detail.spec.ts`)
 
@@ -356,6 +357,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | AI-08 | `@live`: Groq real | Plan válido contra el schema de Zod | P2 |
 | AI-10 | Clic en un trofeo del plan | Lleva al trofeo en la lista de arriba y le abre la ayuda de "cómo desbloquearlo" ya cargada | P1 |
 | AI-11 | Siguiente trofeo | La tarjeta "Siguiente trofeo" muestra un trofeo pendiente con los pasos para desbloquearlo, y clickearlo lleva al trofeo en la lista | P1 |
+| AI-12 | Trofeos de acumulación | El plan lista los trofeos que piden juntar una cantidad, con su objetivo, su categoría y el aviso cuando no se pueden farmear después | P1 |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)

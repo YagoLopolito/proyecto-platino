@@ -1,5 +1,10 @@
 import "server-only";
 import type { CatalogSearchResult } from "@/lib/covers";
+// `normalizeName` vive en un módulo sin `server-only` para poder testearla;
+// se re-exporta acá porque varios módulos ya la importaban de este archivo.
+import { normalizeName } from "./normalize";
+
+export { normalizeName };
 
 export interface ExistingGame {
   id: string;
@@ -16,32 +21,6 @@ export interface CombinedSearchResult {
   releaseYear?: number | null;
   platform?: string | null;
   possibleDuplicateOf?: { gameId: string; name: string } | null;
-}
-
-const EDITION_TOKENS = [
-  "remastered",
-  "remaster",
-  "remake",
-  "definitive edition",
-  "goty edition",
-  "game of the year edition",
-  "director's cut",
-  "directors cut",
-  "hd",
-  "complete edition",
-];
-
-/**
- * Nombre comparable entre fuentes distintas (RAWG, PSN, carga manual): sin
- * tokens de edición, sin puntuación y en minúsculas. Lo usa también el sync de
- * PSN para reconciliar un juego cargado antes desde el catálogo (issue #96).
- */
-export function normalizeName(name: string): string {
-  let normalized = name.toLowerCase().trim();
-  for (const token of EDITION_TOKENS) {
-    normalized = normalized.replaceAll(token, "");
-  }
-  return normalized.replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 /**

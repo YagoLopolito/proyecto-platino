@@ -1,7 +1,6 @@
 import "server-only";
 import { getUserPlayedGames, type AuthorizationPayload } from "psn-api";
-import { normalizeName } from "@/lib/catalog/dedup";
-import { decideNextPage } from "./pagination";
+import { collectPlaytimePages, type PlaytimePageFetcher, type PsnPlaytimeResult } from "./playtime-pages";
 
 /**
  * Horas jugadas en PSN.
@@ -14,18 +13,11 @@ import { decideNextPage } from "./pagination";
  * ediciones) que `adoptCatalogGame` en `sync.ts`.
  *
  * Es un dato secundario: si esta llamada falla, el sync de trofeos sigue.
+ *
+ * Este archivo es sólo el wiring con `psn-api`; el recorrido de páginas vive en
+ * `playtime-pages.ts`, sin `server-only`, para poder testearlo.
  */
 const PAGE_LIMIT = 100;
-
-/**
- * Topes de seguridad. El corte real es la página vacía (ver `pagination.ts`);
- * esto sólo evita un loop infinito si el endpoint devolviera siempre lo mismo.
- * Como PSN devuelve páginas más chicas que el `limit`, el tope de páginas se
- * calcula generoso: con bibliotecas de cientos de juegos, 30 páginas de 3
- * títulos no llegaban ni a 100.
- */
-const MAX_PAGES = 80;
-const MAX_TITLES = 3000;
 
 /**
  * Categorías pedidas explícitamente: el default del endpoint deja afuera
@@ -34,88 +26,18 @@ const MAX_TITLES = 3000;
  */
 const CATEGORIES = "ps4_game,ps5_native_game,pspc_game,unknown";
 
-/**
- * `playDuration` viene como duración ISO 8601 con precisión de 1 segundo
- * (ej. "PT228H56M33S"). Los segundos se descartan: la columna guarda minutos.
- */
-export function parsePlayDurationMinutes(playDuration: string | null | undefined): number | null {
-  if (!playDuration) return null;
-  const match = /^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(playDuration);
-  if (!match) return null;
-
-  const [, days, hours, minutes] = match;
-  const total = Number(days ?? 0) * 24 * 60 + Number(hours ?? 0) * 60 + Number(minutes ?? 0);
-  return Number.isFinite(total) ? Math.round(total) : null;
-}
-
-/**
- * Clave de cruce. `normalizeName` deja espacios donde había puntuación o
- * caracteres no ASCII, y ahí es donde las dos fuentes se separan: la lista de
- * juegos y la de trofeos escriben distinto el mismo título (dos puntos, guiones,
- * "®"/"™", el "ō" de MARVEL Tōkon). Sacando también los espacios, esas
- * diferencias dejan de importar sin volver difuso el resto del nombre.
- */
-export function playtimeMatchKey(name: string): string {
-  return normalizeName(name).replaceAll(" ", "");
-}
-
-export type PsnPlaytimeResult = {
-  /** Minutos jugados por `playtimeMatchKey`, para cruzar con los títulos de trofeos. */
-  byName: Map<string, number>;
-  /** Cuántos títulos devolvió PSN en total (para el log de resumen del sync). */
-  titlesFetched: number;
-};
+export { parsePlayDurationMinutes, playtimeMatchKey } from "./playtime-pages";
+export type { PsnPlaytimeResult, PlaytimePageFetcher } from "./playtime-pages";
 
 export async function fetchPsnPlaytime(
   authorization: AuthorizationPayload,
   accountId: string,
 ): Promise<PsnPlaytimeResult> {
-  const byName = new Map<string, number>();
-  let offset = 0;
-  let titlesFetched = 0;
-
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const response = await getUserPlayedGames(authorization, accountId, {
+  const fetchPage: PlaytimePageFetcher = (offset) =>
+    getUserPlayedGames(authorization, accountId, {
       limit: PAGE_LIMIT,
       offset,
       categories: CATEGORIES,
     });
-    const titles = response.titles ?? [];
-    titlesFetched += titles.length;
-
-    let withDuration = 0;
-    for (const title of titles) {
-      const minutes = parsePlayDurationMinutes(title.playDuration);
-      if (minutes === null || minutes <= 0) continue;
-      withDuration += 1;
-      const key = playtimeMatchKey(title.name ?? title.localizedName ?? "");
-      if (!key) continue;
-      // Un mismo juego puede venir repetido (versión PS4 y PS5 del mismo
-      // título): nos quedamos con el contador más alto, no con el último.
-      byName.set(key, Math.max(byName.get(key) ?? 0, minutes));
-    }
-
-    // Sin este log no hay forma de distinguir "PSN mandó pocos títulos" de
-    // "los mandó pero sin playDuration" de "la paginación cortó antes": los
-    // tres se ven igual desde la base (columna vacía).
-    console.log(
-      `[psn-sync] horas jugadas p${page}: offset=${offset} títulos=${titles.length} ` +
-        `con_duracion=${withDuration} nextOffset=${response.nextOffset ?? "-"} ` +
-        `totalItemCount=${response.totalItemCount ?? "-"}`,
-    );
-
-    const decision = decideNextPage(
-      {
-        titlesInPage: titles.length,
-        nextOffset: response.nextOffset,
-        totalItemCount: response.totalItemCount,
-      },
-      offset,
-    );
-    if (decision.done) break;
-    offset = decision.nextOffset;
-    if (titlesFetched >= MAX_TITLES) break;
-  }
-
-  return { byName, titlesFetched };
+  return collectPlaytimePages(fetchPage);
 }

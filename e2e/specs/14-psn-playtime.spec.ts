@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { decideNextPage } from "../../lib/psn/pagination";
+import {
+  collectPlaytimePages,
+  type PlaytimePageFetcher,
+} from "../../lib/psn/playtime-pages";
 
 /**
  * SYNC-14: paginación de la lista de juegos jugados de PSN, de donde salen las
@@ -55,5 +59,46 @@ test.describe("Paginación de horas jugadas de PSN", () => {
       offset = decision.nextOffset;
     }
     expect(seen).toBe(TOTAL);
+  });
+});
+
+/**
+ * SYNC-15: qué pasa cuando una página de la lista falla a mitad del recorrido.
+ * El caso real fue la función serverless muriendo por timeout después de la
+ * página 0 (los trofeos se pedían antes, uno por título, y se comían el
+ * presupuesto). Como el upsert omite la columna cuando un título no cruza,
+ * perder el mapa entero deja horas viejas congeladas en unos pocos juegos y no
+ * se distingue de un fallo del cruce por nombre.
+ */
+test.describe("Horas jugadas de PSN: fallo parcial", () => {
+  const page = (names: string[], nextOffset: number | null) => ({
+    titles: names.map((name) => ({ name, playDuration: "PT10H0M0S" })),
+    nextOffset,
+    totalItemCount: null,
+  });
+
+  test("SYNC-15: conserva las páginas ya obtenidas cuando una falla", async () => {
+    const fetchPage: PlaytimePageFetcher = async (offset) => {
+      if (offset === 0) return page(["Bloodborne", "Returnal"], 2);
+      throw new Error("PSN 500");
+    };
+
+    const result = await collectPlaytimePages(fetchPage);
+
+    expect(result.titlesFetched).toBe(2);
+    expect([...result.byName.values()]).toEqual([600, 600]);
+  });
+
+  test("SYNC-15: junta todas las páginas cuando ninguna falla", async () => {
+    const fetchPage: PlaytimePageFetcher = async (offset) => {
+      if (offset === 0) return page(["Bloodborne", "Returnal"], 2);
+      if (offset === 2) return page(["Ghost of Tsushima"], 3);
+      return page([], null);
+    };
+
+    const result = await collectPlaytimePages(fetchPage);
+
+    expect(result.titlesFetched).toBe(3);
+    expect(result.byName.size).toBe(3);
   });
 });

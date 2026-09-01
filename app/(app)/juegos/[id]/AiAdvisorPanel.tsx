@@ -61,6 +61,15 @@ const CHALLENGE_LABELS: Record<AiGamePlan["desafios_de_dificultad"][number]["cat
   otro_desafio: "Desafío de habilidad",
 };
 
+/** Etiqueta legible de cada categoría de trofeo de acumulación. */
+const COUNTER_LABELS: Record<AiGamePlan["acumulables"][number]["categoria"], string> = {
+  bajas_con_condicion: "Bajas con condición",
+  coleccionables: "Coleccionables",
+  acciones_repetidas: "Acciones repetidas",
+  recursos: "Recursos",
+  progresion_larga: "Progresión larga",
+};
+
 /**
  * Resuelve cuál es el próximo trofeo a encarar. El plan está cacheado y los
  * trofeos se siguen sincronizando, así que la sugerencia del modelo puede
@@ -238,6 +247,41 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
                 </div>
                 <p className="text-xs text-zinc-400">{d.motivo}</p>
                 {d.consejo && <p className="mt-1 text-xs text-red-300">{d.consejo}</p>}
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+      )}
+
+      {(plan.acumulables ?? []).length > 0 && (
+        <SectionCard
+          icon="🎯"
+          title="Contadores a tener en cuenta"
+          accent="border-l-indigo-600"
+        >
+          <p className="mb-2 text-xs text-zinc-500">
+            Trofeos que piden acumular una cantidad. Conviene saberlos antes de empezar la
+            historia: no son difíciles, pero se llega al final con el contador a medias.
+          </p>
+          <ul className="space-y-2">
+            {(plan.acumulables ?? []).map((a, i) => (
+              <li
+                key={`${a.trofeo_id}-${i}`}
+                className="rounded border border-indigo-900/50 bg-indigo-950/20 p-2.5"
+              >
+                <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                  <TrophyChip trophies={trophies} trophyId={a.trofeo_id} />
+                  <span className="rounded-full border border-indigo-800 bg-indigo-950/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-indigo-300">
+                    {COUNTER_LABELS[a.categoria] ?? a.categoria}
+                  </span>
+                  {a.se_puede_farmear === false && (
+                    <span className="rounded-full border border-amber-800 bg-amber-950/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-amber-300">
+                      No se puede farmear después
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs font-medium text-indigo-200">{a.objetivo}</p>
+                {a.consejo && <p className="mt-1 text-xs text-zinc-400">{a.consejo}</p>}
               </li>
             ))}
           </ul>

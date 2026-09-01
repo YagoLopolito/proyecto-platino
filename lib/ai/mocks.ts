@@ -75,6 +75,17 @@ export function getMockAiGamePlan(input: AiPlanInput): AiGamePlan {
           },
         ]
       : [],
+    acumulables: firstTrophy
+      ? [
+          {
+            trofeo_id: firstTrophy,
+            categoria: "bajas_con_condicion" as const,
+            objetivo: "[E2E] 40 enemigos con el bláster.",
+            consejo: "[E2E] Usá esa arma por defecto durante toda la campaña.",
+            se_puede_farmear: false,
+          },
+        ]
+      : [],
     orden_sugerido: trophyIds,
     siguiente_trofeo: firstTrophy
       ? {
