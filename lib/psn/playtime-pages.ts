@@ -33,14 +33,46 @@ export function parsePlayDurationMinutes(playDuration: string | null | undefined
 }
 
 /**
+ * Sufijos que la lista de TROFEOS le agrega al nombre del juego y la lista de
+ * juegos jugados no: "EA SPORTS FC™ 26 Trophies", "Risk of Rain 2 Trophy Set",
+ * "Empire of Sin Trophy Set". Son el nombre del set de trofeos, no del juego.
+ * Se sacan sólo del final, nunca del medio: "Trophy" puede ser parte legítima
+ * del título de un juego.
+ */
+const TROPHY_SET_SUFFIXES = ["trophies", "trophy set", "trophy list", "trophy pack"];
+
+/**
+ * Sufijo de plataforma, que aparece de un lado y del otro no
+ * ("Grand Theft Auto V (PlayStation®5)"). Después de `normalizeName` el
+ * paréntesis ya es un espacio, así que se compara contra el final del string.
+ */
+const PLATFORM_SUFFIXES = ["playstation 4", "playstation 5", "ps4", "ps5"];
+
+/**
  * Clave de cruce. `normalizeName` deja espacios donde había puntuación o
  * caracteres no ASCII, y ahí es donde las dos fuentes se separan: la lista de
  * juegos y la de trofeos escriben distinto el mismo título (dos puntos, guiones,
  * "®"/"™", el "ō" de MARVEL Tōkon). Sacando también los espacios, esas
  * diferencias dejan de importar sin volver difuso el resto del nombre.
+ *
+ * Además se sacan los sufijos de arriba, que son la otra fuente sistemática de
+ * fallos: sin esto, ninguno de los "… Trophies" cruzaba y esos juegos quedaban
+ * sin horas para siempre.
  */
 export function playtimeMatchKey(name: string): string {
-  return normalizeName(name).replaceAll(" ", "");
+  let normalized = normalizeName(name);
+  // En bucle porque se pueden acumular ("… (PlayStation®5) Trophies").
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const suffix of [...TROPHY_SET_SUFFIXES, ...PLATFORM_SUFFIXES]) {
+      if (normalized.endsWith(` ${suffix}`)) {
+        normalized = normalized.slice(0, -suffix.length - 1).trim();
+        changed = true;
+      }
+    }
+  }
+  return normalized.replaceAll(" ", "");
 }
 
 export type PsnPlaytimeResult = {

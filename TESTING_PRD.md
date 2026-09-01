@@ -307,6 +307,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-14 | Paginación de horas de PSN | `decideNextPage` no corta en la primera página cuando falta `totalItemCount` y recorre una biblioteca grande en páginas chicas | P1 |
 | SYNC-15 | Fallo parcial de horas de PSN | Si una página de la lista de juegos jugados falla, `fetchPsnPlaytime` devuelve las páginas ya obtenidas en vez de perder el mapa entero | P1 |
 | SYNC-16 | RLS de `user_games` | El usuario puede actualizar su propia fila: el segundo upsert del sync (ON CONFLICT DO UPDATE) no lo rechaza la RLS | P0 |
+| SYNC-17 | Cruce de nombres de PSN | `playtimeMatchKey` ignora el sufijo del set de trofeos ("… Trophies") y el de plataforma, sin colapsar juegos distintos | P1 |
 
 ### 6.4 Detalle de juego (`04-game-detail.spec.ts`)
 
