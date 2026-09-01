@@ -325,7 +325,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 
 | ID | Caso | Resultado esperado | Prio |
 | --- | --- | --- | --- |
-| GUIDE-01 | Crear guía | Aparece en la lista; el form está detrás del `<details>` colapsado | P1 |
+| GUIDE-01 | ~~Crear guía~~ | Eliminado: la pantalla ya no tiene form de alta de guías propias | — |
 | GUIDE-02 | Editar guía propia | Cambios persisten tras recargar | P1 |
 | GUIDE-03 | Borrar guía propia | Desaparece, junto con sus pasos | P1 |
 | GUIDE-04 | Agregar paso ligado a un trofeo | El paso muestra el trofeo asociado | P1 |
@@ -344,6 +344,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | LINK-03 | Falta `SUPABASE_SERVICE_ROLE_KEY` | Error mostrado en la UI, **no** un 500 "This page couldn't load" (regresión documentada en `CLAUDE.md`) | P0 |
 | LINK-04 | No se duplican | Buscar dos veces no duplica filas (upsert `game_id,url`) | P1 |
 | LINK-05 | Links con `target=_blank` + `rel=noopener` | Atributos presentes | P2 |
+| LINK-06 | Relevancia de las guías de Steam | Las traducciones, mods y fixes de performance se descartan; las guías de logros/100%/walkthrough/builds quedan y se ordenan primero | P1 |
 
 ### 6.7 Advisor con IA (`07-ai-advisor.spec.ts`)
 
@@ -361,6 +362,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | AI-11 | Siguiente trofeo | La tarjeta "Siguiente trofeo" muestra un trofeo pendiente con los pasos para desbloquearlo, y clickearlo lleva al trofeo en la lista | P1 |
 | AI-12 | Trofeos de acumulación | El plan lista los trofeos que piden juntar una cantidad, con su objetivo, su categoría y el aviso cuando no se pueden farmear después | P1 |
 | AI-13 | Tamaño del prompt del plan | El prompt de un juego de 53/80/120 trofeos entra en el presupuesto de tokens del free tier, y los trofeos ya obtenidos no se mandan | P0 |
+| AI-14 | Trofeos de historia no son perdibles | El system prompt del plan le prohíbe explícitamente al modelo poner en "missables" los trofeos que se desbloquean solos avanzando la historia, y exige un punto de no retorno concreto para cada missable | P1 |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)

@@ -19,54 +19,6 @@ async function assertOwnsGuide(
   return data?.author_id === userId;
 }
 
-export async function createGuide(
-  _prevState: GuideActionState,
-  formData: FormData,
-): Promise<GuideActionState> {
-  const gameId = String(formData.get("gameId") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
-  const contentMarkdown = String(formData.get("contentMarkdown") ?? "").trim();
-  const externalUrl = String(formData.get("externalUrl") ?? "").trim();
-  const source = String(formData.get("source") ?? "").trim();
-
-  if (!gameId) {
-    return { error: "Falta el juego." };
-  }
-  if (!title) {
-    return { error: "Poné un título para la guía." };
-  }
-  if (!contentMarkdown && !externalUrl) {
-    return { error: "Escribí contenido en markdown o pegá un link externo." };
-  }
-  if (externalUrl && !/^https?:\/\//i.test(externalUrl)) {
-    return { error: "El link externo tiene que empezar con http:// o https://." };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Tenés que iniciar sesión." };
-  }
-
-  const { error } = await supabase.from("guides").insert({
-    game_id: gameId,
-    author_id: user.id,
-    title,
-    content_markdown: contentMarkdown || null,
-    external_url: externalUrl || null,
-    source: source || null,
-  });
-
-  if (error) {
-    return { error: `No se pudo crear la guía: ${error.message}` };
-  }
-
-  revalidatePath(`/juegos/${gameId}/guias`);
-  return { error: null, success: `Guía "${title}" creada.` };
-}
-
 export async function updateGuide(
   _prevState: GuideActionState,
   formData: FormData,

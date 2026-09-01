@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import AddGuideForm from "./AddGuideForm";
 import AddStepForm from "./AddStepForm";
 import EditGuideForm from "./EditGuideForm";
 import EditStepForm from "./EditStepForm";
@@ -84,15 +83,6 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
           </p>
         </div>
 
-        <details className="group rounded-lg border border-zinc-800 bg-zinc-900/50">
-          <summary className="cursor-pointer select-none px-4 py-3 text-sm text-zinc-400 hover:text-zinc-200">
-            + Crear una guía propia (opcional)
-          </summary>
-          <div className="border-t border-zinc-800 p-4">
-            <AddGuideForm gameId={gameId} />
-          </div>
-        </details>
-
         <section className="space-y-4">
           {guidesError && (
             <p role="alert" className="text-sm text-red-400">
@@ -102,7 +92,7 @@ export default async function GameGuidesPage({ params }: { params: Promise<{ id:
 
           {!guidesError && (!guides || guides.length === 0) && (
             <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-              Todavía no hay guías para este juego. Creá la primera arriba.
+              Todavía no hay guías propias para este juego.
             </p>
           )}
 
