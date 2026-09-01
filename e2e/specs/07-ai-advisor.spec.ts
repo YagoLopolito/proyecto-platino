@@ -192,6 +192,17 @@ test.describe("Prompt del plan de IA", () => {
     });
   }
 
+  /**
+   * AI-14: el modelo marcaba como perdibles los trofeos que se desbloquean
+   * solos avanzando la historia. El arreglo es del prompt, así que lo que se
+   * verifica es que las reglas sigan estando (y que no se caigan en una
+   * edición futura del system prompt).
+   */
+  test("AI-14: el prompt prohíbe marcar trofeos de historia como perdibles", async () => {
+    expect(AI_PLAN_SYSTEM_PROMPT).toContain('NUNCA pongas en "missables" un trofeo de HISTORIA');
+    expect(AI_PLAN_SYSTEM_PROMPT).toContain("punto de no retorno o el evento único que lo bloquea");
+  });
+
   test("AI-13: los trofeos ya obtenidos no se mandan, sólo su cantidad", async () => {
     const prompt = buildAiPlanUserPrompt(buildInput(20, 8));
 
