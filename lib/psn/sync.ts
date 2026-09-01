@@ -136,7 +136,13 @@ async function syncTitle(
   // se pisa con NULL un valor que ya estaba guardado.
   const playtimeMinutes = playtimeByName.get(playtimeMatchKey(title.name));
 
-  await supabase.from("user_games").upsert(
+  // El error se mira: este upsert falló en silencio durante meses (faltaba la
+  // policy de UPDATE en `user_games`, ver
+  // 20260901000000_user_games_update_policy.sql) y desde afuera se veía igual
+  // que un fallo del cruce por nombre -- horas viejas congeladas y ninguna
+  // pista de por qué. No aborta el sync: los trofeos del título valen aunque
+  // la fila de biblioteca no se haya podido escribir.
+  const { error: userGameError } = await supabase.from("user_games").upsert(
     {
       user_id: userId,
       game_id: gameId,
@@ -145,6 +151,9 @@ async function syncTitle(
     },
     { onConflict: "user_id,game_id" },
   );
+  if (userGameError) {
+    console.error(`[psn-sync] no se pudo escribir user_games (${title.name}):`, userGameError);
+  }
 
   if (title.groups.length > 0) {
     const groupRows = title.groups.map((group) => ({

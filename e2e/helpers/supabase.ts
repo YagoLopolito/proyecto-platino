@@ -20,6 +20,33 @@ export function createTestServiceClient(): SupabaseClient {
 }
 
 /**
+ * Cliente con la anon key, logueado como un usuario de test: a diferencia del
+ * de service role, ESTE pasa por las RLS. Es la unica forma de testear que una
+ * policy existe -- con service role todo pasa y un permiso faltante no se ve.
+ */
+export async function createTestUserClient(
+  email: string,
+  password: string,
+): Promise<SupabaseClient> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error(
+      "Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY. " +
+        "Copialas a .env.test.local antes de correr los tests.",
+    );
+  }
+  const client = createClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error) {
+    throw new Error(`No se pudo loguear al usuario de test ${email}: ${error.message}`);
+  }
+  return client;
+}
+
+/**
  * Borra todo lo que dejo la suite: primero los usuarios de test (el cascade se
  * lleva psn_accounts, user_games, user_trophies, guides, diario y amigos), y
  * despues las filas de catalogo compartido, que no cuelgan de ningun usuario.

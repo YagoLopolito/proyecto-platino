@@ -1,6 +1,8 @@
 import { test, expect } from "../fixtures/test";
 import { encryptNpssoForFixture } from "../helpers/psn";
 import { E2E_PSN_MOCK_PREFIX } from "../helpers/ids";
+import { seedGameWithTrophies } from "../helpers/seed";
+import { createTestUserClient } from "../helpers/supabase";
 
 /**
  * Sync y biblioteca (`/juegos`, `POST /api/psn/sync`, `GET /api/cron/sync`).
@@ -204,6 +206,49 @@ test.describe("Sync y biblioteca", () => {
 
     await page.goto(`/juegos/${gameId}/diario`);
     await expect(page.getByText("13 h jugadas")).toBeVisible();
+  });
+
+  test("SYNC-16: el usuario puede actualizar su propia fila de user_games", async ({
+    supabase,
+    users,
+  }) => {
+    // El sync escribe con upsert: la primera vez entra por el INSERT, y de ahí
+    // en adelante por el ON CONFLICT DO UPDATE. `user_games` no tenía policy de
+    // update, así que ese segundo camino lo rechazaba la RLS y las horas y el
+    // last_played_at quedaban congelados en el valor del primer sync -- en la
+    // biblioteca real del usuario, 3 juegos con horas sobre 368. Va con la anon
+    // key logueada, no con service role: con service role la RLS ni se evalúa y
+    // el permiso faltante no se ve.
+    const { gameId } = await seedGameWithTrophies(supabase, users.userB.id, {
+      n: 1,
+      nameSuffix: "RLS User Games",
+      np: 316,
+    });
+    const asUser = await createTestUserClient(users.userB.email, users.userB.password);
+
+    await asUser
+      .from("user_games")
+      .upsert(
+        { user_id: users.userB.id, game_id: gameId, playtime_minutes: 100 },
+        { onConflict: "user_id,game_id" },
+      );
+
+    // El segundo upsert es el que importa: la fila ya existe.
+    const { error } = await asUser
+      .from("user_games")
+      .upsert(
+        { user_id: users.userB.id, game_id: gameId, playtime_minutes: 250 },
+        { onConflict: "user_id,game_id" },
+      );
+    expect(error).toBeNull();
+
+    const { data: row } = await supabase
+      .from("user_games")
+      .select("playtime_minutes")
+      .eq("user_id", users.userB.id)
+      .eq("game_id", gameId)
+      .single();
+    expect(row?.playtime_minutes).toBe(250);
   });
 
   test("SYNC-11: /api/cron/sync sin CRON_SECRET responde 401", async ({ request }) => {
