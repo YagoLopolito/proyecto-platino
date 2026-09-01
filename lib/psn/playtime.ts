@@ -1,6 +1,7 @@
 import "server-only";
 import { getUserPlayedGames, type AuthorizationPayload } from "psn-api";
 import { normalizeName } from "@/lib/catalog/dedup";
+import { decideNextPage } from "./pagination";
 
 /**
  * Horas jugadas en PSN.
@@ -16,8 +17,15 @@ import { normalizeName } from "@/lib/catalog/dedup";
  */
 const PAGE_LIMIT = 100;
 
-/** Tope de páginas, por si la paginación de PSN devolviera algo inesperado. */
-const MAX_PAGES = 30;
+/**
+ * Topes de seguridad. El corte real es la página vacía (ver `pagination.ts`);
+ * esto sólo evita un loop infinito si el endpoint devolviera siempre lo mismo.
+ * Como PSN devuelve páginas más chicas que el `limit`, el tope de páginas se
+ * calcula generoso: con bibliotecas de cientos de juegos, 30 páginas de 3
+ * títulos no llegaban ni a 100.
+ */
+const MAX_PAGES = 80;
+const MAX_TITLES = 3000;
 
 /**
  * Categorías pedidas explícitamente: el default del endpoint deja afuera
@@ -75,9 +83,11 @@ export async function fetchPsnPlaytime(
     const titles = response.titles ?? [];
     titlesFetched += titles.length;
 
+    let withDuration = 0;
     for (const title of titles) {
       const minutes = parsePlayDurationMinutes(title.playDuration);
       if (minutes === null || minutes <= 0) continue;
+      withDuration += 1;
       const key = playtimeMatchKey(title.name ?? title.localizedName ?? "");
       if (!key) continue;
       // Un mismo juego puede venir repetido (versión PS4 y PS5 del mismo
@@ -85,12 +95,26 @@ export async function fetchPsnPlaytime(
       byName.set(key, Math.max(byName.get(key) ?? 0, minutes));
     }
 
-    // El corte NO puede ser `titles.length < PAGE_LIMIT`: PSN devuelve páginas
-    // más chicas que el limit pedido y con eso se cortaba en la primera,
-    // dejando sin horas a toda la biblioteca salvo los últimos jugados.
-    offset += titles.length;
-    const total = response.totalItemCount ?? 0;
-    if (titles.length === 0 || offset >= total) break;
+    // Sin este log no hay forma de distinguir "PSN mandó pocos títulos" de
+    // "los mandó pero sin playDuration" de "la paginación cortó antes": los
+    // tres se ven igual desde la base (columna vacía).
+    console.log(
+      `[psn-sync] horas jugadas p${page}: offset=${offset} títulos=${titles.length} ` +
+        `con_duracion=${withDuration} nextOffset=${response.nextOffset ?? "-"} ` +
+        `totalItemCount=${response.totalItemCount ?? "-"}`,
+    );
+
+    const decision = decideNextPage(
+      {
+        titlesInPage: titles.length,
+        nextOffset: response.nextOffset,
+        totalItemCount: response.totalItemCount,
+      },
+      offset,
+    );
+    if (decision.done) break;
+    offset = decision.nextOffset;
+    if (titlesFetched >= MAX_TITLES) break;
   }
 
   return { byName, titlesFetched };
