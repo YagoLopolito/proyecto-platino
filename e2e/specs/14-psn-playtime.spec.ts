@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { decideNextPage } from "../../lib/psn/pagination";
-import { fetchPsnPlaytime, type PlaytimePageFetcher } from "../../lib/psn/playtime";
-import type { AuthorizationPayload } from "psn-api";
+import {
+  collectPlaytimePages,
+  type PlaytimePageFetcher,
+} from "../../lib/psn/playtime-pages";
 
 /**
  * SYNC-14: paginación de la lista de juegos jugados de PSN, de donde salen las
@@ -69,10 +71,6 @@ test.describe("Paginación de horas jugadas de PSN", () => {
  * se distingue de un fallo del cruce por nombre.
  */
 test.describe("Horas jugadas de PSN: fallo parcial", () => {
-  // `fetchPsnPlaytime` no usa la autorización más que para pasársela al
-  // endpoint, y acá el endpoint está inyectado.
-  const auth = {} as AuthorizationPayload;
-
   const page = (names: string[], nextOffset: number | null) => ({
     titles: names.map((name) => ({ name, playDuration: "PT10H0M0S" })),
     nextOffset,
@@ -85,7 +83,7 @@ test.describe("Horas jugadas de PSN: fallo parcial", () => {
       throw new Error("PSN 500");
     };
 
-    const result = await fetchPsnPlaytime(auth, "me", fetchPage);
+    const result = await collectPlaytimePages(fetchPage);
 
     expect(result.titlesFetched).toBe(2);
     expect([...result.byName.values()]).toEqual([600, 600]);
@@ -98,7 +96,7 @@ test.describe("Horas jugadas de PSN: fallo parcial", () => {
       return page([], null);
     };
 
-    const result = await fetchPsnPlaytime(auth, "me", fetchPage);
+    const result = await collectPlaytimePages(fetchPage);
 
     expect(result.titlesFetched).toBe(3);
     expect(result.byName.size).toBe(3);
