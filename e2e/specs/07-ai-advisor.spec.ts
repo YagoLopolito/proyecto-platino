@@ -76,6 +76,30 @@ test.describe("Advisor con IA", () => {
     ).toBeVisible();
   });
 
+  test("AI-12: el plan lista los trofeos de acumulación con su objetivo", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Advisor Seis",
+      np: 306,
+    });
+
+    await page.goto(`/juegos/${gameId}`);
+    await page.getByRole("button", { name: "Generar plan" }).click();
+
+    // El plan de fixture (`lib/ai/mocks.ts`) trae un acumulable
+    // `bajas_con_condicion` que no se puede farmear después.
+    await expect(page.getByRole("heading", { name: /Contadores a tener en cuenta/i })).toBeVisible();
+    await expect(page.getByText("Bajas con condición")).toBeVisible();
+    await expect(page.getByText("[E2E] 40 enemigos con el bláster.")).toBeVisible();
+    // El aviso de que hay que ir sumándolo durante la historia es la razón de
+    // ser de la sección: sin eso es una lista de trofeos más.
+    await expect(page.getByText(/No se puede farmear después/i)).toBeVisible();
+  });
+
   test("AI-10: clickear un trofeo del plan lleva al trofeo y abre su ayuda", async ({
     page,
     supabase,

@@ -58,6 +58,31 @@ export const aiGamePlanSchema = z.object({
       }),
     )
     .default([]),
+  // Trofeos de acumulación: piden una cantidad de algo (matar N enemigos de
+  // cierta forma, juntar N coleccionables, repetir N veces una acción). No son
+  // difíciles, pero si no se sabe que existen se llega al final de la historia
+  // con el contador a medias y hay que rejugar o farmear. `.default([])` para
+  // que los planes ya cacheados en `ai_game_plans` sigan parseando sin
+  // regenerarse, misma razón que `desafios_de_dificultad`.
+  acumulables: z
+    .array(
+      z.object({
+        trofeo_id: z.string(),
+        categoria: z.enum([
+          "bajas_con_condicion",
+          "coleccionables",
+          "acciones_repetidas",
+          "recursos",
+          "progresion_larga",
+        ]),
+        objetivo: z.string().min(1),
+        consejo: z.string(),
+        // null = el modelo no se comprometió. false es la señal fuerte: no se
+        // puede farmear después, hay que ir sumando durante la historia.
+        se_puede_farmear: z.boolean().nullable().default(null),
+      }),
+    )
+    .default([]),
   modos: z
     .array(
       z.object({
