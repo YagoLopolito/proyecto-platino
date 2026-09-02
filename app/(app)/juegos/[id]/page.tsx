@@ -138,7 +138,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
         {/*
           * Igual que el header de la app: en mobile el nombre del juego va en su
           * propia fila y la nav de secciones queda a lo ancho, scrolleable
-          * horizontalmente (5 pills no entran en 375px sin desbordar la página).
+          * horizontalmente (las pills no entran en 375px sin desbordar la página).
           */}
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-1.5 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <p className="truncate text-sm text-zinc-400">{game.name}</p>
@@ -155,12 +155,6 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             >
               ✨ Advisor IA
             </a>
-            <Link
-              href={`/juegos/${gameId}/guias`}
-              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
-            >
-              📖 Guías
-            </Link>
             <Link
               href={`/juegos/${gameId}/enlaces`}
               className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"

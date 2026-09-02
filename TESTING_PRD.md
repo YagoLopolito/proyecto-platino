@@ -205,7 +205,6 @@ e2e/
     02-psn-connect.spec.ts
     03-sync-library.spec.ts
     04-game-detail.spec.ts
-    05-guides.spec.ts
     06-external-links.spec.ts
     07-ai-advisor.spec.ts
     08-diary.spec.ts
@@ -317,23 +316,18 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | GAME-02 | Trofeos no obtenidos en b/n | Filtro grayscale presente; los obtenidos en color (PR #102) | P1 |
 | GAME-03 | Barra de progreso | % coincide con obtenidos/total | P1 |
 | GAME-04 | Rareza y DLC | Se muestran cuando el fixture los trae (PR #87) | P2 |
-| GAME-05 | Breadcrumb | Volver lleva a `/juegos` desde guías/enlaces/diario (issue #60) | P1 |
+| GAME-05 | Breadcrumb | Volver lleva a `/juegos` desde enlaces/diario (issue #60) | P1 |
 | GAME-06 | `id` inexistente | Estado de error/404 controlado, no un stack trace | P1 |
 | GAME-07 | Juego de otro usuario | No se filtran trofeos ajenos (RLS) | **P0 (seguridad)** |
 
-### 6.5 Guías propias (`05-guides.spec.ts`)
+### 6.5 ~~Guías propias~~ (eliminado)
 
-| ID | Caso | Resultado esperado | Prio |
-| --- | --- | --- | --- |
-| GUIDE-01 | ~~Crear guía~~ | Eliminado: la pantalla ya no tiene form de alta de guías propias | — |
-| GUIDE-02 | Editar guía propia | Cambios persisten tras recargar | P1 |
-| GUIDE-03 | Borrar guía propia | Desaparece, junto con sus pasos | P1 |
-| GUIDE-04 | Agregar paso ligado a un trofeo | El paso muestra el trofeo asociado | P1 |
-| GUIDE-05 | Tildar un paso | `user_guide_progress` persiste tras recargar | P0 |
-| GUIDE-06 | Auto-tilde por trofeo sincronizado | Paso ligado a un trofeo ya obtenido aparece tildado solo (issue #18) | P0 |
-| GUIDE-07 | userB no puede editar la guía de userA | Sin controles de edición; la Server Action rechaza | **P0 (seguridad)** |
-| GUIDE-08 | Checklist independiente por usuario | El progreso de userB no afecta el de userA | P1 |
-| GUIDE-09 | Guía sin pasos | `EmptyState`, no una lista vacía sin explicación | P2 |
+La pantalla `/juegos/[id]/guias` y su spec (`05-guides.spec.ts`) se eliminaron: el checklist
+de guías propias no se usaba y la ficha del juego ya resuelve el mismo problema con el advisor
+de IA y los enlaces externos. Las tablas `guides`/`guide_steps`/`user_guide_progress` siguen
+existiendo en la base (los enlaces cargados a mano se muestran en Enlaces externos), pero no
+hay UI que las edite, así que no hay casos que testear. Los IDs GUIDE-01 a GUIDE-09 quedan
+retirados y no se reutilizan.
 
 ### 6.6 Enlaces externos (`06-external-links.spec.ts`)
 
@@ -345,6 +339,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | LINK-04 | No se duplican | Buscar dos veces no duplica filas (upsert `game_id,url`) | P1 |
 | LINK-05 | Links con `target=_blank` + `rel=noopener` | Atributos presentes | P2 |
 | LINK-06 | Relevancia de las guías de Steam | Las traducciones, mods y fixes de performance se descartan; las guías de logros/100%/walkthrough/builds quedan y se ordenan primero | P1 |
+| LINK-07 | Idioma de las guías de Steam | Solo quedan títulos en español o en inglés; los de escritura no latina (ruso, chino, coreano) y los de otros idiomas latinos (portugués, italiano, alemán, polaco…) se descartan aunque estén etiquetados | P1 |
 
 ### 6.7 Advisor con IA (`07-ai-advisor.spec.ts`)
 
@@ -496,10 +491,10 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 ### 7.3 Estructura de un spec
 
 ```ts
-test.describe("Guías propias", () => {
+test.describe("Enlaces externos", () => {
   test.beforeEach(async ({ seedGame }) => { /* seed propio del spec */ });
 
-  test("GUIDE-01: crear una guía la muestra en la lista", async ({ page }) => {
+  test("LINK-01: buscar guías externas las muestra con su fuente", async ({ page }) => {
     // Arrange → Act → Assert, con una sola razón de fallo por test
   });
 });
@@ -621,7 +616,7 @@ dentro del PR de testing:**
 | **E** | Specs P2, `@live`, smoke en Vercel | Sin empezar (smoke ya existía de la Fase A) |
 
 **Nota Fase C (parcial):** de los 30 P0, quedaron cubiertos AUTH-01/02/03/04/09,
-PSN-03/04/06, SYNC-01/03/04/06/11, GAME-01/07, GUIDE-05/06/07, AI-02/05 y los 9 de Steam que
+PSN-03/04/06, SYNC-01/03/04/06/11, GAME-01/07, AI-02/05 y los 9 de Steam que
 ya traía `13-steam.spec.ts`. Quedan sin cubrir: LINK-03 (necesita un segundo `webServer` sin
 `SUPABASE_SERVICE_ROLE_KEY`, incompatible con la instancia compartida que usa el resto de la
 suite -- requiere resolver primero cómo aislarlo antes de escribir el test), y los P0 de

@@ -18,13 +18,19 @@ export type PopulateExternalGuidesResult = {
  * estas filas no son contenido de usuario -- la tabla no tiene policies de
  * insert para `authenticated` a propósito (ver migración). Si Steam falla
  * no bloquea a los links de búsqueda; los duplicados por (game_id, url) se
- * ignoran vía upsert con ignoreDuplicates.
+ * ignoran vía upsert con ignoreDuplicates. Las filas de Steam se rearman en
+ * cada corrida (ver el borrado más abajo) para que un cambio en el filtro de
+ * relevancia limpie lo que había quedado guardado antes.
  */
 export async function populateExternalGuidesForGame(
   gameId: string,
   gameName: string,
 ): Promise<PopulateExternalGuidesResult> {
   const errors: string[] = [];
+  // Solo se limpian las guías de Steam viejas si Steam efectivamente contestó:
+  // si la API falla, borrar sin nada con qué reemplazar dejaría la página peor
+  // que antes.
+  let steamAnswered = false;
 
   const rows: {
     game_id: string;
@@ -36,6 +42,7 @@ export async function populateExternalGuidesForGame(
 
   try {
     const steamGuides = await findSteamGuides(gameName);
+    steamAnswered = true;
     for (const guide of steamGuides) {
       rows.push({
         game_id: gameId,
@@ -63,11 +70,32 @@ export async function populateExternalGuidesForGame(
     });
   }
 
+  const supabase = createServiceClient();
+
+  /*
+   * Las filas de Steam se rearman en cada búsqueda en vez de acumularse. El
+   * upsert por (game_id, url) nunca borra nada, así que los enlaces guardados
+   * por una versión anterior del filtro -- traducciones al ruso, mods --
+   * seguían apareciendo para siempre aunque el ranking ya no los devuelva.
+   * Los links de búsqueda (site_search) no se tocan: son estables y no
+   * dependen del filtro.
+   */
+  if (steamAnswered) {
+    const { error: cleanupError } = await supabase
+      .from("game_external_guides")
+      .delete()
+      .eq("game_id", gameId)
+      .eq("source_type", "steam_api");
+
+    if (cleanupError) {
+      errors.push(`No se pudieron limpiar los enlaces viejos de Steam: ${cleanupError.message}`);
+    }
+  }
+
   if (rows.length === 0) {
     return { inserted: 0, errors };
   }
 
-  const supabase = createServiceClient();
   const { error, count } = await supabase
     .from("game_external_guides")
     .upsert(rows, { onConflict: "game_id,url", ignoreDuplicates: true, count: "exact" });
