@@ -1,8 +1,18 @@
 import "server-only";
 
-export { generateAiGamePlan, generateTrophyHint, generateGameDescription } from "./client";
+export {
+  generateAiGamePlan,
+  generateAiRecommendations,
+  generateTrophyHint,
+  generateGameDescription,
+} from "./client";
 export { AiProviderError, AiSchemaValidationError } from "./errors";
 export { aiGamePlanSchema, parseAiGamePlan, type AiGamePlan } from "./schema";
+export {
+  aiRecommendationsSchema,
+  parseAiRecommendations,
+  type AiRecommendations,
+} from "./schema";
 export {
   buildAiPlanUserPrompt,
   AI_PLAN_SYSTEM_PROMPT,
@@ -11,4 +21,9 @@ export {
   type AiPlanGuideInput,
   type TrophyHintInput,
   type GameDescriptionInput,
+  AI_RECOMMENDATIONS_SYSTEM_PROMPT,
+  buildAiRecommendationsUserPrompt,
+  type AiRecommendationsInput,
+  type AiRecommendationLibraryInput,
+  type AiRecommendationPlatinumInput,
 } from "./prompt";

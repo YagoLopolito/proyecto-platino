@@ -43,3 +43,44 @@ export function parseAiGamePlan(raw: string): AiGamePlan {
   const json: unknown = JSON.parse(raw);
   return aiGamePlanSchema.parse(json);
 }
+
+/**
+ * Recomendaciones del diario ("Recomendados para vos"). `juego_id` referencia
+ * un id corto ("g1", "g2", ...) que el caller remapea al uuid real de `games`
+ * antes de guardar, igual que los trofeos del plan.
+ */
+export const aiRecommendationsSchema = z.object({
+  perfil: z.string().min(1),
+  seguir_jugando: z
+    .array(
+      z.object({
+        juego_id: z.string(),
+        motivo: z.string().min(1),
+        // El modelo a veces devuelve otra palabra ("bajo", "alto"): se
+        // normaliza a "medio" en vez de invalidar toda la respuesta por un
+        // adjetivo, que obligaría a un reintento completo.
+        esfuerzo: z
+          .string()
+          .transform((value) => value.toLowerCase().trim())
+          .pipe(z.enum(["poco", "medio", "mucho"]).catch("medio")),
+      }),
+    )
+    .default([]),
+  nuevos: z
+    .array(
+      z.object({
+        nombre: z.string().min(1),
+        plataforma: z.string().default(""),
+        motivo: z.string().min(1),
+      }),
+    )
+    .default([]),
+});
+
+export type AiRecommendations = z.infer<typeof aiRecommendationsSchema>;
+
+/** Parsea y valida el JSON crudo del recomendador contra su schema. */
+export function parseAiRecommendations(raw: string): AiRecommendations {
+  const json: unknown = JSON.parse(raw);
+  return aiRecommendationsSchema.parse(json);
+}

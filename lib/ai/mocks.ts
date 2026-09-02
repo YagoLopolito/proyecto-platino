@@ -1,7 +1,7 @@
 import "server-only";
 import { AiSchemaValidationError } from "./errors";
-import type { AiPlanInput } from "./prompt";
-import type { AiGamePlan } from "./schema";
+import type { AiPlanInput, AiRecommendationsInput } from "./prompt";
+import type { AiGamePlan, AiRecommendations } from "./schema";
 
 /**
  * Mocks deterministas del advisor con IA para la suite E2E.
@@ -68,5 +68,40 @@ export function getMockAiGamePlan(input: AiPlanInput): AiGamePlan {
     orden_sugerido: trophyIds,
     tips_generales: ["[E2E] Guardá seguido.", "[E2E] Subí la dificultad al final si podés."],
     modos: [],
+  };
+}
+
+/** Nombre de juego nuevo que devuelve el mock del recomendador. */
+export const MOCK_RECOMMENDED_GAME = "[E2E] Juego Recomendado";
+
+/**
+ * Recomendaciones deterministas para la suite E2E: usa los ids cortos que vino
+ * en el input (los remapea el caller, ver `recommendation-actions.ts`) para que
+ * el flujo completo -- generar, guardar, resolver el juego real -- se pueda
+ * testear sin pegarle a Groq. `E2E_AI_FAIL=1` fuerza el camino de error igual
+ * que en el plan.
+ */
+export function getMockAiRecommendations(input: AiRecommendationsInput): AiRecommendations {
+  if (process.env.E2E_AI_FAIL === "1") {
+    throw new AiSchemaValidationError(new Error("E2E_AI_FAIL: fuerzo recomendaciones inválidas."));
+  }
+
+  return {
+    perfil: "[E2E] Perfil mockeado: te gustan los juegos de acción.",
+    // Todos los juegos en curso, no los primeros N: la biblioteca del usuario
+    // de test la comparten varios specs en paralelo, y recortar acá haría que
+    // el juego que seedeó un test dependa de cuántos seedearon los otros.
+    seguir_jugando: input.library.map((game, i) => ({
+      juego_id: game.id,
+      motivo: `[E2E] Te faltan ${game.total - game.obtained} trofeos para el platino.`,
+      esfuerzo: (["poco", "medio", "mucho"] as const)[i % 3],
+    })),
+    nuevos: [
+      {
+        nombre: MOCK_RECOMMENDED_GAME,
+        plataforma: "PS5",
+        motivo: "[E2E] Porque platinaste juegos parecidos.",
+      },
+    ],
   };
 }

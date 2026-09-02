@@ -293,6 +293,33 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
   ocultan **derivándolos durante el render**, no con un `setState` dentro del effect (regla
   `react-hooks/set-state-in-effect`, ver Convenciones de código).
 
+## Recomendaciones del diario (`ai_recommendations`)
+
+Sección "Recomendados para vos" en `/diario`, debajo del feed de amigos: qué **seguir jugando**
+de la propia biblioteca (juegos empezados y sin platinar) y qué **juegos nuevos** probar, todo
+inferido por IA a partir de los juegos ya platinados (PSN) o al 100% (Steam).
+
+- El ranking lo decide el modelo, no una heurística local: `lib/ai/prompt.ts`
+  (`AI_RECOMMENDATIONS_SYSTEM_PROMPT` + `buildAiRecommendationsUserPrompt`),
+  `lib/ai/schema.ts` (`aiRecommendationsSchema`) y `generateAiRecommendations` en
+  `lib/ai/client.ts`, con el mismo contrato que el advisor de un juego: un reintento si el JSON
+  no valida y `AiSchemaValidationError` si vuelve a fallar.
+- `lib/diary/recommendations.ts` arma el input desde `user_games` + `get_library_trophy_stats()`
+  (mismo RPC que `/juegos`, no se pagina a mano) y reusa `isVisibleInLibrary` para no colar
+  juegos de catálogo ni basura de Steam. La biblioteca en curso se manda **recortada** a los 30
+  más avanzados: una biblioteca real pasa el límite de tokens del free tier de Groq.
+- Al modelo se le pasan **ids cortos** (`g1`, `g2`, ...) y el caller los remapea al uuid real,
+  igual que los trofeos del plan; una recomendación con un id inventado se descarta antes de
+  guardarse en vez de quedar apuntando a nada.
+- Se guarda versionado en `ai_recommendations` (migración `20260826000000_ai_recommendations.sql`,
+  RLS "solo el dueño"): cada generación inserta una fila nueva y la UI muestra la última `ok`,
+  así una regeneración fallida no borra la anterior. La Server Action es
+  `app/(app)/diario/recommendation-actions.ts` (depende de la sesión de cookies, no va como API
+  route) y hace `revalidatePath("/diario")`: por eso `RecommendationsSection.tsx` renderiza la
+  lista desde las props del server y usa estado local solo para el error y el pending.
+- Los juegos de "Para probar" no existen en `games` (el usuario no los tiene), así que van como
+  tarjetas de texto y no como grilla de carátulas: no hay ficha adónde linkear.
+
 ## Amigos y feed "Jugados por amigos" (`friendships`, `public_profiles`)
 
 - La relación es **unidireccional y sin aceptación** (más "seguir" que "solicitud de amistad"):
