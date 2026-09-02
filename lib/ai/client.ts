@@ -8,12 +8,25 @@ import {
   buildTrophyHintUserPrompt,
   GAME_DESCRIPTION_SYSTEM_PROMPT,
   buildGameDescriptionUserPrompt,
+  AI_RECOMMENDATIONS_SYSTEM_PROMPT,
+  buildAiRecommendationsUserPrompt,
   type AiPlanInput,
+  type AiRecommendationsInput,
   type TrophyHintInput,
   type GameDescriptionInput,
 } from "./prompt";
-import { parseAiGamePlan, type AiGamePlan } from "./schema";
-import { AI_MOCKS_ENABLED, getMockAiGamePlan, getMockTrophyHint } from "./mocks";
+import {
+  parseAiGamePlan,
+  parseAiRecommendations,
+  type AiGamePlan,
+  type AiRecommendations,
+} from "./schema";
+import {
+  AI_MOCKS_ENABLED,
+  getMockAiGamePlan,
+  getMockAiRecommendations,
+  getMockTrophyHint,
+} from "./mocks";
 
 /** Modelo gratuito de Groq (free tier, sin tarjeta) usado para generar el plan en JSON. */
 const MODEL = "openai/gpt-oss-120b";
@@ -26,15 +39,21 @@ function getClient(): Groq {
   return new Groq({ apiKey });
 }
 
-async function requestPlanCompletion(client: Groq, userPrompt: string): Promise<string> {
+/** Una completion en modo JSON. Compartida por el plan de un juego y por el recomendador. */
+async function requestJsonCompletion(
+  client: Groq,
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number,
+): Promise<string> {
   try {
     const response = await client.chat.completions.create({
       model: MODEL,
-      max_tokens: 2800,
+      max_tokens: maxTokens,
       response_format: { type: "json_object" },
       reasoning_effort: "low",
       messages: [
-        { role: "system", content: AI_PLAN_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
     });
@@ -46,6 +65,10 @@ async function requestPlanCompletion(client: Groq, userPrompt: string): Promise<
   } catch (cause) {
     throw new AiProviderError(cause);
   }
+}
+
+function requestPlanCompletion(client: Groq, userPrompt: string): Promise<string> {
+  return requestJsonCompletion(client, AI_PLAN_SYSTEM_PROMPT, userPrompt, 2800);
 }
 
 /**
@@ -131,5 +154,48 @@ export async function generateGameDescription(
     return text;
   } catch (cause) {
     throw new AiProviderError(cause);
+  }
+}
+
+/**
+ * Recomendaciones del diario a partir de los platinos/100% del usuario y de su
+ * biblioteca en curso. Mismo contrato que `generateAiGamePlan`: un reintento
+ * si el JSON no matchea el schema y, si vuelve a fallar, `AiSchemaValidationError`
+ * para que el caller decida cómo mostrarlo.
+ */
+export async function generateAiRecommendations(
+  input: AiRecommendationsInput,
+): Promise<AiRecommendations> {
+  if (AI_MOCKS_ENABLED) return getMockAiRecommendations(input);
+
+  const client = getClient();
+  const userPrompt = buildAiRecommendationsUserPrompt(input);
+
+  const firstAttempt = await requestJsonCompletion(
+    client,
+    AI_RECOMMENDATIONS_SYSTEM_PROMPT,
+    userPrompt,
+    1600,
+  );
+  try {
+    return parseAiRecommendations(firstAttempt);
+  } catch (firstError) {
+    const retryPrompt = `${userPrompt}
+
+Tu respuesta anterior no era JSON válido según el schema pedido:
+${firstAttempt}
+
+Corregila y devolvé SOLO el JSON válido, sin texto adicional.`;
+    const secondAttempt = await requestJsonCompletion(
+      client,
+      AI_RECOMMENDATIONS_SYSTEM_PROMPT,
+      retryPrompt,
+      1600,
+    );
+    try {
+      return parseAiRecommendations(secondAttempt);
+    } catch (secondError) {
+      throw new AiSchemaValidationError({ firstError, secondError });
+    }
   }
 }

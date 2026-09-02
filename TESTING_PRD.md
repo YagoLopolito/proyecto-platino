@@ -157,6 +157,7 @@ así que hay exactamente cuatro puntos donde enchufar el mock.
 | --- | --- | --- |
 | `lib/psn/` | `getPsnIdentityFromNpsso` | NPSSO `E2E-VALID-NPSSO` → identidad fija; `E2E-EXPIRED-NPSSO` → `NpssoExpiredError`; cualquier otro → error genérico |
 | `lib/psn/sync.ts` | `syncUserTrophies` | Escribe en Supabase 3 juegos `[E2E]` con ~12 trofeos, uno de ellos platinado al 100% |
+| `lib/ai/client.ts` | `generateAiRecommendations` | Perfil, "seguir jugando" con los ids cortos que vinieron en el input y un juego nuevo fijo (`[E2E] Juego Recomendado`); `E2E_AI_FAIL=1` tira `AiSchemaValidationError` |
 | `lib/ai/client.ts` | `generateAiGamePlan` | Devuelve un plan válido contra `aiGamePlanSchema`; con `E2E_AI_FAIL=1` (o un `gameName` que arranque con `[E2E-AI-FAIL]` -- ver nota) tira `AiSchemaValidationError` |
 | `lib/covers/` | `findCoverUrl`, `searchCatalogGames` | Carátula local de `public/`; búsqueda devuelve 3 candidatos fijos + un caso de remaster para el dedup |
 | `lib/external-guides/` | `populateExternalGuidesForGame` | Inserta 1 guía de Steam + los 3 links de búsqueda |
@@ -214,6 +215,7 @@ e2e/
     11-a11y-mobile.spec.ts
     12-security-isolation.spec.ts
     13-steam.spec.ts
+    16-recommendations.spec.ts
     smoke.spec.ts            # el único que corre contra Vercel
   global-setup.ts
   global-teardown.ts
@@ -461,7 +463,24 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 | STEAM-10 | OpenID válido | Una respuesta válida deja `verified = true` y la tarjeta lo muestra | P0 |
 | STEAM-11 | Filtro de fuente | El selector solo aparece con las dos cuentas conectadas, y un `?fuente=` inválido cae a "Todos" | P1 |
 
-**Total: 99 casos** — 39 P0, 42 P1, 18 P2.
+### 6.15 Recomendaciones del diario (`16-recommendations.spec.ts`)
+
+La sección "Recomendados para vos" de `/diario`: la IA infiere el gusto del usuario desde
+sus platinos/100% y devuelve qué seguir jugando de su propia biblioteca y qué probar de
+nuevo. Mismo mock que el advisor (`lib/ai/mocks.ts`, `E2E_MOCKS=1`): las corridas de CI
+nunca llaman a Groq.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| REC-01 | Label de contenido generado por IA | Visible **siempre**, incluso sin recomendaciones generadas | P0 |
+| REC-02 | Generar (mock) | Se guarda una fila `ok` en `ai_recommendations` y salen el perfil, "Seguí jugando" con la carátula del juego en curso y "Para probar" | P0 |
+| REC-03 | Cacheadas | Al recargar siguen las últimas `ok` sin volver a llamar al proveedor | P1 |
+| REC-04 | Regenerar | Inserta una fila nueva, no pisa la anterior | P1 |
+| REC-05 | Id de juego inventado | Una recomendación que apunta a un juego inexistente se descarta, no rompe la grilla | P1 |
+| REC-06 | Biblioteca vacía | Mensaje propio pidiendo sincronizar, sin llamar al proveedor | P2 |
+| REC-07 | `@live`: Groq real | Respuesta válida contra `aiRecommendationsSchema` | P2 |
+
+**Total: 106 casos** — 41 P0, 46 P1, 19 P2.
 
 ---
 

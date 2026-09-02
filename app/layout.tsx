@@ -16,9 +16,6 @@ export const metadata: Metadata = {
   title: "Platinoob — Trophy Tracker",
   description:
     "Seguí tu progreso de trofeos de PlayStation sincronizado con tu cuenta PSN y organizá guías de desbloqueo por juego.",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
