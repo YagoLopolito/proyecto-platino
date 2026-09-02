@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import {
   isNoiseTitle,
+  isReadableLanguage,
   rankSteamGuides,
   relevanceScore,
 } from "../../lib/external-guides/steam-relevance";
@@ -64,5 +65,57 @@ test.describe("Relevancia de guías externas de Steam", () => {
     );
 
     expect(ranked).toEqual([]);
+  });
+});
+
+/**
+ * LINK-07: idioma de las guías de Steam Community.
+ *
+ * El filtro de ruido sacaba las traducciones, pero una guía de logros escrita
+ * en ruso o en portugués igual pasaba: es una guía de verdad, solo que el
+ * usuario no la puede leer. Solo español e inglés.
+ */
+test.describe("Idioma de las guías externas de Steam", () => {
+  const unreadable = [
+    "Гайд по достижениям",
+    "全成就攻略",
+    "업적 가이드",
+    "Guia de conquistas 100% em português",
+    "Guida completa agli obiettivi",
+    "Komplettlösung mit allen Erfolgen",
+    "Poradnik do osiągnięć",
+  ];
+
+  const readable = [
+    "100% Achievement Guide",
+    "Guía de logros y coleccionables",
+    "Full walkthrough with all endings",
+  ];
+
+  test("LINK-07: los títulos en otros idiomas se descartan", () => {
+    for (const title of unreadable) {
+      expect(isReadableLanguage(title), title).toBe(false);
+    }
+  });
+
+  test("LINK-07: los títulos en español y en inglés se conservan", () => {
+    for (const title of readable) {
+      expect(isReadableLanguage(title), title).toBe(true);
+    }
+  });
+
+  test("LINK-07: el ranking descarta lo que no está en español ni en inglés", () => {
+    const ranked = rankSteamGuides(
+      [
+        { id: "1", title: "Гайд по достижениям" },
+        { id: "2", title: "Guia de conquistas 100% em português" },
+        { id: "3", title: "100% Achievement Guide" },
+      ],
+      // Etiquetadas por su autor: aun así, el idioma manda.
+      new Set(["1", "2", "3"]),
+      5,
+    );
+
+    expect(ranked.map((g) => g.id)).toEqual(["3"]);
   });
 });

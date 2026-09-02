@@ -47,6 +47,49 @@ const NOISE_TITLE_PATTERNS: RegExp[] = [
   /\b(fps|performance|lag|crash|fix|fixes|optimi[sz]ation|optimizaci[oó]n)\b/i,
 ];
 
+/**
+ * Guías escritas en un idioma que no es español ni inglés. Steam no expone un
+ * filtro de idioma usable en `QueryFiles`, así que se detecta por el título,
+ * que es lo único que devuelve la API antes de abrir la guía.
+ *
+ * Dos señales, en orden de confianza:
+ *
+ * 1. **Escritura no latina** (cirílico, griego, hebreo, árabe, tailandés, CJK,
+ *    hangul): un título en ruso o en chino nunca es una guía en español ni en
+ *    inglés. Es una regla dura, sin falsos positivos.
+ * 2. **Palabras marcadoras de otros idiomas latinos** (portugués, italiano,
+ *    alemán, francés, polaco, turco…). Acá hay que ser conservador: solo
+ *    palabras que no existen (o son rarísimas) en español y en inglés, para no
+ *    descartar una guía buena por un término suelto.
+ */
+const NON_LATIN_SCRIPT =
+  /[\u0370-\u03FF\u0400-\u04FF\u0590-\u05FF\u0600-\u06FF\u0E00-\u0E7F\u3040-\u30FF\u3400-\u9FFF\uAC00-\uD7AF]/;
+
+const OTHER_LANGUAGE_PATTERNS: RegExp[] = [
+  // Portugués.
+  /\b(portugu[eê]s|conquistas|trof[ée]us|jogo|detonado)\b/i,
+  // Italiano.
+  /\b(italiano|obiettivi|guida|gioco|trofei)\b/i,
+  // Alemán.
+  /\b(deutsch|erfolge|komplettl[öo]sung|leitfaden|spiel)\b/i,
+  // Francés.
+  /\b(fran[çc]ais|succ[èe]s|troph[ée]es|jeu|solution\s+compl[èe]te)\b/i,
+  // Polaco, checo, turco, rumano, húngaro.
+  /\b(polski|poradnik|osi[aą]gni[eę]cia|[čc]esk[yý]|n[áa]vod|t[üu]rk[çc]e|rehber|ba[şs]ar[ıi]mlar|ghid|rom[âa]n[ăa]|magyar|[úu]tmutat[óo])\b/i,
+  // Neerlandés y nórdicos.
+  /\b(nederlands|handleiding|prestaties|svenska|norsk|suomi|opas)\b/i,
+];
+
+/**
+ * true si el título está en español o en inglés — o al menos no hay evidencia
+ * de que esté en otro idioma. Todo lo demás se descarta: una guía que el
+ * usuario no puede leer es ruido, por bien puntuada que esté.
+ */
+export function isReadableLanguage(title: string): boolean {
+  if (NON_LATIN_SCRIPT.test(title)) return false;
+  return !OTHER_LANGUAGE_PATTERNS.some((pattern) => pattern.test(title));
+}
+
 export type RankableGuide = { title: string };
 
 /** true si el título es ruido conocido (traducción, mod, fix de performance). */
@@ -62,6 +105,9 @@ export function relevanceScore(title: string): number {
 /**
  * Ordena por relevancia y saca el ruido.
  *
+ * Se descarta además todo lo que no esté en español o en inglés
+ * (`isReadableLanguage`), sin importar cuántos votos tenga.
+ *
  * `taggedIds` son los ids que Steam ya devolvió bajo una etiqueta relevante
  * (Achievements, Walkthroughs, etc.): esos entran aunque el título no diga
  * ninguna palabra clave, porque la etiqueta la puso el autor de la guía y es
@@ -74,7 +120,7 @@ export function rankSteamGuides<T extends RankableGuide>(
   limit: number,
 ): T[] {
   return guides
-    .filter((guide) => !isNoiseTitle(guide.title))
+    .filter((guide) => !isNoiseTitle(guide.title) && isReadableLanguage(guide.title))
     .map((guide) => ({
       guide,
       score: relevanceScore(guide.title) + (taggedIds.has(guide.id) ? 3 : 0),
