@@ -8,12 +8,24 @@ import { getAuthorizationFromNpsso, getPsnAvatarUrl, getPsnTrophySummary } from 
 import { mapWithConcurrency } from "./concurrency";
 import { decryptSecret } from "./crypto";
 import { NpssoExpiredError } from "./errors";
-import { PSN_MOCKS_ENABLED, MOCK_EXPIRED_NPSSO, getMockTitles } from "./mocks";
+import {
+  PSN_MOCKS_ENABLED,
+  MOCK_EXPIRED_NPSSO,
+  getMockTitles,
+  getMockPlaytimeByName,
+} from "./mocks";
+import { fetchPsnPlaytime, playtimeMatchKey, type PsnPlaytimeResult } from "./playtime";
 import { fetchUserTitlesWithTrophies, type FetchedTitle } from "./trophies";
 
 export type SyncResult = { titlesSynced: number; trophiesSynced: number };
 
 /** Cuántos títulos se procesan en simultáneo contra la base. */
+/**
+ * Cuántos nombres se loguean de cada lado cuando el cruce de horas falla. Es
+ * un diagnóstico, no un dump: alcanza para ver el patrón sin llenar los logs.
+ */
+const DIAGNOSTIC_NAME_SAMPLE = 15;
+
 const TITLE_WRITE_CONCURRENCY = 3;
 
 function parseEarnedRate(value: string | null): number | null {
@@ -120,16 +132,34 @@ async function syncTitle(
   userId: string,
   title: FetchedTitle,
   catalogGameIdByName: Map<string, string>,
+  playtimeByName: Map<string, number>,
 ): Promise<{ titleSynced: boolean; trophiesSynced: number }> {
   const gameId = await resolveGameId(supabase, userId, title, catalogGameIdByName);
   if (!gameId) return { titleSynced: false, trophiesSynced: 0 };
 
-  await supabase
-    .from("user_games")
-    .upsert(
-      { user_id: userId, game_id: gameId, last_played_at: title.lastPlayedAt },
-      { onConflict: "user_id,game_id" },
-    );
+  // Las horas vienen de otro endpoint y cruzan por nombre (ver `playtime.ts`):
+  // si este título no matcheó, la columna ni se menciona en el upsert, así no
+  // se pisa con NULL un valor que ya estaba guardado.
+  const playtimeMinutes = playtimeByName.get(playtimeMatchKey(title.name));
+
+  // El error se mira: este upsert falló en silencio durante meses (faltaba la
+  // policy de UPDATE en `user_games`, ver
+  // 20260901000000_user_games_update_policy.sql) y desde afuera se veía igual
+  // que un fallo del cruce por nombre -- horas viejas congeladas y ninguna
+  // pista de por qué. No aborta el sync: los trofeos del título valen aunque
+  // la fila de biblioteca no se haya podido escribir.
+  const { error: userGameError } = await supabase.from("user_games").upsert(
+    {
+      user_id: userId,
+      game_id: gameId,
+      last_played_at: title.lastPlayedAt,
+      ...(playtimeMinutes !== undefined ? { playtime_minutes: playtimeMinutes } : {}),
+    },
+    { onConflict: "user_id,game_id" },
+  );
+  if (userGameError) {
+    console.error(`[psn-sync] no se pudo escribir user_games (${title.name}):`, userGameError);
+  }
 
   if (title.groups.length > 0) {
     const groupRows = title.groups.map((group) => ({
@@ -199,7 +229,10 @@ async function syncTitle(
     try {
       await reconcilePlatinumDiaryEntry(supabase, userId, gameId, platinum.earnedAt);
     } catch (cause) {
-      console.error(`[psn-sync] no se pudo actualizar el diario por platino (${title.name}):`, cause);
+      console.error(
+        `[psn-sync] no se pudo actualizar el diario por platino (${title.name}):`,
+        cause,
+      );
     }
   }
 
@@ -238,6 +271,8 @@ export async function syncTrophiesForUser(
   // callers pueden depender de un objeto de autorización real (avatar/nivel
   // de trofeos de PSN, ver más abajo).
   let authorization: Awaited<ReturnType<typeof getAuthorizationFromNpsso>> | undefined;
+  // Se dispara junto con los trofeos y se espera recién al final (ver abajo).
+  let playtimePromise: Promise<PsnPlaytimeResult> | undefined;
 
   if (PSN_MOCKS_ENABLED) {
     if (npsso === MOCK_EXPIRED_NPSSO) {
@@ -248,6 +283,16 @@ export async function syncTrophiesForUser(
   } else {
     try {
       authorization = await getAuthorizationFromNpsso(npsso);
+      // Las horas salen de otro endpoint y no dependen de los trofeos, así que
+      // se piden EN PARALELO con ellos. En serie no llegaban: traer los
+      // trofeos es una request por título (cientos), y cuando terminaba ya no
+      // quedaba presupuesto -- la función moría en la página 1 de la
+      // paginación de horas, sin error, y sólo quedaban grabados los primeros
+      // 100 títulos (los más recientes, que es como PSN ordena la lista).
+      playtimePromise = fetchPsnPlaytime(authorization, account.account_id).catch((cause) => {
+        console.error("[psn-sync] no se pudieron traer las horas jugadas:", cause);
+        return { byName: new Map<string, number>(), titlesFetched: 0 };
+      });
       titles = await fetchUserTitlesWithTrophies(authorization);
     } catch (cause) {
       await supabase.from("psn_accounts").update({ token_status: "expired" }).eq("user_id", userId);
@@ -268,8 +313,47 @@ export async function syncTrophiesForUser(
     (catalogGames ?? []).map((game) => [normalizeName(game.name), game.id] as const),
   );
 
+  // Horas jugadas: una llamada paginada por biblioteca, no una por juego. Es
+  // un dato secundario -- si el endpoint falla o cambia (API no oficial), el
+  // sync de trofeos tiene que seguir igual.
+  let playtimeByName = new Map<string, number>();
+  if (PSN_MOCKS_ENABLED) {
+    playtimeByName = getMockPlaytimeByName();
+  } else if (playtimePromise) {
+    // Ya viene corriendo desde antes de los trofeos: acá normalmente no se
+    // espera nada, sólo se recoge el resultado.
+    const playtime = await playtimePromise;
+    playtimeByName = playtime.byName;
+    // Resumen sin nombres: si el cruce por nombre falla (remasters, ediciones)
+    // o PSN deja de reportar `playDuration`, se ve acá y no hay que adivinar
+    // mirando la base.
+    const sinHoras = titles.filter((title) => !playtimeByName.has(playtimeMatchKey(title.name)));
+    console.info(
+      `[psn-sync] horas jugadas: ${playtime.titlesFetched} títulos devueltos por PSN, ${playtimeByName.size} con horas, ` +
+        `${titles.length - sinHoras.length}/${titles.length} títulos con trofeos cruzados.`,
+    );
+    // Los nombres de los dos lados son lo único que explica un fallo de cruce,
+    // y se necesitan JUSTO cuando falla una minoría: con el umbral anterior
+    // (más de la mitad) este log no salía nunca y había que ir a mirar la base
+    // a mano. Se imprimen acotados y son sólo nombres de juegos.
+    if (sinHoras.length > 0) {
+      const matchedKeys = new Set(
+        titles.map((title) => playtimeMatchKey(title.name)).filter((key) => playtimeByName.has(key)),
+      );
+      const huerfanas = [...playtimeByName.keys()].filter((key) => !matchedKeys.has(key));
+      console.info(
+        `[psn-sync] sin cruzar (trofeos, ${sinHoras.length}): ` +
+          sinHoras.slice(0, DIAGNOSTIC_NAME_SAMPLE).map((t) => t.name).join(" | "),
+      );
+      console.info(
+        `[psn-sync] sin cruzar (juegos jugados, ${huerfanas.length}): ` +
+          huerfanas.slice(0, DIAGNOSTIC_NAME_SAMPLE).join(" | "),
+      );
+    }
+  }
+
   const results = await mapWithConcurrency(titles, TITLE_WRITE_CONCURRENCY, (title) =>
-    syncTitle(supabase, userId, title, catalogGameIdByName),
+    syncTitle(supabase, userId, title, catalogGameIdByName, playtimeByName),
   );
 
   // El avatar puede cambiar en PSN sin que el usuario reconecte la cuenta; se

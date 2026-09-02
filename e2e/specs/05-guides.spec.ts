@@ -4,7 +4,31 @@ import { seedGameWithTrophies } from "../helpers/seed";
 /**
  * Guías propias (`/juegos/[id]/guias`). Casos GUIDE-05, GUIDE-06, GUIDE-07 de
  * TESTING_PRD.md §6.5 (los P0).
+ *
+ * El alta de guías se hace sembrando la fila directo en `guides`: la pantalla
+ * ya no tiene form de creación (se sacó a pedido: la página prioriza el
+ * checklist, los enlaces externos y el advisor con IA). Lo que sigue siendo de
+ * la UI -- pasos, checklist, permisos -- se ejercita igual.
  */
+async function seedGuide(
+  supabase: Parameters<typeof seedGameWithTrophies>[0],
+  gameId: string,
+  authorId: string,
+  title: string,
+) {
+  const { data } = await supabase
+    .from("guides")
+    .insert({
+      game_id: gameId,
+      author_id: authorId,
+      title,
+      content_markdown: "Contenido de prueba.",
+    })
+    .select("id")
+    .single();
+  return data!.id as string;
+}
+
 test.describe("Guías propias", () => {
   test("GUIDE-05: tildar un paso persiste tras recargar", async ({ page, supabase, users }) => {
     const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
@@ -13,11 +37,9 @@ test.describe("Guías propias", () => {
       np: 201,
     });
 
+    await seedGuide(supabase, gameId, users.userA.id, "[E2E] Guía de prueba");
+
     await page.goto(`/juegos/${gameId}/guias`);
-    await page.getByText("+ Crear una guía propia (opcional)").click();
-    await page.getByLabel("Título").fill("[E2E] Guía de prueba");
-    await page.getByLabel(/Contenido en markdown/i).fill("Paso a paso de prueba.");
-    await page.getByRole("button", { name: "Crear guía" }).click();
     await expect(page.getByRole("heading", { name: "[E2E] Guía de prueba" })).toBeVisible();
 
     await page.getByPlaceholder("Descripción del paso").fill("Primer paso de la guía");
@@ -46,11 +68,9 @@ test.describe("Guías propias", () => {
       { onConflict: "user_id,trophy_id" },
     );
 
+    await seedGuide(supabase, gameId, users.userA.id, "[E2E] Guía auto-tilde");
+
     await page.goto(`/juegos/${gameId}/guias`);
-    await page.getByText("+ Crear una guía propia (opcional)").click();
-    await page.getByLabel("Título").fill("[E2E] Guía auto-tilde");
-    await page.getByLabel(/Contenido en markdown/i).fill("Contenido.");
-    await page.getByRole("button", { name: "Crear guía" }).click();
     await expect(page.getByRole("heading", { name: "[E2E] Guía auto-tilde" })).toBeVisible();
 
     await page.getByPlaceholder("Descripción del paso").fill("Paso ligado al trofeo ya obtenido");
@@ -94,10 +114,8 @@ test.describe("Guías propias", () => {
     try {
       await page.goto(`/juegos/${gameId}/guias`);
       await expect(page.getByText("[E2E] Guía de userA")).toBeVisible();
-      // userB puede crear su propia guía nueva (el <details> de arriba es de
-      // cualquiera), pero no tiene ningún control sobre la de userA: ni
-      // borrarla, ni el form de edición inline (que sí tendría un segundo
-      // campo "Título" -- por eso no se puede comparar esa cuenta acá).
+      // userB no tiene ningún control sobre la guía de userA: ni borrarla, ni
+      // el form de edición inline (que sí tendría un campo "Título").
       await expect(page.getByRole("button", { name: "Borrar guía" })).toHaveCount(0);
       await expect(
         page.getByRole("heading", { name: "[E2E] Guía de userA" }).locator("..").getByLabel("Título"),

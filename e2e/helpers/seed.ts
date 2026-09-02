@@ -8,6 +8,12 @@ import { testGameCommId, testGameTitle } from "./ids";
  * necesite en `user_trophies`. Usa el cliente service role: es más rápido y
  * más determinista que pasar por el sync mockeado cuando el test no necesita
  * ejercitar el sync en sí (GAME-*, GUIDE-*, AI-*, LINK-*).
+ *
+ * Es **idempotente** (upsert, no insert): un corte de red contra Supabase
+ * puede dejar el juego creado y hacer fallar el seed a mitad de camino, y con
+ * `insert` los reintentos de Playwright morían todos con
+ * `games_np_comm_id_key` -- el flake de red se convertía en un test rojo que
+ * no se recuperaba nunca.
  */
 export async function seedGameWithTrophies(
   supabase: SupabaseClient,
@@ -18,13 +24,16 @@ export async function seedGameWithTrophies(
 
   const { data: game, error: gameError } = await supabase
     .from("games")
-    .insert({
-      np_comm_id: testGameCommId(opts.np),
-      name: testGameTitle(opts.nameSuffix),
-      platform: "PS5",
-      created_by: ownerId,
-      source: "psn",
-    })
+    .upsert(
+      {
+        np_comm_id: testGameCommId(opts.np),
+        name: testGameTitle(opts.nameSuffix),
+        platform: "PS5",
+        created_by: ownerId,
+        source: "psn",
+      },
+      { onConflict: "np_comm_id" },
+    )
     .select("id")
     .single();
   if (gameError || !game) {
@@ -44,7 +53,7 @@ export async function seedGameWithTrophies(
 
   const { data: trophies, error: trophiesError } = await supabase
     .from("trophies")
-    .insert(trophyRows)
+    .upsert(trophyRows, { onConflict: "game_id,trophy_id" })
     .select("id");
   if (trophiesError || !trophies) {
     throw new Error(`No se pudieron seedear los trofeos de test: ${trophiesError?.message}`);

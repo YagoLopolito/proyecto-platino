@@ -5,6 +5,7 @@ import { ProgressBar } from "./ProgressBar";
 import { PlatinumBadge } from "./PlatinumBadge";
 import { CompletionBadge } from "./CompletionBadge";
 import { TrophyTypeIcon, PSN_TROPHY_TYPES, type PsnTrophyType } from "./TrophyTypeIcon";
+import { formatPlaytime } from "@/lib/playtime";
 
 export type GameCardData = {
   id: string;
@@ -20,12 +21,15 @@ export type GameCardData = {
    * que su tarjeta muestra el progreso sin desglose y el badge de 100%.
    */
   source?: string | null;
+  /** Minutos jugados (Steam y PSN). NULL/0 = no se muestra nada. */
+  playtimeMinutes?: number | null;
 };
 
 export function GameCard({ game, actions }: { game: GameCardData; actions?: ReactNode }) {
   const isSteam = game.source === "steam";
   const isPlatinumed = !isSteam && game.counts.platinum > 0;
   const isCompleted = isSteam && game.total > 0 && game.obtained === game.total;
+  const playtime = formatPlaytime(game.playtimeMinutes);
 
   return (
     <li className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 sm:gap-5 sm:p-5">
@@ -52,7 +56,14 @@ export function GameCard({ game, actions }: { game: GameCardData; actions?: Reac
             {isPlatinumed && <PlatinumBadge className="shrink-0" />}
             {isCompleted && <CompletionBadge className="shrink-0" />}
           </p>
-          <p className="text-sm text-zinc-400">{game.platform}</p>
+          <p className="flex flex-wrap items-center gap-x-2 text-sm text-zinc-400">
+            <span>{game.platform}</span>
+            {playtime && (
+              <span className="text-zinc-500" title="Horas jugadas">
+                ⏱ {playtime}
+              </span>
+            )}
+          </p>
         </Link>
 
         {game.total > 0 ? (

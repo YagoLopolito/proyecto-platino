@@ -19,9 +19,10 @@ export type LibraryGame = {
   percent: number;
   counts: Record<PsnTrophyType, number>;
   source: string | null;
+  playtimeMinutes: number | null;
 };
 
-type SortOption = "recent" | "name" | "percent";
+type SortOption = "recent" | "name" | "percent" | "playtime";
 type SortDirection = "asc" | "desc";
 type FilterOption = "all" | "platinum" | "over50";
 
@@ -29,6 +30,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "recent", label: "Jugados recientemente" },
   { value: "name", label: "Nombre" },
   { value: "percent", label: "% completado" },
+  { value: "playtime", label: "Horas jugadas" },
 ];
 
 const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
@@ -41,6 +43,9 @@ const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
 function compareDescending(a: LibraryGame, b: LibraryGame, sort: SortOption): number {
   if (sort === "name") return b.name.localeCompare(a.name);
   if (sort === "percent") return b.percent - a.percent;
+  // Sin horas conocidas (juegos de catálogo, o de PSN/Steam que no las
+  // reportan) van al fondo del orden descendente, no mezclados con los de 0 h.
+  if (sort === "playtime") return (b.playtimeMinutes ?? -1) - (a.playtimeMinutes ?? -1);
 
   const aTime = a.lastPlayedAt ? new Date(a.lastPlayedAt).getTime() : null;
   const bTime = b.lastPlayedAt ? new Date(b.lastPlayedAt).getTime() : null;

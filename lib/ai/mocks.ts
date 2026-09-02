@@ -1,6 +1,6 @@
 import "server-only";
 import { AiSchemaValidationError } from "./errors";
-import type { AiPlanInput, AiRecommendationsInput } from "./prompt";
+import type { AiPlanInput, AiRecommendationsInput, TrophyHintInput } from "./prompt";
 import type { AiGamePlan, AiRecommendations } from "./schema";
 
 /**
@@ -65,7 +65,35 @@ export function getMockAiGamePlan(input: AiPlanInput): AiGamePlan {
           },
         ]
       : [],
+    desafios_de_dificultad: firstTrophy
+      ? [
+          {
+            trofeo_id: firstTrophy,
+            categoria: "dificultad_maxima" as const,
+            motivo: "[E2E] Pide terminar el juego en la dificultad más alta.",
+            consejo: "[E2E] Arrancá directo en esa dificultad para no rejugar.",
+          },
+        ]
+      : [],
+    acumulables: firstTrophy
+      ? [
+          {
+            trofeo_id: firstTrophy,
+            categoria: "bajas_con_condicion" as const,
+            objetivo: "[E2E] 40 enemigos con el bláster.",
+            consejo: "[E2E] Usá esa arma por defecto durante toda la campaña.",
+            se_puede_farmear: false,
+          },
+        ]
+      : [],
     orden_sugerido: trophyIds,
+    siguiente_trofeo: firstTrophy
+      ? {
+          trofeo_id: firstTrophy,
+          por_que: "[E2E] Es el más rápido de los que te faltan.",
+          pasos: ["[E2E] Paso uno.", "[E2E] Paso dos."],
+        }
+      : null,
     tips_generales: ["[E2E] Guardá seguido.", "[E2E] Subí la dificultad al final si podés."],
     modos: [],
   };
@@ -104,4 +132,13 @@ export function getMockAiRecommendations(input: AiRecommendationsInput): AiRecom
       },
     ],
   };
+}
+
+/**
+ * Ayuda de un solo trofeo, determinista. Mismo motivo que el plan: el free
+ * tier de Groq no aguanta una llamada por trofeo en cada corrida de CI, y el
+ * texto exacto es lo que asertan los tests del advisor.
+ */
+export function getMockTrophyHint(input: TrophyHintInput): string {
+  return `[E2E] Ayuda mockeada para "${input.trophyName}".`;
 }

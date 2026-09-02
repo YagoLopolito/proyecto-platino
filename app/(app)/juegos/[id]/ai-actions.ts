@@ -84,8 +84,9 @@ export async function generateAiPlan(
     .eq("game_id", gameId);
 
   // El modelo referencia cada trofeo por id en varios arrays de la respuesta
-  // (orden_sugerido, missables, modos, grupos_de_partidas). Un uuid completo
-  // (36 caracteres) repetido decenas de veces infla el output y, en juegos
+  // (orden_sugerido, missables, modos, desafios_de_dificultad, acumulables,
+  // siguiente_trofeo, grupos_de_partidas). Un uuid completo (36 caracteres)
+  // repetido decenas de veces infla el output y, en juegos
   // con muchos trofeos pendientes, puede truncar el JSON antes de que
   // termine de generarse -- eso dispara el reintento de generateAiGamePlan
   // y duplica la latencia, arriesgando el timeout de la función serverless.
@@ -124,6 +125,20 @@ export async function generateAiPlan(
       })),
       missables: rawPlan.missables.map((m) => ({ ...m, trofeo_id: remapTrophyId(m.trofeo_id) })),
       orden_sugerido: rawPlan.orden_sugerido.map(remapTrophyId),
+      siguiente_trofeo: rawPlan.siguiente_trofeo
+        ? {
+            ...rawPlan.siguiente_trofeo,
+            trofeo_id: remapTrophyId(rawPlan.siguiente_trofeo.trofeo_id),
+          }
+        : null,
+      desafios_de_dificultad: (rawPlan.desafios_de_dificultad ?? []).map((d) => ({
+        ...d,
+        trofeo_id: remapTrophyId(d.trofeo_id),
+      })),
+      acumulables: (rawPlan.acumulables ?? []).map((a) => ({
+        ...a,
+        trofeo_id: remapTrophyId(a.trofeo_id),
+      })),
       modos: (rawPlan.modos ?? []).map((grupo) => ({
         ...grupo,
         trofeos_relacionados: grupo.trofeos_relacionados.map(remapTrophyId),

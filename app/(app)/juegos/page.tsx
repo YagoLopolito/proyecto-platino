@@ -127,6 +127,7 @@ export default async function JuegosPage({
         percent: stats.percent,
         counts: stats.counts,
         source: game.source,
+        playtimeMinutes: row.playtime_minutes,
       };
     });
 

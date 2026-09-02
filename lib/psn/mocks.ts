@@ -1,4 +1,5 @@
 import "server-only";
+import { playtimeMatchKey } from "./playtime";
 import type { PsnIdentity } from "./auth";
 import type { FetchedTitle } from "./trophies";
 import { NpssoExpiredError } from "./errors";
@@ -139,4 +140,14 @@ export function getMockTitles(): FetchedTitle[] {
       ],
     },
   ];
+}
+
+/**
+ * Horas jugadas mockeadas, indexadas con la misma clave de cruce que el
+ * endpoint real (ver `playtime.ts`). El segundo juego queda sin entrada a
+ * propósito: cubre el caso "PSN no reportó horas para este título", que con
+ * juegos viejos es lo normal.
+ */
+export function getMockPlaytimeByName(): Map<string, number> {
+  return new Map([[playtimeMatchKey(`${TITLE_PREFIX} PSN Game Uno`), 754]]);
 }

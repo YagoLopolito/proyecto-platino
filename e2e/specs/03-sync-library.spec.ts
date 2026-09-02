@@ -1,6 +1,8 @@
 import { test, expect } from "../fixtures/test";
 import { encryptNpssoForFixture } from "../helpers/psn";
 import { E2E_PSN_MOCK_PREFIX } from "../helpers/ids";
+import { seedGameWithTrophies } from "../helpers/seed";
+import { createTestUserClient } from "../helpers/supabase";
 
 /**
  * Sync y biblioteca (`/juegos`, `POST /api/psn/sync`, `GET /api/cron/sync`).
@@ -72,7 +74,10 @@ test.describe("Sync y biblioteca", () => {
     expect(data?.token_status).toBe("expired");
   });
 
-  test("SYNC-04: sincronizar dos veces no duplica juegos ni trofeos", async ({ page, supabase }) => {
+  test("SYNC-04: sincronizar dos veces no duplica juegos ni trofeos", async ({
+    page,
+    supabase,
+  }) => {
     await page.goto(CONNECTIONS);
     const psnCard = page.getByRole("region", { name: "PlayStation Network" });
     await psnCard.getByLabel("NPSSO").fill(MOCK_VALID_NPSSO);
@@ -150,12 +155,100 @@ test.describe("Sync y biblioteca", () => {
       .eq("user_id", users.userB.id)
       .in(
         "trophy_id",
-        (
-          await supabase.from("trophies").select("id").in("game_id", gameIds)
-        ).data?.map((t) => t.id) ?? [],
+        (await supabase.from("trophies").select("id").in("game_id", gameIds)).data?.map(
+          (t) => t.id,
+        ) ?? [],
       );
     // Juego 1: 5 obtenidos. Juego 2: 1 obtenido. Juego 3: 0. Total 6.
     expect(unlocked).toHaveLength(6);
+  });
+
+  test("SYNC-13: las horas jugadas de PSN se guardan y se muestran en la tarjeta y en el diario", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    await page.goto(CONNECTIONS);
+    const psnCard = page.getByRole("region", { name: "PlayStation Network" });
+    await psnCard.getByLabel("NPSSO").fill(MOCK_VALID_NPSSO);
+    await psnCard.getByRole("button", { name: /Conectar cuenta PSN/i }).click();
+    await expect(psnCard.getByTestId("connection-status")).toHaveAttribute(
+      "data-status",
+      "connected",
+    );
+    await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
+    await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
+
+    // El fixture reporta horas solo para "PSN Game Uno" (754 minutos): el
+    // segundo juego cubre el caso "PSN no reportó horas", que con títulos
+    // viejos es lo normal.
+    const { data: game } = await supabase
+      .from("games")
+      .select("id")
+      .eq("np_comm_id", `${E2E_PSN_MOCK_PREFIX}1`)
+      .single();
+    const gameId = game?.id as string;
+
+    const { data: userGame } = await supabase
+      .from("user_games")
+      .select("playtime_minutes")
+      .eq("user_id", users.userB.id)
+      .eq("game_id", gameId)
+      .single();
+    expect(userGame?.playtime_minutes).toBe(754);
+
+    await page.goto("/juegos");
+    const card = page.getByRole("listitem").filter({ hasText: "[E2E] PSN Game Uno" });
+    await expect(card.getByText("⏱ 13 h")).toBeVisible();
+    // Sin horas reportadas no se muestra nada, ni un "0 h".
+    const cardSinHoras = page.getByRole("listitem").filter({ hasText: "[E2E] PSN Game Dos" });
+    await expect(cardSinHoras.getByText(/⏱/)).toHaveCount(0);
+
+    await page.goto(`/juegos/${gameId}/diario`);
+    await expect(page.getByText("13 h jugadas")).toBeVisible();
+  });
+
+  test("SYNC-16: el usuario puede actualizar su propia fila de user_games", async ({
+    supabase,
+    users,
+  }) => {
+    // El sync escribe con upsert: la primera vez entra por el INSERT, y de ahí
+    // en adelante por el ON CONFLICT DO UPDATE. `user_games` no tenía policy de
+    // update, así que ese segundo camino lo rechazaba la RLS y las horas y el
+    // last_played_at quedaban congelados en el valor del primer sync -- en la
+    // biblioteca real del usuario, 3 juegos con horas sobre 368. Va con la anon
+    // key logueada, no con service role: con service role la RLS ni se evalúa y
+    // el permiso faltante no se ve.
+    const { gameId } = await seedGameWithTrophies(supabase, users.userB.id, {
+      n: 1,
+      nameSuffix: "RLS User Games",
+      np: 316,
+    });
+    const asUser = await createTestUserClient(users.userB.email, users.userB.password);
+
+    await asUser
+      .from("user_games")
+      .upsert(
+        { user_id: users.userB.id, game_id: gameId, playtime_minutes: 100 },
+        { onConflict: "user_id,game_id" },
+      );
+
+    // El segundo upsert es el que importa: la fila ya existe.
+    const { error } = await asUser
+      .from("user_games")
+      .upsert(
+        { user_id: users.userB.id, game_id: gameId, playtime_minutes: 250 },
+        { onConflict: "user_id,game_id" },
+      );
+    expect(error).toBeNull();
+
+    const { data: row } = await supabase
+      .from("user_games")
+      .select("playtime_minutes")
+      .eq("user_id", users.userB.id)
+      .eq("game_id", gameId)
+      .single();
+    expect(row?.playtime_minutes).toBe(250);
   });
 
   test("SYNC-11: /api/cron/sync sin CRON_SECRET responde 401", async ({ request }) => {
