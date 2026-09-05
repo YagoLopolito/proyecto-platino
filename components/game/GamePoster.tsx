@@ -64,8 +64,17 @@ export function GamePoster({
             priority={priority}
             className="object-cover"
           />
+        ) : showName ? (
+          // Con el nombre debajo, repetirlo adentro del marco lo mostraba dos
+          // veces seguidas: queda sólo un glifo neutro de "sin carátula".
+          <span
+            className="flex h-full w-full items-center justify-center text-2xl text-zinc-700"
+            aria-hidden="true"
+          >
+            🎮
+          </span>
         ) : (
-          // Sin carátula, el nombre hace de portada en vez de un "Sin img"
+          // Sin nombre debajo, el nombre hace de portada en vez de un "Sin img"
           // genérico: en una grilla de pósters es lo único que la distingue.
           <span className="flex h-full w-full items-center justify-center p-2 text-center text-[11px] leading-tight text-zinc-500">
             {name}

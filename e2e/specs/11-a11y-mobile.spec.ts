@@ -37,7 +37,7 @@ test.describe("Mobile", () => {
     });
 
     await page.goto(`/juegos/${gameId}`);
-    await expect(page.getByText("Trofeos (5)")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Trofeos\s+5/i })).toBeVisible();
 
     const { scrollWidth, clientWidth } = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,

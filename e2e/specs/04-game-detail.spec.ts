@@ -20,8 +20,7 @@ test.describe("Detalle de juego", () => {
     });
 
     await page.goto(`/juegos/${gameId}`);
-    await expect(page.getByRole("heading", { name: /Trofeos/i })).toBeVisible();
-    await expect(page.getByText("Trofeos (6)")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Trofeos\s+6/i })).toBeVisible();
 
     for (let i = 1; i <= 6; i++) {
       await expect(page.getByText(`Trofeo ${i}`, { exact: false })).toBeVisible();
