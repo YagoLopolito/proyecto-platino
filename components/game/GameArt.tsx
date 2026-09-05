@@ -5,33 +5,42 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 
 /**
- * `next/image` para arte de juego (carátulas y wallpapers) con fallback si la
- * imagen no carga.
+ * `next/image` para arte de juego (carátulas, wallpapers e íconos de trofeo)
+ * con dos diferencias respecto de usar `next/image` a pelo.
  *
- * Mismo motivo que `FriendAvatar`: las URLs llegan de CDNs de terceros (PSN,
- * RAWG, SteamGridDB, Steam) que fuimos agregando de a uno a
- * `images.remotePatterns`, y además pasan por el optimizador de next/image.
- * Cuando una de esas cosas falla -- un host nuevo que no está whitelisteado,
- * un 404 de la CDN, el optimizador devolviendo error -- el `<img>` quedaba
- * roto y la carátula era un rectángulo vacío. Con el fallback se ve el nombre
- * del juego (o lo que pase el caller), que es lo que hace falta para
- * distinguirlo en una grilla de pósters.
+ * 1. **No pasa por el optimizador de Vercel** (`unoptimized`). El plan Hobby
+ *    incluye 5.000 transformaciones por mes y esta app las quema en días: una
+ *    biblioteca real son cientos de carátulas, cada una en varios tamaños, más
+ *    un ícono por trofeo (son más de 10.000). Cuando la cuota se agota, Vercel
+ *    deja de servir `/_next/image` y **todas** las imágenes desaparecen de
+ *    golpe -- que es exactamente lo que pasó. Además no ganábamos casi nada:
+ *    lo que servimos ya son JPG/PNG comprimidos de las CDNs de RAWG, Steam y
+ *    PSN, pensados justamente para mostrarse a este tamaño. Las capturas que
+ *    suben los usuarios (`ScreenshotGallery`) sí siguen optimizándose: ahí el
+ *    original pesa megas y la transformación se paga sola.
+ * 2. **Fallback si la imagen no carga**, igual que `FriendAvatar`: un host
+ *    nuevo fuera de `images.remotePatterns`, un 404 de la CDN. Antes quedaba
+ *    un rectángulo vacío; ahora se ve el nombre del juego o el placeholder que
+ *    pase el caller.
  */
 export function GameArt({
   src,
   alt,
   sizes,
+  width,
+  height,
   className,
   priority = false,
-  quality,
   fallback,
 }: {
   src: string;
   alt: string;
-  sizes: string;
+  /** Sólo para el modo `fill` (sin `width`/`height`). */
+  sizes?: string;
+  width?: number;
+  height?: number;
   className?: string;
   priority?: boolean;
-  quality?: number;
   /** Qué mostrar si la imagen no carga. */
   fallback: ReactNode;
 }) {
@@ -39,16 +48,20 @@ export function GameArt({
 
   if (failed) return <>{fallback}</>;
 
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      fill
-      sizes={sizes}
-      priority={priority}
-      quality={quality}
-      onError={() => setFailed(true)}
-      className={className}
-    />
+  // `alt` va explícito en cada <Image> y no acá: dentro del spread, la regla
+  // jsx-a11y/alt-text no lo ve y avisa igual.
+  const common = {
+    src,
+    priority,
+    className,
+    // Ver el punto 1 del comentario de arriba.
+    unoptimized: true,
+    onError: () => setFailed(true),
+  };
+
+  return width !== undefined && height !== undefined ? (
+    <Image {...common} alt={alt} width={width} height={height} />
+  ) : (
+    <Image {...common} alt={alt} fill sizes={sizes} />
   );
 }

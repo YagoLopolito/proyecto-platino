@@ -46,7 +46,9 @@ export default function RegistroPage() {
           <FormError>{state.error}</FormError>
 
           {success && (
-            <FormSuccess>Cuenta creada. Revisá tu email para confirmarla antes de iniciar sesión.</FormSuccess>
+            <FormSuccess>
+              Cuenta creada. Revisá tu email para confirmarla antes de iniciar sesión.
+            </FormSuccess>
           )}
 
           <Button type="submit" disabled={pending} className="w-full">

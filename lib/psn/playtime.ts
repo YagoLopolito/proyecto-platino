@@ -1,6 +1,10 @@
 import "server-only";
 import { getUserPlayedGames, type AuthorizationPayload } from "psn-api";
-import { collectPlaytimePages, type PlaytimePageFetcher, type PsnPlaytimeResult } from "./playtime-pages";
+import {
+  collectPlaytimePages,
+  type PlaytimePageFetcher,
+  type PsnPlaytimeResult,
+} from "./playtime-pages";
 
 /**
  * Horas jugadas en PSN.

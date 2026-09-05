@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
-import { connectPsnAccount, type ConnectionActionState } from "@/app/(app)/configuracion/conexiones/actions";
+import {
+  connectPsnAccount,
+  type ConnectionActionState,
+} from "@/app/(app)/configuracion/conexiones/actions";
 import { Textarea, Label } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { FormError, FormSuccess } from "@/components/FormError";

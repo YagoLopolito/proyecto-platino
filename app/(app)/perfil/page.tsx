@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
+import { FriendAvatar } from "@/components/friends/FriendAvatar";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
 import {
@@ -199,19 +199,11 @@ export default async function PerfilPage() {
       <div className="mx-auto w-full max-w-5xl space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            {psnAccount?.avatar_url ? (
-              <Image
-                src={psnAccount.avatar_url}
-                alt={psnAccount.online_id}
-                width={64}
-                height={64}
-                className="h-16 w-16 rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800 text-xs text-zinc-500">
-                Sin avatar
-              </div>
-            )}
+            <FriendAvatar
+              url={psnAccount?.avatar_url ?? null}
+              name={psnAccount?.online_id ?? "?"}
+              size={64}
+            />
             <div className="min-w-0 space-y-0.5">
               <h1 className="truncate text-xl font-semibold sm:text-2xl">
                 {psnAccount?.online_id ?? "Perfil"}

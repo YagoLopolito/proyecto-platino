@@ -366,10 +366,20 @@ barra `sticky top-0` y las dos se pisarían.
   `SUPABASE_SERVICE_ROLE_KEY` se cae al cliente del usuario en vez de romper.
 - `getGameCardData` también completa `cover_url` cuando la fila sólo tiene el `icon_url` de
   PSN (el ícono cuadrado del set de trofeos, que estirado al póster 3:4 se ve pixelado).
-- **Todo el arte de juego va por `components/game/GameArt.tsx`**, no por `next/image` directo:
-  las URLs llegan de CDNs de terceros que se fueron agregando de a una a `images.remotePatterns`
-  y encima pasan por el optimizador. Si algo de eso falla, `GameArt` muestra el placeholder
-  (el nombre del juego / "Sin carátula") en vez de dejar un rectángulo vacío.
+- **Todo el arte de juego va por `components/game/GameArt.tsx`**, no por `next/image` directo
+  (carátulas, wallpapers, íconos de trofeo, resultados del buscador de catálogo). Hace dos
+  cosas: sirve la imagen **sin pasar por el optimizador de Vercel** (`unoptimized`) y cae a un
+  placeholder si no carga.
+- **Por qué `unoptimized`**: el plan Hobby de Vercel incluye 5.000 transformaciones de imagen
+  por mes y esta app las quema en días (cientos de carátulas × varios tamaños, más un ícono
+  por trofeo y son más de 10.000). Cuando la cuota se agota Vercel deja de servir
+  `/_next/image` y **todas** las imágenes desaparecen de golpe, en todos los dispositivos a la
+  vez -- pasó el 2026-09-05 con la cuota en 5.1K/5K. Encima no ganábamos casi nada:
+  lo que servimos ya son JPG/PNG comprimidos de las CDNs de RAWG, Steam y PSN, pensados para
+  mostrarse a este tamaño. Esto revierte a propósito una parte de la pasada de performance de
+  2026-08-19 (sacar `unoptimized`): el ahorro de bytes no compensa que la app se quede sin
+  imágenes. **Las capturas que suben los usuarios (`ScreenshotGallery`) sí se siguen
+  optimizando**: ahí el original pesa megas y la transformación se paga sola.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).

@@ -42,9 +42,7 @@ export async function GET(request: NextRequest) {
 
   if (params.get("openid.mode") === null) {
     const returnTo = new URL("/api/steam/openid", request.nextUrl.origin).toString();
-    return NextResponse.redirect(
-      buildSteamLoginUrl(returnTo, `${request.nextUrl.origin}/`),
-    );
+    return NextResponse.redirect(buildSteamLoginUrl(returnTo, `${request.nextUrl.origin}/`));
   }
 
   let verifiedSteamId: string | null;

@@ -16,26 +16,24 @@ export default function OpengraphImage() {
   const trophy = `data:image/svg+xml;base64,${Buffer.from(TROPHY_SVG).toString("base64")}`;
 
   return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 24,
-          background: "#09090b",
-          color: "#fafafa",
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={trophy} width={280} height={280} alt="" />
-        <div style={{ fontSize: 76, fontWeight: 700, letterSpacing: -2 }}>Platinoob</div>
-        <div style={{ fontSize: 34, color: "#a1a1aa" }}>Trophy Tracker de PlayStation y Steam</div>
-      </div>
-    ),
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 24,
+        background: "#09090b",
+        color: "#fafafa",
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={trophy} width={280} height={280} alt="" />
+      <div style={{ fontSize: 76, fontWeight: 700, letterSpacing: -2 }}>Platinoob</div>
+      <div style={{ fontSize: 34, color: "#a1a1aa" }}>Trophy Tracker de PlayStation y Steam</div>
+    </div>,
     size,
   );
 }

@@ -33,7 +33,8 @@ export async function findExternalGuides(
     return result;
   } catch (cause) {
     console.error("findExternalGuides failed:", cause);
-    const message = cause instanceof Error ? cause.message : "Falló la búsqueda de enlaces externos.";
+    const message =
+      cause instanceof Error ? cause.message : "Falló la búsqueda de enlaces externos.";
     return { inserted: null, errors: [message] };
   }
 }

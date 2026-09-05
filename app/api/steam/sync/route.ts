@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import {
-  syncSteamAchievementsForUser,
-  SteamApiError,
-  SteamProfilePrivateError,
-} from "@/lib/steam";
+import { syncSteamAchievementsForUser, SteamApiError, SteamProfilePrivateError } from "@/lib/steam";
 
 /**
  * Espejo de /api/psn/sync: va como API route y no como Server Action porque
@@ -36,9 +32,7 @@ export async function POST() {
       return NextResponse.json({ error: error.message, reason: "private" }, { status: 409 });
     }
     const message =
-      error instanceof SteamApiError
-        ? error.message
-        : "Error inesperado al sincronizar con Steam.";
+      error instanceof SteamApiError ? error.message : "Error inesperado al sincronizar con Steam.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

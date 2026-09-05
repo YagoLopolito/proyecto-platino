@@ -64,7 +64,6 @@ export function GameHero({
             src={backgroundImage}
             alt=""
             priority
-            quality={90}
             sizes="100vw"
             className={`object-cover object-top ${
               isFallbackBackground ? "scale-110 opacity-40 blur-lg" : "opacity-70"

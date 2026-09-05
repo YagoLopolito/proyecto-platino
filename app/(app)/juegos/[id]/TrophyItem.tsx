@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import Image from "next/image";
+import { GameArt } from "@/components/game/GameArt";
 import { explainTrophy } from "./actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
 import { RARITY_CLASS, RARITY_LABEL } from "@/components/trophyRarity";
@@ -96,7 +96,7 @@ export default function TrophyItem({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {iconUrl ? (
-            <Image
+            <GameArt
               src={iconUrl}
               alt=""
               width={40}
@@ -104,6 +104,8 @@ export default function TrophyItem({
               className={`h-10 w-10 shrink-0 rounded object-cover ${
                 isObtained ? "" : "grayscale opacity-60"
               }`}
+              // El ícono es decorativo: sin él alcanza con el color del tipo.
+              fallback={null}
             />
           ) : (
             <div

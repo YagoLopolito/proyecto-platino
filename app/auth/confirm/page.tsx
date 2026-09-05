@@ -22,9 +22,7 @@ export default async function ConfirmPage({
         className="w-full max-w-sm space-y-4 rounded-lg border border-zinc-800 bg-zinc-900 p-8 text-center"
       >
         <h1 className="text-xl font-semibold text-zinc-50">Confirmar cuenta</h1>
-        <p className="text-sm text-zinc-400">
-          Hacé click para terminar de confirmar tu cuenta.
-        </p>
+        <p className="text-sm text-zinc-400">Hacé click para terminar de confirmar tu cuenta.</p>
         <input type="hidden" name="token_hash" value={token_hash} />
         <input type="hidden" name="type" value={type} />
         {next && <input type="hidden" name="next" value={next} />}

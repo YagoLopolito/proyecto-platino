@@ -81,9 +81,7 @@ export default function ScreenshotUploader({ gameId }: { gameId: string }) {
   }
 
   function setCaption(index: number, caption: string) {
-    setPending((current) =>
-      current.map((item, i) => (i === index ? { ...item, caption } : item)),
-    );
+    setPending((current) => current.map((item, i) => (i === index ? { ...item, caption } : item)));
   }
 
   function clearPending() {

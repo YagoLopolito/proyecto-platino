@@ -23,8 +23,7 @@ export type SteamAchievement = {
  * siempre.
  */
 export type SteamAchievementsResult =
-  | { status: "ok"; achievements: SteamAchievement[] }
-  | { status: "no_achievements" };
+  { status: "ok"; achievements: SteamAchievement[] } | { status: "no_achievements" };
 
 /**
  * GetSchemaForGame devuelve los íconos con el host viejo de Akamai

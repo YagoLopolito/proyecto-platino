@@ -17,9 +17,9 @@ export default function ConnectSteamForm({ isReconnect = false }: { isReconnect?
   return (
     <form id="conectar-steam" action={formAction} className="space-y-4">
       <p className="text-sm text-zinc-400">
-        No hace falta ninguna contraseña ni token: alcanza con tu SteamID64 o la URL de tu
-        perfil (<span className="font-mono">steamcommunity.com/id/tunombre</span>). Lo
-        encontrás en Steam → Perfil → Editar perfil.
+        No hace falta ninguna contraseña ni token: alcanza con tu SteamID64 o la URL de tu perfil (
+        <span className="font-mono">steamcommunity.com/id/tunombre</span>). Lo encontrás en Steam →
+        Perfil → Editar perfil.
       </p>
 
       <div className="space-y-1">

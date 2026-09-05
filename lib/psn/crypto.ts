@@ -11,7 +11,9 @@ function getKey(): Buffer {
   }
   const key = Buffer.from(raw, "base64");
   if (key.length !== 32) {
-    throw new Error("PSN_TOKEN_ENCRYPTION_KEY debe decodificar a 32 bytes (generar con: openssl rand -base64 32).");
+    throw new Error(
+      "PSN_TOKEN_ENCRYPTION_KEY debe decodificar a 32 bytes (generar con: openssl rand -base64 32).",
+    );
   }
   return key;
 }
@@ -23,7 +25,9 @@ export function encryptSecret(plaintext: string): string {
   const cipher = createCipheriv(ALGORITHM, key, iv);
   const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   const authTag = cipher.getAuthTag();
-  return [iv.toString("base64"), authTag.toString("base64"), ciphertext.toString("base64")].join(".");
+  return [iv.toString("base64"), authTag.toString("base64"), ciphertext.toString("base64")].join(
+    ".",
+  );
 }
 
 /** Descifra un secreto guardado con encryptSecret. */

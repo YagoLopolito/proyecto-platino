@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { GameArt } from "@/components/game/GameArt";
 import { redirect } from "next/navigation";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { createClient } from "@/lib/supabase/server";
@@ -263,21 +263,24 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Cover({ imageUrl, name }: { imageUrl: string | null; name: string }) {
-  if (!imageUrl) {
-    return (
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
-        Sin img
-      </div>
-    );
-  }
+function CoverPlaceholder() {
   return (
-    <Image
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+      Sin img
+    </div>
+  );
+}
+
+function Cover({ imageUrl, name }: { imageUrl: string | null; name: string }) {
+  if (!imageUrl) return <CoverPlaceholder />;
+  return (
+    <GameArt
       src={imageUrl}
       alt={name}
       width={48}
       height={48}
       className="h-12 w-12 shrink-0 rounded object-cover"
+      fallback={<CoverPlaceholder />}
     />
   );
 }

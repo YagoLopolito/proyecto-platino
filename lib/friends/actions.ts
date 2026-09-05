@@ -11,8 +11,7 @@ export interface UserSearchResult extends FriendProfile {
 }
 
 export type SearchUsersOutcome =
-  | { status: "ok"; results: UserSearchResult[] }
-  | { status: "error"; message: string };
+  { status: "ok"; results: UserSearchResult[] } | { status: "error"; message: string };
 
 /**
  * Directorio de usuarios para "Agregar amigo". Sin query devuelve los primeros
@@ -28,7 +27,11 @@ export async function searchUsers(query: string): Promise<SearchUsersOutcome> {
     return { status: "error", message: "Tenés que iniciar sesión." };
   }
 
-  const term = z.string().trim().max(100).parse(query ?? "");
+  const term = z
+    .string()
+    .trim()
+    .max(100)
+    .parse(query ?? "");
 
   let profilesQuery = supabase
     .from("public_profiles")
@@ -40,9 +43,7 @@ export async function searchUsers(query: string): Promise<SearchUsersOutcome> {
     // `%` y `,` romperían el filtro `or` de PostgREST, que separa condiciones
     // por coma; se escapan antes de armarlo.
     const safe = term.replace(/[%,]/g, " ");
-    profilesQuery = profilesQuery.or(
-      `psn_online_id.ilike.%${safe}%,display_name.ilike.%${safe}%`,
-    );
+    profilesQuery = profilesQuery.or(`psn_online_id.ilike.%${safe}%,display_name.ilike.%${safe}%`);
   }
 
   const [{ data: profiles, error }, { data: friendRows }] = await Promise.all([

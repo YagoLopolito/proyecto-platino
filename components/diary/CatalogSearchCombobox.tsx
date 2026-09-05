@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
-import Image from "next/image";
+import { GameArt } from "@/components/game/GameArt";
 import { useRouter } from "next/navigation";
 import { searchCatalog, addCatalogGame, type AddCatalogGameState } from "@/lib/catalog/actions";
 import { MIN_QUERY_LENGTH } from "@/lib/catalog/constants";
@@ -14,21 +14,24 @@ const addInitialState: AddCatalogGameState = { error: null, success: null };
 const DEBOUNCE_MS = 300;
 
 /** Carátula del resultado, con placeholder cuando el juego no tiene imagen. */
-function ResultCover({ url, name }: { url: string | null; name: string }) {
-  if (!url) {
-    return (
-      <div className="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
-        Sin img
-      </div>
-    );
-  }
+function ResultCoverPlaceholder() {
   return (
-    <Image
+    <div className="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+      Sin img
+    </div>
+  );
+}
+
+function ResultCover({ url, name }: { url: string | null; name: string }) {
+  if (!url) return <ResultCoverPlaceholder />;
+  return (
+    <GameArt
       src={url}
       alt={name}
       width={56}
       height={80}
       className="h-20 w-14 shrink-0 rounded object-cover"
+      fallback={<ResultCoverPlaceholder />}
     />
   );
 }
@@ -214,7 +217,11 @@ export default function CatalogSearchCombobox() {
                             name="confirmedDuplicateOfGameId"
                             value={result.possibleDuplicateOf.gameId}
                           />
-                          <Button type="submit" disabled={addPending} className="w-full py-2 text-xs sm:py-1.5">
+                          <Button
+                            type="submit"
+                            disabled={addPending}
+                            className="w-full py-2 text-xs sm:py-1.5"
+                          >
                             Sí, es el mismo
                           </Button>
                         </form>

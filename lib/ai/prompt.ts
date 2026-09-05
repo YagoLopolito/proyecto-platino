@@ -1,10 +1,6 @@
 import "server-only";
 
-export {
-  AI_PLAN_SYSTEM_PROMPT,
-  buildAiPlanUserPrompt,
-  INPUT_TOKEN_BUDGET,
-} from "./plan-prompt";
+export { AI_PLAN_SYSTEM_PROMPT, buildAiPlanUserPrompt, INPUT_TOKEN_BUDGET } from "./plan-prompt";
 export type { AiPlanTrophyInput, AiPlanGuideInput, AiPlanInput } from "./plan-prompt";
 
 export type TrophyHintInput = {

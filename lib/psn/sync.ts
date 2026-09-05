@@ -338,12 +338,17 @@ export async function syncTrophiesForUser(
     // a mano. Se imprimen acotados y son sólo nombres de juegos.
     if (sinHoras.length > 0) {
       const matchedKeys = new Set(
-        titles.map((title) => playtimeMatchKey(title.name)).filter((key) => playtimeByName.has(key)),
+        titles
+          .map((title) => playtimeMatchKey(title.name))
+          .filter((key) => playtimeByName.has(key)),
       );
       const huerfanas = [...playtimeByName.keys()].filter((key) => !matchedKeys.has(key));
       console.info(
         `[psn-sync] sin cruzar (trofeos, ${sinHoras.length}): ` +
-          sinHoras.slice(0, DIAGNOSTIC_NAME_SAMPLE).map((t) => t.name).join(" | "),
+          sinHoras
+            .slice(0, DIAGNOSTIC_NAME_SAMPLE)
+            .map((t) => t.name)
+            .join(" | "),
       );
       console.info(
         `[psn-sync] sin cruzar (juegos jugados, ${huerfanas.length}): ` +

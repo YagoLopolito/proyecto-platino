@@ -2,10 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import {
-  backfillCompletedDiaryEntries,
-  backfillPlatinumDiaryEntries,
-} from "@/lib/diary/backfill";
+import { backfillCompletedDiaryEntries, backfillPlatinumDiaryEntries } from "@/lib/diary/backfill";
 
 export type BackfillState = { error: string | null; message: string | null };
 

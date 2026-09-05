@@ -52,7 +52,10 @@ export async function GET(request: NextRequest) {
   // Una plataforma por cuenta y por entrada: si una falla, no puede tirar abajo
   // ni a las demás cuentas ni a la otra plataforma de la misma cuenta.
   const jobs = [
-    ...(psnAccounts ?? []).map((account) => ({ userId: account.user_id, platform: "psn" as const })),
+    ...(psnAccounts ?? []).map((account) => ({
+      userId: account.user_id,
+      platform: "psn" as const,
+    })),
     ...(steamAccounts ?? []).map((account) => ({
       userId: account.user_id,
       platform: "steam" as const,
