@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { GameArt } from "@/components/game/GameArt";
 import type { GameCardData } from "@/lib/catalog/details";
 import { GameScore } from "@/components/diary/GameScore";
 import { formatPlaytime } from "@/lib/playtime";
@@ -60,16 +60,17 @@ export function GameHero({
           className="pointer-events-none absolute left-1/2 top-0 z-0 -mt-6 h-[220px] w-screen -translate-x-1/2 overflow-hidden sm:-mt-12 sm:h-[420px]"
           aria-hidden="true"
         >
-          <Image
+          <GameArt
             src={backgroundImage}
             alt=""
-            fill
             priority
             quality={90}
             sizes="100vw"
             className={`object-cover object-top ${
               isFallbackBackground ? "scale-110 opacity-40 blur-lg" : "opacity-70"
             }`}
+            // Sin wallpaper la ficha simplemente queda sin fondo.
+            fallback={null}
           />
           {/* Degradado doble: oscurece de arriba para que se lea la nav, y
               funde el final de la imagen con el fondo de la página. */}
@@ -90,18 +91,16 @@ export function GameHero({
          */}
         <div className="relative aspect-[3/4] w-32 shrink-0 self-start overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800 shadow-lg min-[420px]:w-40 sm:w-56">
           {game.coverUrl ? (
-            <Image
+            <GameArt
               src={game.coverUrl}
               alt={game.name}
-              fill
               priority
               sizes="(max-width: 420px) 128px, (max-width: 640px) 160px, 224px"
               className="object-cover"
+              fallback={<CoverPlaceholder />}
             />
           ) : (
-            <span className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
-              Sin carátula
-            </span>
+            <CoverPlaceholder />
           )}
         </div>
 
@@ -171,5 +170,14 @@ export function GameHero({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Marco sin carátula: el juego no tiene imagen, o la que tenía no cargó. */
+function CoverPlaceholder() {
+  return (
+    <span className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
+      Sin carátula
+    </span>
   );
 }

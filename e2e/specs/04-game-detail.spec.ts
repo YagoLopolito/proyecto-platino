@@ -1,5 +1,6 @@
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
+import { testGameTitle } from "../helpers/ids";
 
 /**
  * Detalle de juego (`/juegos/[id]`). Casos GAME-01 y GAME-07 de
@@ -71,6 +72,45 @@ test.describe("Detalle de juego", () => {
         .delete()
         .eq("user_id", users.userB.id)
         .eq("game_id", gameId);
+    }
+  });
+
+  test("GAME-08: la ficha cachea los datos de catálogo aunque el juego lo haya creado otro usuario", async ({
+    browser,
+    supabase,
+    users,
+  }) => {
+    // El juego lo crea userA: la RLS de `games` sólo deja actualizar las filas
+    // propias, así que este es exactamente el caso que antes no cacheaba nada
+    // (y dejaba la ficha sin fondo ni descripción, volviendo a pegarle a las
+    // APIs externas en cada visita).
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Cache Ajeno",
+      np: 103,
+    });
+
+    const context = await browser.newContext({ storageState: "e2e/.auth/user-b.json" });
+    const page = await context.newPage();
+    try {
+      await page.goto(`/juegos/${gameId}/diario`);
+      await expect(page.getByRole("heading", { name: testGameTitle("Cache Ajeno") })).toBeVisible();
+
+      // `background_url` se escribe siempre que se haya intentado buscarlo
+      // (string vacío = "ya buscamos y no había"), así que sirve de marca de
+      // que el update realmente entró, sin depender de ninguna API externa.
+      await expect
+        .poll(async () => {
+          const { data } = await supabase
+            .from("games")
+            .select("background_url")
+            .eq("id", gameId)
+            .single();
+          return data?.background_url ?? null;
+        })
+        .not.toBeNull();
+    } finally {
+      await context.close();
     }
   });
 });

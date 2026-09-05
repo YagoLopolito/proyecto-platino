@@ -8,6 +8,7 @@ import {
   findSteamHeroUrl,
 } from "@/lib/covers";
 import { generateGameDescription } from "@/lib/ai";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export interface GameCardData {
   id: string;
@@ -54,15 +55,50 @@ function toCardData(game: GameRow): GameCardData {
 }
 
 /**
- * Datos de ficha del juego (descripción, desarrolladora, año, fondo) para la
- * vista tipo Letterbox del diario. Se cachean en `games` la primera vez que
- * alguien abre la ficha: RAWG solo se consulta si la fila todavía no los tiene.
+ * Guarda los datos de catálogo recién traídos (descripción, fondo, carátula).
  *
- * El update puede quedar bloqueado silenciosamente por la RLS de `games` (solo
- * el dueño de la fila puede actualizarla); en ese caso igual se devuelven los
- * datos recién traídos, así el usuario ve la ficha completa aunque el juego lo
- * haya creado otro. Todo va en try/catch: es información decorativa, nunca
- * puede tirar abajo la página del diario.
+ * Va con el cliente de service role y no con el del usuario a propósito: la
+ * RLS de `games` sólo deja actualizar las filas propias (`created_by`), así
+ * que con el cliente de sesión el caché no se escribía nunca para un juego
+ * que sincronizó otro usuario -- y con dos cuentas en la app eso es la mitad
+ * del catálogo. El resultado era que la ficha volvía a pegarle a
+ * RAWG/SteamGridDB/Groq en **cada visita** y, si alguna de esas respuestas
+ * fallaba o tardaba, la ficha se mostraba sin fondo y sin descripción; la
+ * siguiente visita podía mostrarlos de nuevo. Son datos públicos y
+ * decorativos del catálogo compartido (nada por usuario), el mismo criterio
+ * que ya usa `lib/external-guides/`.
+ *
+ * Si falta `SUPABASE_SERVICE_ROLE_KEY` se cae al cliente del usuario, que es
+ * lo que había antes: peor caché, pero nunca un error en pantalla.
+ */
+async function persistGameCardData(
+  supabase: SupabaseClient<Database>,
+  gameId: string,
+  patch: Database["public"]["Tables"]["games"]["Update"],
+): Promise<void> {
+  if (Object.keys(patch).length === 0) return;
+
+  let writer: SupabaseClient<Database> = supabase;
+  try {
+    writer = createServiceClient();
+  } catch {
+    // Sin service role key: se intenta igual con la sesión del usuario.
+  }
+
+  const { error } = await writer.from("games").update(patch).eq("id", gameId);
+  if (error) {
+    console.error(`[game-details] no se pudo cachear la ficha de ${gameId}:`, error.message);
+  }
+}
+
+/**
+ * Datos de ficha del juego (descripción, desarrolladora, año, fondo, carátula)
+ * para la vista tipo Letterbox del diario. Se cachean en `games` la primera vez
+ * que alguien abre la ficha: las fuentes externas sólo se consultan si la fila
+ * todavía no los tiene.
+ *
+ * Todo va en try/catch: es información decorativa, nunca puede tirar abajo la
+ * página del diario.
  */
 export async function getGameCardData(
   supabase: SupabaseClient<Database>,
@@ -73,11 +109,17 @@ export async function getGameCardData(
   // repetir el fetch a RAWG/SteamGridDB/LLM en cada visita a la ficha.
   const needsDescription = game.description === null;
   const needsBackground = game.background_url === null;
-  if (!needsDescription && !needsBackground) return base;
+  // Muchos juegos de PSN quedan sin `cover_url` y sólo con el ícono cuadrado
+  // del set de trofeos, que estirado al póster 3:4 de la biblioteca se ve
+  // pixelado o directamente vacío. Si ya estamos consultando RAWG por la ficha,
+  // aprovechamos para completar la carátula real.
+  const needsCover = game.cover_url === null;
+  if (!needsDescription && !needsBackground && !needsCover) return base;
 
   try {
+    const wantsRawg = needsDescription || needsCover;
     const [details, heroUrl] = await Promise.all([
-      needsDescription
+      wantsRawg
         ? game.external_catalog_id
           ? fetchGameDetails(game.external_catalog_id)
           : findGameDetailsByName(game.name)
@@ -123,27 +165,24 @@ export async function getGameCardData(
       descriptionSource = "rawg";
     }
 
-    await supabase
-      .from("games")
-      .update({
-        ...(needsDescription
-          ? {
-              description,
-              description_source: descriptionSource,
-              developer: details?.developer ?? game.developer,
-              release_year: details?.releaseYear ?? game.release_year,
-              ...(game.cover_url === null && details?.coverUrl
-                ? { cover_url: details.coverUrl }
-                : {}),
-            }
-          : {}),
-        ...(needsBackground ? { background_url: backgroundUrl } : {}),
-      })
-      .eq("id", game.id);
+    const coverUrl = needsCover ? (details?.coverUrl ?? null) : game.cover_url;
+
+    await persistGameCardData(supabase, game.id, {
+      ...(needsDescription
+        ? {
+            description,
+            description_source: descriptionSource,
+            developer: details?.developer ?? game.developer,
+            release_year: details?.releaseYear ?? game.release_year,
+          }
+        : {}),
+      ...(needsBackground ? { background_url: backgroundUrl } : {}),
+      ...(needsCover && coverUrl ? { cover_url: coverUrl } : {}),
+    });
 
     return {
       ...base,
-      coverUrl: base.coverUrl ?? details?.coverUrl ?? null,
+      coverUrl: coverUrl ?? base.coverUrl,
       backgroundUrl: backgroundUrl || null,
       description: description || null,
       descriptionSource,

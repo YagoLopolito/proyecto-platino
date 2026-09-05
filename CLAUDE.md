@@ -356,6 +356,20 @@ barra `sticky top-0` y las dos se pisarían.
   UI: `ScreenshotUploader` (multi-archivo con preview local en `blob:`, por eso ese `<img>` va
   sin `next/image`) + `ScreenshotGallery` (grilla tipo Instagram con lightbox sobre `Modal`),
   ambos en `/juegos/[id]/diario`.
+- **El caché de la ficha se escribe con service role** (`persistGameCardData` en
+  `lib/catalog/details.ts`). La RLS de `games` sólo deja actualizar las filas propias
+  (`created_by`), así que con el cliente de sesión la descripción, el fondo y la carátula
+  **nunca se guardaban** para un juego que había sincronizado otro usuario: cada visita
+  volvía a pegarle a RAWG/SteamGridDB/Groq y, si alguna de esas respuestas fallaba o tardaba,
+  la ficha aparecía sin fondo (y la siguiente visita sí lo mostraba). Son datos públicos del
+  catálogo compartido, mismo criterio que `lib/external-guides/`. Si falta
+  `SUPABASE_SERVICE_ROLE_KEY` se cae al cliente del usuario en vez de romper.
+- `getGameCardData` también completa `cover_url` cuando la fila sólo tiene el `icon_url` de
+  PSN (el ícono cuadrado del set de trofeos, que estirado al póster 3:4 se ve pixelado).
+- **Todo el arte de juego va por `components/game/GameArt.tsx`**, no por `next/image` directo:
+  las URLs llegan de CDNs de terceros que se fueron agregando de a una a `images.remotePatterns`
+  y encima pasan por el optimizador. Si algo de eso falla, `GameArt` muestra el placeholder
+  (el nombre del juego / "Sin carátula") en vez de dejar un rectángulo vacío.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).

@@ -321,6 +321,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | GAME-05 | Breadcrumb | Volver lleva a `/juegos` desde enlaces/diario (issue #60) | P1 |
 | GAME-06 | `id` inexistente | Estado de error/404 controlado, no un stack trace | P1 |
 | GAME-07 | Juego de otro usuario | No se filtran trofeos ajenos (RLS) | **P0 (seguridad)** |
+| GAME-08 | Caché de datos de catálogo | La ficha guarda fondo/descripción aunque el juego lo haya creado otro usuario | P1 |
 
 ### 6.5 ~~Guías propias~~ (eliminado)
 
