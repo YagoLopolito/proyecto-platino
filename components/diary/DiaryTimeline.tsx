@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { DiaryTimelineEntry } from "@/lib/diary/queries";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
-import { PlatinumBadge } from "@/components/PlatinumBadge";
-import { CompletionBadge } from "@/components/CompletionBadge";
+import { GamePoster } from "@/components/game/GamePoster";
+import { PosterGrid } from "@/components/game/PosterGrid";
 import { EmptyState } from "@/components/EmptyState";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { text, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
 const MONTH_NAMES = [
@@ -63,12 +63,17 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
   const [minRating, setMinRating] = useUrlFilterState<string>("rating", ANY, text);
 
   const years = useMemo(
-    () => Array.from(new Set(entries.map((e) => parseDateParts(e.finishedOn).year))).sort().reverse(),
+    () =>
+      Array.from(new Set(entries.map((e) => parseDateParts(e.finishedOn).year)))
+        .sort()
+        .reverse(),
     [entries],
   );
   const platforms = useMemo(
     () =>
-      Array.from(new Set(entries.map((e) => e.platform).filter((p): p is string => Boolean(p)))).sort(),
+      Array.from(
+        new Set(entries.map((e) => e.platform).filter((p): p is string => Boolean(p))),
+      ).sort(),
     [entries],
   );
 
@@ -83,7 +88,8 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
   const filtered = useMemo(
     () =>
       entries.filter((entry) => {
-        if (activeYear !== ANY && parseDateParts(entry.finishedOn).year !== activeYear) return false;
+        if (activeYear !== ANY && parseDateParts(entry.finishedOn).year !== activeYear)
+          return false;
         if (activePlatform !== ANY && entry.platform !== activePlatform) return false;
         if (minRating !== ANY) {
           if (minRating === "none") return entry.rating === null;
@@ -188,69 +194,51 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
         </p>
       )}
 
+      {/*
+       * Cada mes es una grilla de carátulas, como el diario de Letterbox: el
+       * día y el rating van debajo de la carátula, y la reseña completa está
+       * a un toque, en el diario del juego. Antes cada partida era una fila
+       * con la reseña recortada, que en mobile daba scroll infinito para ver
+       * cuatro juegos.
+       */}
       {groups.map(([key, monthEntries]) => (
-        <section key={key} className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
-            {monthLabel(key)}
-          </h2>
-          <ul className="space-y-2">
+        <section key={key} className="space-y-3">
+          <SectionHeader title={monthLabel(key)} />
+          <PosterGrid>
             {monthEntries.map((entry) => {
               const { day } = parseDateParts(entry.finishedOn);
               return (
-                <li key={entry.id}>
-                  <Link
+                <li key={entry.id} data-testid="diary-entry">
+                  <GamePoster
                     href={`/juegos/${entry.gameId}/diario`}
-                    className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 hover:border-zinc-600 sm:gap-4 sm:p-4"
-                  >
-                    <span className="w-5 shrink-0 text-center text-sm text-zinc-500 sm:w-7 sm:text-base">
-                      {day}
-                    </span>
-                    {/* La carátula achica en mobile: a 96px de alto se comía
-                        el ancho del texto en pantallas de 360-375px. */}
-                    {entry.imageUrl ? (
-                      <Image
-                        src={entry.imageUrl}
-                        alt={entry.gameName}
-                        width={72}
-                        height={96}
-                        className="h-[72px] w-[54px] shrink-0 rounded object-cover sm:h-24 sm:w-18"
-                      />
-                    ) : (
-                      <div className="flex h-[72px] w-[54px] shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500 sm:h-24 sm:w-18">
-                        Sin img
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1 space-y-1">
-                      {/* `truncate` no funciona en un contenedor flex-wrap y
-                          además cortaba los badges: se corta por palabra. */}
-                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium break-words text-zinc-100 sm:text-base">
-                        {entry.gameName}
-                        {entry.isPlatinum && <PlatinumBadge />}
-                        {entry.isCompleted && <CompletionBadge />}
-                        {entry.playthroughNumber > 1 && (
-                          <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">
-                            Rejugada #{entry.playthroughNumber}
-                          </span>
-                        )}
-                      </p>
-                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500 sm:text-sm">
-                        {entry.platform && <span>{entry.platform}</span>}
+                    name={entry.gameName}
+                    imageUrl={entry.imageUrl}
+                    isPlatinum={entry.isPlatinum}
+                    isCompleted={entry.isCompleted}
+                    overlay={
+                      entry.playthroughNumber > 1 ? (
+                        <span
+                          className="absolute left-1 top-1 rounded bg-zinc-950/80 px-1 py-0.5 text-[10px] leading-none text-zinc-300 backdrop-blur-sm"
+                          title={`Rejugada #${entry.playthroughNumber}`}
+                        >
+                          #{entry.playthroughNumber}
+                        </span>
+                      ) : undefined
+                    }
+                    caption={
+                      <span className="flex flex-wrap items-center justify-between gap-x-1.5">
                         <StarRatingDisplay rating={entry.rating} />
-                      </p>
-                      {entry.review && (
-                        // Recortada a 3 líneas: la idea es ver de un vistazo qué
-                        // dijiste de esa partida; el texto completo está en el
-                        // diario del juego, a un click de acá.
-                        <p className="line-clamp-3 whitespace-pre-line text-xs leading-relaxed break-words text-zinc-400 sm:text-sm">
-                          {entry.review}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
+                        <span className="flex items-center gap-1 text-zinc-600">
+                          {entry.review && <span title="Tiene reseña">📝</span>}
+                          {day}
+                        </span>
+                      </span>
+                    }
+                  />
                 </li>
               );
             })}
-          </ul>
+          </PosterGrid>
         </section>
       ))}
     </div>

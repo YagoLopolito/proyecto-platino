@@ -13,10 +13,16 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/Button";
 import { isVisibleInLibrary } from "@/lib/library/visibility";
+import { GamePoster } from "@/components/game/GamePoster";
+import { PosterRow, PosterRowItem } from "@/components/game/PosterGrid";
+import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
 
 // Solo los tipos de PSN: los logros de Steam no tienen desglose ni puntos de
 // nivel, así que no entran en este panel (ver PRODUCT_SPEC.md 12.4).
 const TROPHY_TYPES = PSN_TROPHY_TYPES;
+
+/** Cuántas carátulas entran en la fila de "Últimos jugados" del perfil. */
+const RECENT_GAMES_LIMIT = 12;
 
 /**
  * Puntos por tipo de trofeo, según la escala clásica que usa PSN para calcular
@@ -84,19 +90,19 @@ export default async function PerfilPage() {
         )
         .eq("user_id", user.id)
         .maybeSingle(),
-      supabase
-        .from("steam_accounts")
-        .select("persona_name")
-        .eq("user_id", user.id)
-        .maybeSingle(),
+      supabase.from("steam_accounts").select("persona_name").eq("user_id", user.id).maybeSingle(),
       // Mismo criterio que /juegos, vía `isVisibleInLibrary`: los juegos de
       // catálogo y la basura de Steam (nunca jugada y sin logros) no cuentan
       // como biblioteca. Se traen las filas en vez de pedir un count porque el
       // criterio cruza `playtime_minutes` con los logros obtenidos, que salen
       // del RPC.
+      // Se traen también carátula y último jugado: el perfil muestra una fila
+      // de "Últimos jugados" con las mismas carátulas que la biblioteca.
       supabase
         .from("user_games")
-        .select("game_id, playtime_minutes, games!inner (source)")
+        .select(
+          "game_id, playtime_minutes, last_played_at, games!inner (id, name, cover_url, icon_url, source)",
+        )
         .eq("user_id", user.id),
       supabase.rpc("get_library_trophy_stats"),
     ]);
@@ -110,6 +116,34 @@ export default async function PerfilPage() {
     }),
   );
   const gamesCount = visibleGames.length;
+
+  // Últimos jugados, para la fila de carátulas del perfil. Los que nunca se
+  // jugaron van al fondo en vez de mezclarse con los recientes.
+  const recentGames = [...visibleGames]
+    .sort((a, b) => {
+      const aTime = a.last_played_at ? new Date(a.last_played_at).getTime() : -1;
+      const bTime = b.last_played_at ? new Date(b.last_played_at).getTime() : -1;
+      return bTime - aTime;
+    })
+    .slice(0, RECENT_GAMES_LIMIT)
+    .flatMap((row) => {
+      const game = row.games;
+      if (!game) return [];
+      const stats = statsByGame.get(row.game_id);
+      const total = stats?.total ?? 0;
+      const obtained = stats?.obtained ?? 0;
+      return {
+        id: game.id,
+        name: game.name,
+        imageUrl: game.cover_url ?? game.icon_url,
+        isSteam: game.source === "steam",
+        total,
+        obtained,
+        // El RPC devuelve totales, no el %: se calcula acá igual que en /juegos.
+        percent: total > 0 ? Math.round((obtained / total) * 100) : 0,
+        platinum: stats?.platinum ?? 0,
+      };
+    });
 
   // Las stats van SEPARADAS por plataforma: un platino de PSN y un 100% de
   // Steam no son la misma unidad, y sumarlos da un número que no significa
@@ -161,8 +195,8 @@ export default async function PerfilPage() {
   const isRealPsnData = psnCounts !== null && psnAccount?.trophy_level !== null;
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
-      <div className="mx-auto w-full max-w-3xl space-y-8">
+    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
+      <div className="mx-auto w-full max-w-5xl space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             {psnAccount?.avatar_url ? (
@@ -178,9 +212,11 @@ export default async function PerfilPage() {
                 Sin avatar
               </div>
             )}
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold">Perfil</h1>
-              <p className="font-mono text-sm text-zinc-400">{user.email}</p>
+            <div className="min-w-0 space-y-0.5">
+              <h1 className="truncate text-xl font-semibold sm:text-2xl">
+                {psnAccount?.online_id ?? "Perfil"}
+              </h1>
+              <p className="truncate font-mono text-xs text-zinc-500 sm:text-sm">{user.email}</p>
             </div>
           </div>
           <form action={logout}>
@@ -190,27 +226,70 @@ export default async function PerfilPage() {
           </form>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatCard label="Nivel de trofeos" value={level} className="col-span-2 sm:col-span-2">
-            <ProgressBar percent={progressPercent} />
-          </StatCard>
-          <StatCard label="Juegos en biblioteca" value={gamesCount} />
-          <StatCard label="Trofeos totales" value={totalTrophies} />
-        </div>
+        {/*
+         * Tira de números al estilo Letterbox: número grande, etiqueta chica
+         * en versalitas, separadas por una línea de 1px. Reemplaza a las
+         * tarjetas sueltas, que en mobile ocupaban media pantalla.
+         */}
+        <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800">
+          <div className="bg-zinc-950 px-3 py-3">
+            <dd className="text-2xl font-semibold leading-none">{level}</dd>
+            <dt className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-500">
+              Nivel PSN
+            </dt>
+            <ProgressBar percent={progressPercent} className="mt-2 h-1" />
+          </div>
+          <div className="bg-zinc-950 px-3 py-3">
+            <dd className="text-2xl font-semibold leading-none">{gamesCount}</dd>
+            <dt className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-500">Juegos</dt>
+          </div>
+          <div className="bg-zinc-950 px-3 py-3">
+            <dd className="text-2xl font-semibold leading-none">{totalTrophies}</dd>
+            <dt className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-500">Trofeos</dt>
+          </div>
+        </dl>
+
+        {recentGames.length > 0 && (
+          <section className="space-y-3">
+            <SectionHeader
+              title="Últimos jugados"
+              action={
+                <Link href="/juegos">
+                  <SectionAction>Ver todo</SectionAction>
+                </Link>
+              }
+            />
+            {/* Carrusel horizontal: el orden importa (lo más reciente primero)
+                y no hace falta ver la biblioteca entera desde el perfil. */}
+            <PosterRow>
+              {recentGames.map((game) => (
+                <PosterRowItem key={game.id}>
+                  <GamePoster
+                    href={`/juegos/${game.id}`}
+                    name={game.name}
+                    imageUrl={game.imageUrl}
+                    progress={game.total > 0 ? game : null}
+                    isPlatinum={!game.isSteam && game.platinum > 0}
+                    isCompleted={game.isSteam && game.total > 0 && game.obtained === game.total}
+                    sizes="(max-width: 640px) 26vw, 112px"
+                  />
+                </PosterRowItem>
+              ))}
+            </PosterRow>
+          </section>
+        )}
 
         <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
           {/* Todo este panel es de PSN: nivel, puntos y los cuatro tipos de
               trofeo. Steam no tiene nada de eso, por eso va con su título y su
               propio panel abajo en vez de mezclarse acá. */}
-          <h2 className="text-sm font-semibold text-zinc-200">
-            PlayStation Network · trofeos por tipo
-          </h2>
+          <SectionHeader title="PlayStation Network · trofeos por tipo" />
           {/*
-            * 2 columnas en mobile (4 no entran sin achicar el ícono a algo
-            * ilegible) y 4 a partir de sm. Dentro de cada tarjeta el ícono va
-            * al lado del número, alineados en una fila, en vez de apretado
-            * arriba a la derecha como cuando esto usaba StatCard.
-            */}
+           * 2 columnas en mobile (4 no entran sin achicar el ícono a algo
+           * ilegible) y 4 a partir de sm. Dentro de cada tarjeta el ícono va
+           * al lado del número, alineados en una fila, en vez de apretado
+           * arriba a la derecha como cuando esto usaba StatCard.
+           */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {TROPHY_TYPES.map((type) => (
               <div
@@ -234,15 +313,15 @@ export default async function PerfilPage() {
 
         {steamAccount && (
           <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <h2 className="text-sm font-semibold text-zinc-200">Steam · logros</h2>
+            <SectionHeader title="Steam · logros" />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <StatCard label="Juegos de Steam" value={steamStats.games} />
               <StatCard label="Logros desbloqueados" value={steamStats.achievements} />
               <StatCard label="Juegos al 100%" value={steamStats.completed} />
             </div>
             <p className="pt-1 text-xs text-zinc-600">
-              Los logros de Steam no tienen tipo ni platino: el equivalente es completar el 100%
-              de un juego. Por eso no se suman con los trofeos de PSN.
+              Los logros de Steam no tienen tipo ni platino: el equivalente es completar el 100% de
+              un juego. Por eso no se suman con los trofeos de PSN.
             </p>
           </div>
         )}

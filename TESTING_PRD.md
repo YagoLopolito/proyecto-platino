@@ -418,6 +418,7 @@ retirados y no se reutilizan.
 | MOB-01 | Barra inferior de navegación | En mobile la barra de tabs navega entre secciones y marca la activa con `aria-current` | P1 |
 | MOB-02 | La barra no tapa contenido | El spacer del layout reserva al menos el alto de la barra `fixed` | P1 |
 | MOB-03 | Una sola nav visible | La nav del header queda oculta en mobile; la visible es la de abajo | P2 |
+| MOB-04 | Biblioteca en grilla de carátulas | Cada juego es un póster con su barra de progreso y link a la ficha | P1 |
 | PWA-01 | Manifest instalable | `display: standalone`, `start_url`, íconos 192/512 y uno `maskable` | P1 |
 | PWA-02 | Service worker sin caché larga | `/sw.js` responde con `max-age=0` (si no, un SW nuevo no llega a los celulares) | P1 |
 | PWA-03 | Build id en vivo | `/api/version` devuelve el build id con `no-store`: es lo que dispara el aviso de actualizar | P1 |
@@ -545,10 +546,11 @@ test.describe("Enlaces externos", () => {
 
 | testid | Componente | Para qué |
 | --- | --- | --- |
-| `game-card` | `components/GameCard.tsx` | Contar y filtrar juegos en la biblioteca |
+| `game-card` | `app/(app)/juegos/GamesLibrary.tsx` | Contar y filtrar juegos en la grilla de carátulas |
 | `trophy-item` | `app/(app)/juegos/[id]/TrophyItem.tsx` | Assertear grayscale y tipo |
 | `diary-entry` | `components/diary/DiaryTimeline.tsx` | Contar entradas por mes |
 | `friend-row` | `components/friends/FriendsDiaryFeed.tsx` | Identificar amigos en el feed |
+| `friend-entry` | `components/friends/FriendsDiaryGrid.tsx` | Partidas de amigos en la grilla corta de `/diario` |
 | `sync-status` | `components/SyncStatusBadge.tsx` | Estado del sync |
 | `ai-plan` | `app/(app)/juegos/[id]/AiAdvisorPanel.tsx` | Presencia del plan generado |
 | `connection-card` | `components/connections/ConnectionCard.tsx` | Identificar la tarjeta de cada plataforma en Conexiones |

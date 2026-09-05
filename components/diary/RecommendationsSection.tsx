@@ -1,7 +1,8 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
+import { GamePoster } from "@/components/game/GamePoster";
+import { PosterGrid } from "@/components/game/PosterGrid";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { useActionState } from "react";
 import {
   generateRecommendations,
@@ -111,47 +112,36 @@ export default function RecommendationsSection({
 
           {keepPlaying.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-zinc-300">Seguí jugando</h3>
-              <ul className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-5">
+              <SectionHeader as="h3" title="Seguí jugando" />
+              <PosterGrid>
                 {keepPlaying.map((item) => {
                   const game = gamesById.get(item.juego_id)!;
                   return (
                     <li key={item.juego_id}>
-                      <Link href={`/juegos/${game.id}`} className="group block" title={item.motivo}>
-                        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 transition group-hover:border-zinc-500">
-                          {game.imageUrl ? (
-                            <Image
-                              src={game.imageUrl}
-                              alt={game.name}
-                              fill
-                              sizes="(max-width: 480px) 45vw, (max-width: 640px) 30vw, (max-width: 1024px) 25vw, 200px"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <span className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-zinc-500">
-                              {game.name}
-                            </span>
-                          )}
-                          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1.5 bg-zinc-950/85 px-2 py-1.5 text-xs">
+                      <GamePoster
+                        href={`/juegos/${game.id}`}
+                        name={game.name}
+                        imageUrl={game.imageUrl}
+                        progress={game.total > 0 ? game : null}
+                        showName
+                        overlay={
+                          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-zinc-950/85 px-1.5 py-1 text-[10px]">
                             <span className="text-zinc-300">{game.percent}%</span>
                             <EffortBadge effort={item.esfuerzo} />
                           </div>
-                        </div>
-                        <p className="mt-1.5 truncate text-xs font-medium text-zinc-200">
-                          {game.name}
-                        </p>
-                        <p className="mt-0.5 line-clamp-3 text-xs text-zinc-500">{item.motivo}</p>
-                      </Link>
+                        }
+                        caption={<span className="line-clamp-2">{item.motivo}</span>}
+                      />
                     </li>
                   );
                 })}
-              </ul>
+              </PosterGrid>
             </div>
           )}
 
           {fresh.length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-zinc-300">Para probar</h3>
+              <SectionHeader as="h3" title="Para probar" />
               {/*
                * Estos juegos no están en la base (por definición: el usuario no
                * los tiene), así que no hay carátula ni ficha adónde linkear --

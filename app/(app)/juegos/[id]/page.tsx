@@ -1,11 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
-import { ProgressBar } from "@/components/ProgressBar";
 import { PlatinumBadge } from "@/components/PlatinumBadge";
 import { CompletionBadge } from "@/components/CompletionBadge";
 import AiAdvisorPanel from "./AiAdvisorPanel";
@@ -15,6 +13,10 @@ import GameBreadcrumb from "@/components/GameBreadcrumb";
 import { GameScore } from "@/components/diary/GameScore";
 import { GameDiarySection } from "@/components/diary/GameDiarySection";
 import { getGameDiarySummary } from "@/lib/diary/queries";
+import { getGameCardData, GAME_CARD_COLUMNS } from "@/lib/catalog/details";
+import { GameDetailHero } from "@/components/game/GameDetailHero";
+import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
+import { formatPlaytime } from "@/lib/playtime";
 
 /**
  * El botón "Generar plan" invoca generateAiPlan (ai-actions.ts), que llama a
@@ -56,12 +58,11 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     { data: trophyGroups },
     { data: cachedPlanRow },
     diaryOutcome,
+    { data: userGame },
   ] = await Promise.all([
-    supabase
-      .from("games")
-      .select("id, name, platform, cover_url, icon_url, source")
-      .eq("id", gameId)
-      .single(),
+    // Las mismas columnas que la ficha de diario: el encabezado ahora es el
+    // mismo wallpaper + carátula grande, y sale de `getGameCardData`.
+    supabase.from("games").select(`${GAME_CARD_COLUMNS}, source`).eq("id", gameId).single(),
     supabase
       .from("trophies")
       .select(
@@ -81,6 +82,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       .limit(1)
       .maybeSingle(),
     getGameDiarySummary(supabase, gameId, userId),
+    supabase
+      .from("user_games")
+      .select("playtime_minutes")
+      .eq("user_id", userId)
+      .eq("game_id", gameId)
+      .maybeSingle(),
   ]);
 
   const diarySummary = diaryOutcome.status === "ok" ? diaryOutcome.summary : null;
@@ -101,6 +108,11 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     : { data: [] as { trophy_id: string; unlocked_at: string | null }[] };
 
   const cachedPlan = (cachedPlanRow?.payload_json as AiGamePlan | undefined) ?? null;
+
+  // Descripción, fondo, año y desarrolladora se cachean en `games` la primera
+  // vez que alguien abre una ficha (ver lib/catalog/details.ts): esta pantalla
+  // y la de diario comparten ese caché, así que abrir una calienta la otra.
+  const card = await getGameCardData(supabase, game);
 
   const obtained = new Map((userTrophies ?? []).map((row) => [row.trophy_id, row.unlocked_at]));
   const total = trophies?.length ?? 0;
@@ -150,7 +162,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
          * horizontalmente (las pills no entran en 375px sin desbordar la página).
          */}
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-1.5 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <p className="truncate text-sm text-zinc-400">{game.name}</p>
+          <p className="truncate text-sm text-zinc-400">{card.name}</p>
           <nav className="-mx-4 flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 text-sm sm:mx-0 sm:overflow-visible sm:px-0">
             <a
               href="#trofeos"
@@ -181,59 +193,43 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6 sm:space-y-10 sm:py-8">
-        <GameBreadcrumb gameId={gameId} gameName={game.name} />
+        <GameBreadcrumb gameId={gameId} gameName={card.name} />
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            {(game.cover_url ?? game.icon_url) ? (
-              <Image
-                src={game.cover_url ?? game.icon_url!}
-                alt={game.name}
-                width={64}
-                height={64}
-                className="h-14 w-14 shrink-0 rounded object-cover sm:h-16 sm:w-16"
-              />
-            ) : (
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-zinc-800 text-xs text-zinc-500 sm:h-16 sm:w-16">
-                Sin img
-              </div>
-            )}
-            <div className="min-w-0 space-y-1">
-              <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold sm:text-2xl">
-                {game.name}
-                {isPlatinumed && <PlatinumBadge />}
-                {isCompleted && <CompletionBadge />}
-              </h1>
-              <p className="text-sm text-zinc-400">{game.platform}</p>
-              {diarySummary && (
+        <GameDetailHero
+          game={card}
+          badges={
+            <>
+              {isPlatinumed && <PlatinumBadge />}
+              {isCompleted && <CompletionBadge />}
+            </>
+          }
+          stats={[
+            { label: isSteam ? "Logros" : "Trofeos", value: `${obtainedCount}/${total}` },
+            { label: "Completitud", value: `${percent}%` },
+            { label: "Horas", value: formatPlaytime(userGame?.playtime_minutes) },
+            {
+              label: "Comunidad",
+              value: diarySummary ? (
                 <GameScore
                   score={{
                     average_rating: diarySummary.averageRating,
                     rating_count: diarySummary.ratingCount,
                   }}
                 />
-              )}
-            </div>
-          </div>
+              ) : null,
+            },
+          ]}
+        />
 
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-zinc-400">Completitud</span>
-              <span className="font-medium">
-                {obtainedCount}/{total} ({percent}%)
-              </span>
-            </div>
-            <ProgressBar percent={percent} className="mt-2 h-2" />
-          </div>
-        </div>
-
-        <section
-          id="trofeos"
-          className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8"
-        >
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Trofeos {total > 0 && `(${total})`}
-          </h2>
+        <section id="trofeos" className="scroll-mt-28 space-y-3 pt-2 sm:scroll-mt-16">
+          <SectionHeader
+            title={
+              <>
+                {isSteam ? "Logros" : "Trofeos"}{" "}
+                {total > 0 && <span className="text-zinc-600">{total}</span>}
+              </>
+            }
+          />
 
           {trophiesError && (
             <ErrorState message={`No se pudieron cargar los trofeos: ${trophiesError.message}`} />
@@ -248,11 +244,15 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           )}
         </section>
 
-        <section
-          id="diario"
-          className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8"
-        >
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Diario</h2>
+        <section id="diario" className="scroll-mt-28 space-y-3 pt-2 sm:scroll-mt-16">
+          <SectionHeader
+            title="Diario"
+            action={
+              <Link href={`/juegos/${gameId}/diario`}>
+                <SectionAction>Ver ficha</SectionAction>
+              </Link>
+            }
+          />
           {diaryOutcome.status === "error" ? (
             <ErrorState message={`No se pudo cargar el diario: ${diaryOutcome.message}`} />
           ) : (
@@ -260,13 +260,8 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           )}
         </section>
 
-        <section
-          id="advisor"
-          className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8"
-        >
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Advisor con IA
-          </h2>
+        <section id="advisor" className="scroll-mt-28 space-y-3 pt-2 sm:scroll-mt-16">
+          <SectionHeader title="Advisor con IA" />
           <AiAdvisorPanel
             gameId={gameId}
             trophies={(trophies ?? []).map((t) => ({

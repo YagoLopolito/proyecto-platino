@@ -87,6 +87,33 @@ test.describe("Mobile", () => {
     expect(heights!.spacer).toBeGreaterThanOrEqual(heights!.bar);
   });
 
+  test("MOB-04: la biblioteca es una grilla de carátulas con su progreso", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId, trophyIds } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 4,
+      nameSuffix: "Mobile Grilla",
+      np: 112,
+    });
+    await supabase.from("user_trophies").upsert(
+      trophyIds.slice(0, 1).map((trophyId) => ({
+        user_id: users.userA.id,
+        trophy_id: trophyId,
+        unlocked_at: new Date().toISOString(),
+      })),
+    );
+
+    await page.goto("/juegos");
+    const poster = page.getByTestId("game-card").filter({ hasText: "Mobile Grilla" });
+    await expect(poster).toBeVisible();
+    // La barra de progreso sobre la carátula es la que reemplaza al detalle
+    // que antes mostraba la fila: 1 de 4 = 25%.
+    await expect(poster.getByRole("img", { name: /25% completado/ })).toBeVisible();
+    await expect(poster.getByRole("link")).toHaveAttribute("href", `/juegos/${gameId}`);
+  });
+
   test("MOB-03: la nav de escritorio no se duplica en mobile", async ({ page }) => {
     await page.goto("/juegos");
     // El header tiene su propia nav, oculta por CSS en mobile: la que se ve es

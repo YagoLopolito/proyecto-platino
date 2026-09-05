@@ -2,8 +2,11 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { GameCard } from "@/components/GameCard";
+import { GamePoster } from "@/components/game/GamePoster";
+import { PosterGrid } from "@/components/game/PosterGrid";
+import { formatPlaytime } from "@/lib/playtime";
 import { EmptyState } from "@/components/EmptyState";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { boolean, oneOf, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
@@ -122,11 +125,20 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">
-          Juegos {games.length > 0 && `(${visibleGames.length}/${games.length})`}
-        </h2>
+      <SectionHeader
+        title={
+          <>
+            Juegos{" "}
+            {games.length > 0 && (
+              <span className="text-zinc-600">
+                {visibleGames.length}/{games.length}
+              </span>
+            )}
+          </>
+        }
+      />
 
+      <div className="flex flex-wrap items-center justify-between gap-2">
         {games.length > 1 && (
           <div className="flex flex-wrap items-center gap-1 text-xs">
             {SORT_OPTIONS.map((option) => (
@@ -209,11 +221,42 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
         <EmptyState title="Ningún juego coincide con este filtro." />
       )}
 
-      <ul className="space-y-3">
-        {visibleGames.map((game) => (
-          <GameCard key={game.id} game={game} />
-        ))}
-      </ul>
+      {/*
+       * Grilla de carátulas al estilo Letterbox. Lo que antes era una fila de
+       * texto por juego (progreso, horas, desglose por tipo de trofeo) ahora
+       * está en la ficha: acá queda la barra fina de progreso sobre la
+       * carátula y el badge de platino / 100%, que es el vistazo rápido que
+       * un tracker sí necesita.
+       */}
+      <PosterGrid>
+        {visibleGames.map((game) => {
+          const isSteam = game.source === "steam";
+          const playtime = formatPlaytime(game.playtimeMinutes);
+          return (
+            <li key={game.id} data-testid="game-card">
+              <GamePoster
+                href={`/juegos/${game.id}`}
+                name={game.name}
+                imageUrl={game.imageUrl}
+                progress={game.total > 0 ? game : null}
+                isPlatinum={!isSteam && game.counts.platinum > 0}
+                isCompleted={isSteam && game.total > 0 && game.obtained === game.total}
+                showName
+                caption={
+                  game.total > 0 ? (
+                    <span className="flex flex-wrap items-center gap-x-1.5">
+                      <span>{game.percent}%</span>
+                      {playtime && <span className="text-zinc-600">· ⏱ {playtime}</span>}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-600">Sin sincronizar</span>
+                  )
+                }
+              />
+            </li>
+          );
+        })}
+      </PosterGrid>
     </section>
   );
 }

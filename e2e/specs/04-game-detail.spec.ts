@@ -8,7 +8,11 @@ import { seedGameWithTrophies } from "../helpers/seed";
  * sync mockeado: no hay nada de PSN que estos casos necesiten ejercitar.
  */
 test.describe("Detalle de juego", () => {
-  test("GAME-01: la lista de trofeos trae todos los del fixture", async ({ page, supabase, users }) => {
+  test("GAME-01: la lista de trofeos trae todos los del fixture", async ({
+    page,
+    supabase,
+    users,
+  }) => {
     const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
       n: 6,
       nameSuffix: "Detalle Uno",
@@ -56,11 +60,18 @@ test.describe("Detalle de juego", () => {
     try {
       await page.goto(`/juegos/${gameId}`);
       // El % de completitud de userB tiene que ser 0/4: si se filtraran mal
-      // los trofeos ajenos, acá aparecería el progreso de userA.
-      await expect(page.getByText("0/4 (0%)")).toBeVisible();
+      // los trofeos ajenos, acá aparecería el progreso de userA. Los dos
+      // números viven en celdas separadas de la tira de stats del encabezado.
+      const stats = page.getByRole("definition");
+      await expect(stats.filter({ hasText: "0/4" })).toBeVisible();
+      await expect(stats.filter({ hasText: "0%" }).first()).toBeVisible();
     } finally {
       await context.close();
-      await supabase.from("user_games").delete().eq("user_id", users.userB.id).eq("game_id", gameId);
+      await supabase
+        .from("user_games")
+        .delete()
+        .eq("user_id", users.userB.id)
+        .eq("game_id", gameId);
     }
   });
 });

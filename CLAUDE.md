@@ -164,6 +164,45 @@ Diagnóstico (2026-08-19) sobre por qué la app se sentía lenta "en todos lados
 
 Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos tocados; se levantó el dev server y se confirmó con `curl` que `/juegos`, `/psn` y `/perfil` siguen devolviendo 307 a `/login` sin sesión (el middleware acotado sigue protegiendo esas rutas), y que rutas públicas (`/`, `/registro`) cargan sin pasar por el middleware.
 
+## Diseño visual: la app de Letterboxd como referencia
+
+Decidido el 2026-09-05: **toda la app mobile sigue el lenguaje visual de la app de
+Letterboxd**, que es coherente con que el diario ya se haya diseñado así desde el principio.
+No se copian sus colores de marca (la paleta sigue siendo la de PRODUCT_SPEC.md §7: negros
+azulados, acento PSN, oro de trofeo); se copia la **estructura**.
+
+Tres primitivas, y todo lo demás se arma con ellas:
+
+- `components/game/GamePoster.tsx` — la carátula es la unidad visual de la app. Las pantallas
+  de navegar son grillas de pósters, no listas de texto. Sobre la carátula va **sólo** lo
+  mínimo: una barra de progreso de 3px abajo y el badge de platino / 100% en una esquina. El
+  número exacto, el desglose por tipo de trofeo y las horas viven en la ficha del juego.
+  Es `aspect-[3/4]` y no el 2:3 de un póster de cine: las carátulas llegan de fuentes muy
+  distintas (los íconos de PSN son cuadrados, las de RAWG apaisadas) y a 2:3 `object-cover`
+  se comía media imagen.
+- `components/game/PosterGrid.tsx` — `PosterGrid` (3 columnas en mobile, como Letterboxd),
+  más `PosterRow`/`PosterRowItem` para los carruseles horizontales de las secciones donde el
+  orden importa más que ver todo. El `PosterRow` lleva `scroll-pl-4` además del `px-4`: sin
+  scroll-padding el snap del primer ítem ignora el padding y la fila arranca desplazada
+  respecto de la grilla de al lado.
+- `components/ui/SectionHeader.tsx` — versalitas chicas y espaciadas sobre una regla fina,
+  con acción opcional a la derecha (`SectionAction`, el "VER TODO"). Reemplaza a los `<h2>`
+  grandes: con la pantalla llena de carátulas, el título tiene que ordenar sin competir.
+
+Las **tiras de estadísticas** (perfil y ficha de juego) son el otro patrón prestado: número
+grande, etiqueta chica en versalitas, celdas separadas por 1px. En mobile van de 2 o 3 por
+fila.
+
+`components/game/GameDetailHero.tsx` (ficha de trofeos) y `components/diary/GameHero.tsx`
+(ficha de diario) son primos: los dos hacen el wallpaper a ancho completo de la ventana con
+el truco de `w-screen` + `left-1/2` + `-translate-x-1/2`. El de diario además muestra
+descripción y puntuación de la comunidad; el de trofeos, la tira de progreso del usuario.
+Los dos leen `getGameCardData` (`lib/catalog/details.ts`), así que abrir una ficha calienta
+el caché de la otra.
+
+`components/GameCard.tsx` (la fila de la biblioteca con progreso, horas y desglose por tipo)
+**se eliminó**: la reemplazó la grilla de carátulas.
+
 ## App instalable en el celular (PWA)
 
 Platinoob se instala en el celular desde el navegador — "Añadir a pantalla de inicio" /
