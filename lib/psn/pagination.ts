@@ -24,9 +24,7 @@ export type PsnPageInfo = {
   totalItemCount?: number | null;
 };
 
-export type PsnPageDecision =
-  | { done: true }
-  | { done: false; nextOffset: number };
+export type PsnPageDecision = { done: true } | { done: false; nextOffset: number };
 
 export function decideNextPage(page: PsnPageInfo, currentOffset: number): PsnPageDecision {
   // Página vacía: no hay más nada, con o sin metadata de paginación.

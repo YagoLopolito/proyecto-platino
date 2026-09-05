@@ -104,13 +104,15 @@ export function InstallAppCard() {
       <div className="space-y-1">
         <h2 className="text-base font-semibold text-zinc-50">Instalar Platinoob en el celular</h2>
         <p className="text-sm text-zinc-400">
-          Se agrega a la pantalla de inicio y se abre a pantalla completa, como una app. No pasa
-          por ninguna tienda y se actualiza sola cuando publicamos cambios.
+          Se agrega a la pantalla de inicio y se abre a pantalla completa, como una app. No pasa por
+          ninguna tienda y se actualiza sola cuando publicamos cambios.
         </p>
       </div>
 
       {installed ? (
-        <p className="text-sm text-green-400">Listo, ya está instalada. Buscala en tu pantalla de inicio.</p>
+        <p className="text-sm text-green-400">
+          Listo, ya está instalada. Buscala en tu pantalla de inicio.
+        </p>
       ) : promptEvent ? (
         <button
           type="button"

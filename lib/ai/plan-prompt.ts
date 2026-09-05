@@ -184,4 +184,3 @@ export function buildAiPlanUserPrompt(input: AiPlanInput): string {
   );
   return prompt;
 }
-

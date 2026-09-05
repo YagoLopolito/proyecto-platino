@@ -10,7 +10,7 @@ import "server-only";
 export class SteamProfilePrivateError extends Error {
   constructor() {
     super(
-      "El perfil de Steam está en privado. Poné \"Detalles del juego\" en Público para poder sincronizar.",
+      'El perfil de Steam está en privado. Poné "Detalles del juego" en Público para poder sincronizar.',
     );
     this.name = "SteamProfilePrivateError";
   }

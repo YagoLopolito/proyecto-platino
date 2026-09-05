@@ -18,10 +18,13 @@ export default function ReplaceSteamAccountForm({ verifiedSteamId }: { verifiedS
   const [state, formAction, pending] = useActionState(replaceSteamAccount, initialState);
 
   return (
-    <form action={formAction} className="space-y-2 rounded border border-amber-600/60 bg-amber-500/10 p-3">
+    <form
+      action={formAction}
+      className="space-y-2 rounded border border-amber-600/60 bg-amber-500/10 p-3"
+    >
       <p className="text-sm text-amber-200">
-        Te logueaste en Steam con la cuenta{" "}
-        <span className="font-mono">{verifiedSteamId}</span>, que no es la que tenés conectada.
+        Te logueaste en Steam con la cuenta <span className="font-mono">{verifiedSteamId}</span>,
+        que no es la que tenés conectada.
       </p>
       <input type="hidden" name="steamId" value={verifiedSteamId} />
       <FormError>{state.error}</FormError>

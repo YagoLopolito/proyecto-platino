@@ -52,14 +52,15 @@ Clic para ver cómo desbloquearlo.`}
 }
 
 /** Etiqueta legible de cada categoría de desafío que devuelve el modelo. */
-const CHALLENGE_LABELS: Record<AiGamePlan["desafios_de_dificultad"][number]["categoria"], string> = {
-  dificultad_maxima: "Dificultad máxima",
-  speedrun: "Contrarreloj",
-  sin_morir: "Sin morir",
-  permadeath: "Muerte permanente",
-  sin_recursos: "Recursos limitados",
-  otro_desafio: "Desafío de habilidad",
-};
+const CHALLENGE_LABELS: Record<AiGamePlan["desafios_de_dificultad"][number]["categoria"], string> =
+  {
+    dificultad_maxima: "Dificultad máxima",
+    speedrun: "Contrarreloj",
+    sin_morir: "Sin morir",
+    permadeath: "Muerte permanente",
+    sin_recursos: "Recursos limitados",
+    otro_desafio: "Desafío de habilidad",
+  };
 
 /** Etiqueta legible de cada categoría de trofeo de acumulación. */
 const COUNTER_LABELS: Record<AiGamePlan["acumulables"][number]["categoria"], string> = {
@@ -135,9 +136,7 @@ function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: Adviso
           ))}
         </ol>
       ) : (
-        <p className="mt-2 text-xs text-zinc-500">
-          Clickeá el trofeo para ver cómo desbloquearlo.
-        </p>
+        <p className="mt-2 text-xs text-zinc-500">Clickeá el trofeo para ver cómo desbloquearlo.</p>
       )}
     </div>
   );
@@ -217,7 +216,10 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
         <SectionCard icon="⚠️" title="Trofeos perdibles (missables)" accent="border-l-amber-600">
           <ul className="space-y-2">
             {plan.missables.map((m, i) => (
-              <li key={`${m.trofeo_id}-${i}`} className="rounded border border-amber-900/50 bg-amber-950/20 p-2.5">
+              <li
+                key={`${m.trofeo_id}-${i}`}
+                className="rounded border border-amber-900/50 bg-amber-950/20 p-2.5"
+              >
                 <div className="mb-1">
                   <TrophyChip trophies={trophies} trophyId={m.trofeo_id} />
                 </div>
@@ -254,14 +256,10 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
       )}
 
       {(plan.acumulables ?? []).length > 0 && (
-        <SectionCard
-          icon="🎯"
-          title="Contadores a tener en cuenta"
-          accent="border-l-indigo-600"
-        >
+        <SectionCard icon="🎯" title="Contadores a tener en cuenta" accent="border-l-indigo-600">
           <p className="mb-2 text-xs text-zinc-500">
-            Trofeos que piden acumular una cantidad. Conviene saberlos antes de empezar la
-            historia: no son difíciles, pero se llega al final con el contador a medias.
+            Trofeos que piden acumular una cantidad. Conviene saberlos antes de empezar la historia:
+            no son difíciles, pero se llega al final con el contador a medias.
           </p>
           <ul className="space-y-2">
             {(plan.acumulables ?? []).map((a, i) => (
@@ -292,7 +290,10 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
         <SectionCard icon="🎮" title="Modos de juego" accent="border-l-teal-600">
           <ul className="space-y-2">
             {(plan.modos ?? []).map((grupo, i) => (
-              <li key={`${grupo.modo}-${i}`} className="rounded border border-zinc-800 bg-zinc-900 p-2.5">
+              <li
+                key={`${grupo.modo}-${i}`}
+                className="rounded border border-zinc-800 bg-zinc-900 p-2.5"
+              >
                 <p className="font-medium text-teal-300">{grupo.modo}</p>
                 {grupo.trofeos_relacionados.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">

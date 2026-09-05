@@ -23,8 +23,7 @@ export interface DiaryTimelineEntry {
 }
 
 export type DiaryTimelineOutcome =
-  | { status: "ok"; entries: DiaryTimelineEntry[] }
-  | { status: "error"; message: string };
+  { status: "ok"; entries: DiaryTimelineEntry[] } | { status: "error"; message: string };
 
 /**
  * Entradas del diario del usuario, más reciente primero, con los datos del
@@ -133,8 +132,7 @@ export interface GameDiarySummary {
 }
 
 export type GameDiarySummaryOutcome =
-  | { status: "ok"; summary: GameDiarySummary }
-  | { status: "error"; message: string };
+  { status: "ok"; summary: GameDiarySummary } | { status: "error"; message: string };
 
 /**
  * Resumen del Letterbox para un juego: distribución de valoraciones (1-5

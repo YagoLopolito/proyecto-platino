@@ -141,17 +141,15 @@ async function syncTitle(
   // upsert dependía de la policy de UPDATE que faltaba en `user_games` (ver
   // 20260901000000_user_games_update_policy.sql), y sin mirar el error el
   // síntoma era horas congeladas sin ninguna pista.
-  const { error: userGameError } = await supabase
-    .from("user_games")
-    .upsert(
-      {
-        user_id: userId,
-        game_id: row.id,
-        last_played_at: lastPlayedAt,
-        playtime_minutes: game.playtimeMinutes,
-      },
-      { onConflict: "user_id,game_id" },
-    );
+  const { error: userGameError } = await supabase.from("user_games").upsert(
+    {
+      user_id: userId,
+      game_id: row.id,
+      last_played_at: lastPlayedAt,
+      playtime_minutes: game.playtimeMinutes,
+    },
+    { onConflict: "user_id,game_id" },
+  );
   if (userGameError) {
     console.error(`[steam-sync] no se pudo escribir user_games (${game.name}):`, userGameError);
   }
@@ -236,12 +234,19 @@ async function syncTitle(
       try {
         await reconcileCompletedDiaryEntry(supabase, userId, row.id, completedAt);
       } catch (cause) {
-        console.error(`[steam-sync] no se pudo actualizar el diario al 100% (${game.name}):`, cause);
+        console.error(
+          `[steam-sync] no se pudo actualizar el diario al 100% (${game.name}):`,
+          cause,
+        );
       }
     }
   }
 
-  return { titleSynced: true, achievements: result.achievements.length, withoutAchievements: false };
+  return {
+    titleSynced: true,
+    achievements: result.achievements.length,
+    withoutAchievements: false,
+  };
 }
 
 /**
@@ -281,7 +286,9 @@ export async function syncSteamAchievementsForUser(
     throw cause;
   }
 
-  const recentlyPlayedAppIds = await getRecentlyPlayedAppIds(account.steam_id64).catch(() => new Set<number>());
+  const recentlyPlayedAppIds = await getRecentlyPlayedAppIds(account.steam_id64).catch(
+    () => new Set<number>(),
+  );
   const syncStartedAt = new Date().toISOString();
 
   const results = await mapWithConcurrency(owned, TITLE_CONCURRENCY, (game) =>

@@ -34,15 +34,13 @@ export default function SteamSyncButton({ className = "" }: { className?: string
           setMessage({
             kind: "private",
             text:
-              body?.error ??
-              "El perfil de Steam está en privado y no se pueden leer tus juegos.",
+              body?.error ?? "El perfil de Steam está en privado y no se pueden leer tus juegos.",
           });
         } else {
           setMessage({
             kind: "error",
             text:
-              body?.error ??
-              "No se pudo sincronizar con Steam. Probá de nuevo en unos minutos.",
+              body?.error ?? "No se pudo sincronizar con Steam. Probá de nuevo en unos minutos.",
           });
         }
         return;
@@ -55,7 +53,7 @@ export default function SteamSyncButton({ className = "" }: { className?: string
           `(${body.titlesWithoutAchievements} juegos sin logros).` +
           (body.playtimeHidden
             ? " Steam no reportó horas para ningún juego: en Steam › Editar perfil › Configuración" +
-              " de privacidad, desactivá \"Mantener en privado el tiempo total de juego\" si querés verlas acá."
+              ' de privacidad, desactivá "Mantener en privado el tiempo total de juego" si querés verlas acá.'
             : ""),
       });
       router.refresh();

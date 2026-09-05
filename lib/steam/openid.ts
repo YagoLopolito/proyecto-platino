@@ -38,9 +38,7 @@ export function buildSteamLoginUrl(returnToUrl: string, realm: string): string {
  * Steam, "verificado" no significaría absolutamente nada -- que es justo el
  * problema que este flujo viene a resolver.
  */
-export async function verifySteamOpenIdResponse(
-  params: URLSearchParams,
-): Promise<string | null> {
+export async function verifySteamOpenIdResponse(params: URLSearchParams): Promise<string | null> {
   if (params.get("openid.mode") !== "id_res") return null;
 
   const claimedId = params.get("openid.claimed_id");

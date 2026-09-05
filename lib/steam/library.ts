@@ -57,7 +57,8 @@ export async function getOwnedGames(steamId64: string): Promise<SteamOwnedGame[]
         name: readString(game, "name") ?? `App ${appId}`,
         iconUrl: buildIconUrl(appId, readString(game, "img_icon_url")),
         playtimeMinutes: readNumber(game, "playtime_forever") ?? 0,
-        lastPlayedAt: lastPlayed && lastPlayed > 0 ? new Date(lastPlayed * 1000).toISOString() : null,
+        lastPlayedAt:
+          lastPlayed && lastPlayed > 0 ? new Date(lastPlayed * 1000).toISOString() : null,
       };
     })
     .filter((game): game is SteamOwnedGame => game !== null);

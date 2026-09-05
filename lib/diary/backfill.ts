@@ -124,10 +124,15 @@ export async function backfillCompletedDiaryEntries(
   }
 
   const completed = [...byGame.entries()].filter(
-    ([, progress]) => progress.total > 0 && progress.earned === progress.total && progress.lastUnlockedAt,
+    ([, progress]) =>
+      progress.total > 0 && progress.earned === progress.total && progress.lastUnlockedAt,
   );
 
-  const result: PlatinumBackfillResult = { platinumsFound: completed.length, created: 0, linked: 0 };
+  const result: PlatinumBackfillResult = {
+    platinumsFound: completed.length,
+    created: 0,
+    linked: 0,
+  };
 
   // En serie por lo mismo que el backfill de platinos: así dos juegos no
   // compiten por el mismo `playthrough_number`.

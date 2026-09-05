@@ -34,12 +34,10 @@ export function PwaRuntime() {
     if (!("serviceWorker" in navigator)) return;
     // `updateViaCache: "none"` para que el browser revalide /sw.js contra el
     // server en vez de servir el que tenga en su caché HTTP.
-    navigator.serviceWorker
-      .register("/sw.js", { scope: "/", updateViaCache: "none" })
-      .catch(() => {
-        // Un SW que no registra (modo incógnito, browser viejo, sin HTTPS) no
-        // rompe nada: la app funciona igual, sólo sin offline ni instalación.
-      });
+    navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(() => {
+      // Un SW que no registra (modo incógnito, browser viejo, sin HTTPS) no
+      // rompe nada: la app funciona igual, sólo sin offline ni instalación.
+    });
   }, []);
 
   useEffect(() => {
@@ -95,9 +93,7 @@ export function PwaRuntime() {
       // `bottom-16` en mobile para no taparse con la barra de navegación.
       className="fixed inset-x-3 bottom-20 z-50 flex items-center gap-3 rounded-xl border border-blue-500/60 bg-zinc-900 p-3 shadow-lg pb-safe sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-sm"
     >
-      <p className="flex-1 text-sm text-zinc-200">
-        Hay una versión nueva de Platinoob.
-      </p>
+      <p className="flex-1 text-sm text-zinc-200">Hay una versión nueva de Platinoob.</p>
       <button
         type="button"
         onClick={() => void applyUpdate()}

@@ -80,8 +80,7 @@ export async function resolveSteamProfile(rawInput: string): Promise<SteamProfil
   const parsed = parseSteamInput(rawInput);
   if (!parsed) throw new SteamProfileNotFoundError();
 
-  const steamId64 =
-    parsed.kind === "id64" ? parsed.value : await resolveVanityUrl(parsed.value);
+  const steamId64 = parsed.kind === "id64" ? parsed.value : await resolveVanityUrl(parsed.value);
 
   return getPlayerSummary(steamId64);
 }

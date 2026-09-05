@@ -80,8 +80,8 @@ export default async function GameExternalLinksPage({
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">Enlaces externos de {game.name}</h1>
           <p className="text-sm text-zinc-400">
-            Guías de fuentes externas (Steam Community, PowerPyx, PSNProfiles, TrueTrophies).
-            Cada enlace cita su fuente y abre en el sitio original.
+            Guías de fuentes externas (Steam Community, PowerPyx, PSNProfiles, TrueTrophies). Cada
+            enlace cita su fuente y abre en el sitio original.
           </p>
         </div>
 

@@ -41,6 +41,9 @@ export function FriendAvatar({
       width={size}
       height={size}
       style={{ width: size, height: size }}
+      // Ya vienen a 32-64px de la CDN de PSN: optimizarlos no gana nada y
+      // gasta la cuota de transformaciones de Vercel (ver GameArt).
+      unoptimized
       onError={() => setFailed(true)}
       className="shrink-0 rounded-full bg-zinc-800 object-cover"
     />

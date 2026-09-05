@@ -1,983 +1,971 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
+    PostgrestVersion: "14.15";
+  };
   public: {
     Tables: {
       ai_game_plans: {
         Row: {
-          created_at: string
-          game_id: string
-          id: string
-          model: string
-          payload_json: Json
-          status: string
-          user_id: string | null
-        }
+          created_at: string;
+          game_id: string;
+          id: string;
+          model: string;
+          payload_json: Json;
+          status: string;
+          user_id: string | null;
+        };
         Insert: {
-          created_at?: string
-          game_id: string
-          id?: string
-          model: string
-          payload_json: Json
-          status?: string
-          user_id?: string | null
-        }
+          created_at?: string;
+          game_id: string;
+          id?: string;
+          model: string;
+          payload_json: Json;
+          status?: string;
+          user_id?: string | null;
+        };
         Update: {
-          created_at?: string
-          game_id?: string
-          id?: string
-          model?: string
-          payload_json?: Json
-          status?: string
-          user_id?: string | null
-        }
+          created_at?: string;
+          game_id?: string;
+          id?: string;
+          model?: string;
+          payload_json?: Json;
+          status?: string;
+          user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "ai_game_plans_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "ai_game_plans_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "ai_game_plans_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "ai_game_plans_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       ai_recommendations: {
         Row: {
-          created_at: string
-          id: string
-          model: string
-          payload_json: Json
-          status: string
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          model: string;
+          payload_json: Json;
+          status: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          model: string
-          payload_json: Json
-          status?: string
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          model: string;
+          payload_json: Json;
+          status?: string;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          model?: string
-          payload_json?: Json
-          status?: string
-          user_id?: string
-        }
+          created_at?: string;
+          id?: string;
+          model?: string;
+          payload_json?: Json;
+          status?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "ai_recommendations_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "ai_recommendations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       friendships: {
         Row: {
-          created_at: string
-          friend_id: string
-          user_id: string
-        }
+          created_at: string;
+          friend_id: string;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          friend_id: string
-          user_id: string
-        }
+          created_at?: string;
+          friend_id: string;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          friend_id?: string
-          user_id?: string
-        }
+          created_at?: string;
+          friend_id?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "friendships_friend_id_fkey"
-            columns: ["friend_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "friendships_friend_id_fkey";
+            columns: ["friend_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "friendships_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "friendships_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       game_diary_entries: {
         Row: {
-          completed_at: string | null
-          created_at: string
-          finished_on: string
-          game_id: string
-          id: string
-          platinum_earned_at: string | null
-          playthrough_number: number
-          rating: number | null
-          review: string | null
-          source: string
-          updated_at: string
-          user_id: string
-        }
+          completed_at: string | null;
+          created_at: string;
+          finished_on: string;
+          game_id: string;
+          id: string;
+          platinum_earned_at: string | null;
+          playthrough_number: number;
+          rating: number | null;
+          review: string | null;
+          source: string;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          completed_at?: string | null
-          created_at?: string
-          finished_on: string
-          game_id: string
-          id?: string
-          platinum_earned_at?: string | null
-          playthrough_number?: number
-          rating?: number | null
-          review?: string | null
-          source?: string
-          updated_at?: string
-          user_id: string
-        }
+          completed_at?: string | null;
+          created_at?: string;
+          finished_on: string;
+          game_id: string;
+          id?: string;
+          platinum_earned_at?: string | null;
+          playthrough_number?: number;
+          rating?: number | null;
+          review?: string | null;
+          source?: string;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          completed_at?: string | null
-          created_at?: string
-          finished_on?: string
-          game_id?: string
-          id?: string
-          platinum_earned_at?: string | null
-          playthrough_number?: number
-          rating?: number | null
-          review?: string | null
-          source?: string
-          updated_at?: string
-          user_id?: string
-        }
+          completed_at?: string | null;
+          created_at?: string;
+          finished_on?: string;
+          game_id?: string;
+          id?: string;
+          platinum_earned_at?: string | null;
+          playthrough_number?: number;
+          rating?: number | null;
+          review?: string | null;
+          source?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "game_diary_entries_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "game_diary_entries_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "game_diary_entries_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "game_diary_entries_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       game_screenshots: {
         Row: {
-          caption: string | null
-          created_at: string
-          game_id: string
-          id: string
-          storage_path: string
-          user_id: string
-        }
+          caption: string | null;
+          created_at: string;
+          game_id: string;
+          id: string;
+          storage_path: string;
+          user_id: string;
+        };
         Insert: {
-          caption?: string | null
-          completed_at?: string | null
-          created_at?: string
-          game_id: string
-          id?: string
-          storage_path: string
-          user_id: string
-        }
+          caption?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          game_id: string;
+          id?: string;
+          storage_path: string;
+          user_id: string;
+        };
         Update: {
-          caption?: string | null
-          completed_at?: string | null
-          created_at?: string
-          game_id?: string
-          id?: string
-          storage_path?: string
-          user_id?: string
-        }
+          caption?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          game_id?: string;
+          id?: string;
+          storage_path?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "game_screenshots_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "game_screenshots_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "game_screenshots_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "game_screenshots_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       game_external_guides: {
         Row: {
-          created_at: string
-          game_id: string
-          id: string
-          source: string
-          source_type: string
-          title: string
-          url: string
-        }
+          created_at: string;
+          game_id: string;
+          id: string;
+          source: string;
+          source_type: string;
+          title: string;
+          url: string;
+        };
         Insert: {
-          created_at?: string
-          game_id: string
-          id?: string
-          source: string
-          source_type: string
-          title: string
-          url: string
-        }
+          created_at?: string;
+          game_id: string;
+          id?: string;
+          source: string;
+          source_type: string;
+          title: string;
+          url: string;
+        };
         Update: {
-          created_at?: string
-          game_id?: string
-          id?: string
-          source?: string
-          source_type?: string
-          title?: string
-          url?: string
-        }
+          created_at?: string;
+          game_id?: string;
+          id?: string;
+          source?: string;
+          source_type?: string;
+          title?: string;
+          url?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "game_external_guides_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "game_external_guides_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       games: {
         Row: {
-          background_url: string | null
-          cover_url: string | null
-          created_at: string
-          created_by: string | null
-          description: string | null
-          description_source: string | null
-          developer: string | null
-          external_catalog_id: string | null
-          icon_url: string | null
-          id: string
-          name: string
-          np_comm_id: string | null
-          platform: string | null
-          release_year: number | null
-          source: string
-          steam_appid: number | null
-          steam_has_achievements: boolean | null
-          updated_at: string
-        }
+          background_url: string | null;
+          cover_url: string | null;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          description_source: string | null;
+          developer: string | null;
+          external_catalog_id: string | null;
+          icon_url: string | null;
+          id: string;
+          name: string;
+          np_comm_id: string | null;
+          platform: string | null;
+          release_year: number | null;
+          source: string;
+          steam_appid: number | null;
+          steam_has_achievements: boolean | null;
+          updated_at: string;
+        };
         Insert: {
-          background_url?: string | null
-          cover_url?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          description_source?: string | null
-          developer?: string | null
-          external_catalog_id?: string | null
-          icon_url?: string | null
-          id?: string
-          name: string
-          np_comm_id?: string | null
-          platform?: string | null
-          release_year?: number | null
-          source?: string
-          steam_appid?: number | null
-          steam_has_achievements?: boolean | null
-          updated_at?: string
-        }
+          background_url?: string | null;
+          cover_url?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          description_source?: string | null;
+          developer?: string | null;
+          external_catalog_id?: string | null;
+          icon_url?: string | null;
+          id?: string;
+          name: string;
+          np_comm_id?: string | null;
+          platform?: string | null;
+          release_year?: number | null;
+          source?: string;
+          steam_appid?: number | null;
+          steam_has_achievements?: boolean | null;
+          updated_at?: string;
+        };
         Update: {
-          background_url?: string | null
-          cover_url?: string | null
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          description_source?: string | null
-          developer?: string | null
-          external_catalog_id?: string | null
-          icon_url?: string | null
-          id?: string
-          name?: string
-          np_comm_id?: string | null
-          platform?: string | null
-          release_year?: number | null
-          source?: string
-          steam_appid?: number | null
-          steam_has_achievements?: boolean | null
-          updated_at?: string
-        }
+          background_url?: string | null;
+          cover_url?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          description_source?: string | null;
+          developer?: string | null;
+          external_catalog_id?: string | null;
+          icon_url?: string | null;
+          id?: string;
+          name?: string;
+          np_comm_id?: string | null;
+          platform?: string | null;
+          release_year?: number | null;
+          source?: string;
+          steam_appid?: number | null;
+          steam_has_achievements?: boolean | null;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "games_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "games_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       guide_steps: {
         Row: {
-          content: string
-          created_at: string
-          guide_id: string
-          id: string
-          step_order: number
-          trophy_id: string | null
-        }
+          content: string;
+          created_at: string;
+          guide_id: string;
+          id: string;
+          step_order: number;
+          trophy_id: string | null;
+        };
         Insert: {
-          content: string
-          created_at?: string
-          guide_id: string
-          id?: string
-          step_order: number
-          trophy_id?: string | null
-        }
+          content: string;
+          created_at?: string;
+          guide_id: string;
+          id?: string;
+          step_order: number;
+          trophy_id?: string | null;
+        };
         Update: {
-          content?: string
-          created_at?: string
-          guide_id?: string
-          id?: string
-          step_order?: number
-          trophy_id?: string | null
-        }
+          content?: string;
+          created_at?: string;
+          guide_id?: string;
+          id?: string;
+          step_order?: number;
+          trophy_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "guide_steps_guide_id_fkey"
-            columns: ["guide_id"]
-            isOneToOne: false
-            referencedRelation: "guides"
-            referencedColumns: ["id"]
+            foreignKeyName: "guide_steps_guide_id_fkey";
+            columns: ["guide_id"];
+            isOneToOne: false;
+            referencedRelation: "guides";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "guide_steps_trophy_id_fkey"
-            columns: ["trophy_id"]
-            isOneToOne: false
-            referencedRelation: "trophies"
-            referencedColumns: ["id"]
+            foreignKeyName: "guide_steps_trophy_id_fkey";
+            columns: ["trophy_id"];
+            isOneToOne: false;
+            referencedRelation: "trophies";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       guides: {
         Row: {
-          author_id: string
-          content_markdown: string | null
-          created_at: string
-          external_url: string | null
-          game_id: string
-          id: string
-          source: string | null
-          title: string
-          updated_at: string
-        }
+          author_id: string;
+          content_markdown: string | null;
+          created_at: string;
+          external_url: string | null;
+          game_id: string;
+          id: string;
+          source: string | null;
+          title: string;
+          updated_at: string;
+        };
         Insert: {
-          author_id: string
-          content_markdown?: string | null
-          created_at?: string
-          external_url?: string | null
-          game_id: string
-          id?: string
-          source?: string | null
-          title: string
-          updated_at?: string
-        }
+          author_id: string;
+          content_markdown?: string | null;
+          created_at?: string;
+          external_url?: string | null;
+          game_id: string;
+          id?: string;
+          source?: string | null;
+          title: string;
+          updated_at?: string;
+        };
         Update: {
-          author_id?: string
-          content_markdown?: string | null
-          created_at?: string
-          external_url?: string | null
-          game_id?: string
-          id?: string
-          source?: string | null
-          title?: string
-          updated_at?: string
-        }
+          author_id?: string;
+          content_markdown?: string | null;
+          created_at?: string;
+          external_url?: string | null;
+          game_id?: string;
+          id?: string;
+          source?: string | null;
+          title?: string;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "guides_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "guides_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "guides_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "guides_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       psn_accounts: {
         Row: {
-          account_id: string
-          avatar_url: string | null
-          created_at: string
-          id: string
-          last_synced_at: string | null
-          npsso_encrypted: string
-          online_id: string
-          token_status: string
-          updated_at: string
-          user_id: string
-          earned_bronze: number | null
-          earned_gold: number | null
-          earned_platinum: number | null
-          earned_silver: number | null
-          trophy_level: number | null
-          trophy_progress: number | null
-          trophy_tier: number | null
-        }
+          account_id: string;
+          avatar_url: string | null;
+          created_at: string;
+          id: string;
+          last_synced_at: string | null;
+          npsso_encrypted: string;
+          online_id: string;
+          token_status: string;
+          updated_at: string;
+          user_id: string;
+          earned_bronze: number | null;
+          earned_gold: number | null;
+          earned_platinum: number | null;
+          earned_silver: number | null;
+          trophy_level: number | null;
+          trophy_progress: number | null;
+          trophy_tier: number | null;
+        };
         Insert: {
-          account_id: string
-          avatar_url?: string | null
-          created_at?: string
-          id?: string
-          last_synced_at?: string | null
-          npsso_encrypted: string
-          online_id: string
-          token_status?: string
-          updated_at?: string
-          user_id: string
-          earned_bronze?: number | null
-          earned_gold?: number | null
-          earned_platinum?: number | null
-          earned_silver?: number | null
-          trophy_level?: number | null
-          trophy_progress?: number | null
-          trophy_tier?: number | null
-        }
+          account_id: string;
+          avatar_url?: string | null;
+          created_at?: string;
+          id?: string;
+          last_synced_at?: string | null;
+          npsso_encrypted: string;
+          online_id: string;
+          token_status?: string;
+          updated_at?: string;
+          user_id: string;
+          earned_bronze?: number | null;
+          earned_gold?: number | null;
+          earned_platinum?: number | null;
+          earned_silver?: number | null;
+          trophy_level?: number | null;
+          trophy_progress?: number | null;
+          trophy_tier?: number | null;
+        };
         Update: {
-          account_id?: string
-          avatar_url?: string | null
-          created_at?: string
-          id?: string
-          last_synced_at?: string | null
-          npsso_encrypted?: string
-          online_id?: string
-          token_status?: string
-          updated_at?: string
-          user_id?: string
-          earned_bronze?: number | null
-          earned_gold?: number | null
-          earned_platinum?: number | null
-          earned_silver?: number | null
-          trophy_level?: number | null
-          trophy_progress?: number | null
-          trophy_tier?: number | null
-        }
+          account_id?: string;
+          avatar_url?: string | null;
+          created_at?: string;
+          id?: string;
+          last_synced_at?: string | null;
+          npsso_encrypted?: string;
+          online_id?: string;
+          token_status?: string;
+          updated_at?: string;
+          user_id?: string;
+          earned_bronze?: number | null;
+          earned_gold?: number | null;
+          earned_platinum?: number | null;
+          earned_silver?: number | null;
+          trophy_level?: number | null;
+          trophy_progress?: number | null;
+          trophy_tier?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "psn_accounts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "psn_accounts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       steam_accounts: {
         Row: {
-          avatar_url: string | null
-          created_at: string
-          id: string
-          last_synced_at: string | null
-          persona_name: string
-          profile_visibility: string
-          steam_id64: string
-          updated_at: string
-          user_id: string
-          verified: boolean
-        }
+          avatar_url: string | null;
+          created_at: string;
+          id: string;
+          last_synced_at: string | null;
+          persona_name: string;
+          profile_visibility: string;
+          steam_id64: string;
+          updated_at: string;
+          user_id: string;
+          verified: boolean;
+        };
         Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          id?: string
-          last_synced_at?: string | null
-          persona_name: string
-          profile_visibility?: string
-          steam_id64: string
-          updated_at?: string
-          user_id: string
-          verified?: boolean
-        }
+          avatar_url?: string | null;
+          created_at?: string;
+          id?: string;
+          last_synced_at?: string | null;
+          persona_name: string;
+          profile_visibility?: string;
+          steam_id64: string;
+          updated_at?: string;
+          user_id: string;
+          verified?: boolean;
+        };
         Update: {
-          avatar_url?: string | null
-          created_at?: string
-          id?: string
-          last_synced_at?: string | null
-          persona_name?: string
-          profile_visibility?: string
-          steam_id64?: string
-          updated_at?: string
-          user_id?: string
-          verified?: boolean
-        }
+          avatar_url?: string | null;
+          created_at?: string;
+          id?: string;
+          last_synced_at?: string | null;
+          persona_name?: string;
+          profile_visibility?: string;
+          steam_id64?: string;
+          updated_at?: string;
+          user_id?: string;
+          verified?: boolean;
+        };
         Relationships: [
           {
-            foreignKeyName: "steam_accounts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "steam_accounts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       trophies: {
         Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          earned_rate: number | null
-          game_id: string
-          hidden: boolean
-          icon_url: string | null
-          id: string
-          name: string
-          progress_target: string | null
-          rarity: number | null
-          sort_order: number | null
-          trophy_group_id: string | null
-          trophy_id: string | null
-          type: string
-        }
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          earned_rate: number | null;
+          game_id: string;
+          hidden: boolean;
+          icon_url: string | null;
+          id: string;
+          name: string;
+          progress_target: string | null;
+          rarity: number | null;
+          sort_order: number | null;
+          trophy_group_id: string | null;
+          trophy_id: string | null;
+          type: string;
+        };
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          earned_rate?: number | null
-          game_id: string
-          hidden?: boolean
-          icon_url?: string | null
-          id?: string
-          name: string
-          progress_target?: string | null
-          rarity?: number | null
-          sort_order?: number | null
-          trophy_group_id?: string | null
-          trophy_id?: string | null
-          type: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          earned_rate?: number | null;
+          game_id: string;
+          hidden?: boolean;
+          icon_url?: string | null;
+          id?: string;
+          name: string;
+          progress_target?: string | null;
+          rarity?: number | null;
+          sort_order?: number | null;
+          trophy_group_id?: string | null;
+          trophy_id?: string | null;
+          type: string;
+        };
         Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          earned_rate?: number | null
-          game_id?: string
-          hidden?: boolean
-          icon_url?: string | null
-          id?: string
-          name?: string
-          progress_target?: string | null
-          rarity?: number | null
-          sort_order?: number | null
-          trophy_group_id?: string | null
-          trophy_id?: string | null
-          type?: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          earned_rate?: number | null;
+          game_id?: string;
+          hidden?: boolean;
+          icon_url?: string | null;
+          id?: string;
+          name?: string;
+          progress_target?: string | null;
+          rarity?: number | null;
+          sort_order?: number | null;
+          trophy_group_id?: string | null;
+          trophy_id?: string | null;
+          type?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "trophies_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "trophies_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "trophies_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "trophies_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       trophy_groups: {
         Row: {
-          created_at: string
-          created_by: string | null
-          game_id: string
-          group_id: string
-          icon_url: string | null
-          id: string
-          name: string
-        }
+          created_at: string;
+          created_by: string | null;
+          game_id: string;
+          group_id: string;
+          icon_url: string | null;
+          id: string;
+          name: string;
+        };
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          game_id: string
-          group_id: string
-          icon_url?: string | null
-          id?: string
-          name: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          game_id: string;
+          group_id: string;
+          icon_url?: string | null;
+          id?: string;
+          name: string;
+        };
         Update: {
-          created_at?: string
-          created_by?: string | null
-          game_id?: string
-          group_id?: string
-          icon_url?: string | null
-          id?: string
-          name?: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          game_id?: string;
+          group_id?: string;
+          icon_url?: string | null;
+          id?: string;
+          name?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "trophy_groups_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "trophy_groups_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "trophy_groups_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "trophy_groups_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       user_games: {
         Row: {
-          added_at: string
-          game_id: string
-          id: string
-          last_played_at: string | null
-          playtime_minutes: number | null
-          user_id: string
-        }
+          added_at: string;
+          game_id: string;
+          id: string;
+          last_played_at: string | null;
+          playtime_minutes: number | null;
+          user_id: string;
+        };
         Insert: {
-          added_at?: string
-          game_id: string
-          id?: string
-          last_played_at?: string | null
-          playtime_minutes?: number | null
-          user_id: string
-        }
+          added_at?: string;
+          game_id: string;
+          id?: string;
+          last_played_at?: string | null;
+          playtime_minutes?: number | null;
+          user_id: string;
+        };
         Update: {
-          added_at?: string
-          game_id?: string
-          id?: string
-          last_played_at?: string | null
-          playtime_minutes?: number | null
-          user_id?: string
-        }
+          added_at?: string;
+          game_id?: string;
+          id?: string;
+          last_played_at?: string | null;
+          playtime_minutes?: number | null;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "user_games_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "user_games_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "user_games_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "user_games_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       user_guide_progress: {
         Row: {
-          completed: boolean
-          completed_at: string | null
-          created_at: string
-          guide_step_id: string
-          id: string
-          user_id: string
-        }
+          completed: boolean;
+          completed_at: string | null;
+          created_at: string;
+          guide_step_id: string;
+          id: string;
+          user_id: string;
+        };
         Insert: {
-          completed?: boolean
-          completed_at?: string | null
-          created_at?: string
-          guide_step_id: string
-          id?: string
-          user_id: string
-        }
+          completed?: boolean;
+          completed_at?: string | null;
+          created_at?: string;
+          guide_step_id: string;
+          id?: string;
+          user_id: string;
+        };
         Update: {
-          completed?: boolean
-          completed_at?: string | null
-          created_at?: string
-          guide_step_id?: string
-          id?: string
-          user_id?: string
-        }
+          completed?: boolean;
+          completed_at?: string | null;
+          created_at?: string;
+          guide_step_id?: string;
+          id?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "user_guide_progress_guide_step_id_fkey"
-            columns: ["guide_step_id"]
-            isOneToOne: false
-            referencedRelation: "guide_steps"
-            referencedColumns: ["id"]
+            foreignKeyName: "user_guide_progress_guide_step_id_fkey";
+            columns: ["guide_step_id"];
+            isOneToOne: false;
+            referencedRelation: "guide_steps";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "user_guide_progress_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "user_guide_progress_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       user_trophies: {
         Row: {
-          created_at: string
-          id: string
-          trophy_id: string
-          unlocked_at: string | null
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          trophy_id: string;
+          unlocked_at: string | null;
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          trophy_id: string
-          unlocked_at?: string | null
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          trophy_id: string;
+          unlocked_at?: string | null;
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          trophy_id?: string
-          unlocked_at?: string | null
-          user_id?: string
-        }
+          created_at?: string;
+          id?: string;
+          trophy_id?: string;
+          unlocked_at?: string | null;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "user_trophies_trophy_id_fkey"
-            columns: ["trophy_id"]
-            isOneToOne: false
-            referencedRelation: "trophies"
-            referencedColumns: ["id"]
+            foreignKeyName: "user_trophies_trophy_id_fkey";
+            columns: ["trophy_id"];
+            isOneToOne: false;
+            referencedRelation: "trophies";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "user_trophies_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            foreignKeyName: "user_trophies_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       users: {
         Row: {
-          created_at: string
-          display_name: string | null
-          id: string
-          updated_at: string
-        }
+          created_at: string;
+          display_name: string | null;
+          id: string;
+          updated_at: string;
+        };
         Insert: {
-          created_at?: string
-          display_name?: string | null
-          id: string
-          updated_at?: string
-        }
+          created_at?: string;
+          display_name?: string | null;
+          id: string;
+          updated_at?: string;
+        };
         Update: {
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-    }
+          created_at?: string;
+          display_name?: string | null;
+          id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+    };
     Views: {
       public_profiles: {
         Row: {
-          avatar_url: string | null
-          display_name: string | null
-          id: string | null
-          psn_online_id: string | null
-          steam_avatar_url: string | null
-          steam_persona_name: string | null
-        }
-        Relationships: []
-      }
+          avatar_url: string | null;
+          display_name: string | null;
+          id: string | null;
+          psn_online_id: string | null;
+          steam_avatar_url: string | null;
+          steam_persona_name: string | null;
+        };
+        Relationships: [];
+      };
       game_scores: {
         Row: {
-          average_rating: number | null
-          game_id: string | null
-          rating_count: number | null
-        }
+          average_rating: number | null;
+          game_id: string | null;
+          rating_count: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "game_diary_entries_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            foreignKeyName: "game_diary_entries_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-    }
+        ];
+      };
+    };
     Functions: {
       get_library_trophy_stats: {
-        Args: never
+        Args: never;
         Returns: {
-          bronze: number
-          game_id: string
-          gold: number
-          obtained: number
-          platinum: number
-          silver: number
-          total: number
-        }[]
-      }
-    }
+          bronze: number;
+          game_id: string;
+          gold: number;
+          obtained: number;
+          platinum: number;
+          silver: number;
+          total: number;
+        }[];
+      };
+    };
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
     Enums: {},
   },
-} as const
+} as const;

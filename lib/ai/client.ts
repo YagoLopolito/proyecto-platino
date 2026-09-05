@@ -135,9 +135,7 @@ const UNKNOWN_GAME_MARKER = "NO_CONOZCO";
  * quedarnos sin descripción antes que mostrar una inventada. El caller la
  * guarda marcada como generada por IA, y la UI lo aclara al usuario.
  */
-export async function generateGameDescription(
-  input: GameDescriptionInput,
-): Promise<string | null> {
+export async function generateGameDescription(input: GameDescriptionInput): Promise<string | null> {
   const client = getClient();
   try {
     const response = await client.chat.completions.create({

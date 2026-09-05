@@ -19,7 +19,10 @@ const CONNECTIONS_PATH = "/configuracion/conexiones";
  * nombres de tablas, columnas y policies de RLS. Queda en los logs del server
  * (Vercel) y el usuario ve un texto propio.
  */
-function logDbError(scope: string, error: { code?: string; message: string; details?: string | null }) {
+function logDbError(
+  scope: string,
+  error: { code?: string; message: string; details?: string | null },
+) {
   console.error(`[conexiones] ${scope}`, {
     code: error.code,
     message: error.message,

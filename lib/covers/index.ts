@@ -52,11 +52,7 @@ async function findCoverUrlFromRawg(gameName: string): Promise<string | null> {
   if (!results) return null;
 
   const first = results[0];
-  if (
-    typeof first !== "object" ||
-    first === null ||
-    !("background_image" in first)
-  ) {
+  if (typeof first !== "object" || first === null || !("background_image" in first)) {
     return null;
   }
 
@@ -118,11 +114,7 @@ async function findCoverUrlFromSteamGridDb(gameName: string): Promise<string | n
     }
 
     const firstGrid = (gridData as { data: unknown[] }).data[0];
-    if (
-      typeof firstGrid !== "object" ||
-      firstGrid === null ||
-      !("url" in firstGrid)
-    ) {
+    if (typeof firstGrid !== "object" || firstGrid === null || !("url" in firstGrid)) {
       return null;
     }
 

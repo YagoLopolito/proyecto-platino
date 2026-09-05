@@ -9,7 +9,9 @@ const RATING_ERROR = "El rating tiene que ser un número entre 0 y 10.";
 const DATE_ERROR = "Elegí una fecha válida.";
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-function parseRating(raw: FormDataEntryValue | null): { ok: true; value: number | null } | { ok: false } {
+function parseRating(
+  raw: FormDataEntryValue | null,
+): { ok: true; value: number | null } | { ok: false } {
   const trimmed = String(raw ?? "").trim();
   if (!trimmed) return { ok: true, value: null };
   const value = Number(trimmed);

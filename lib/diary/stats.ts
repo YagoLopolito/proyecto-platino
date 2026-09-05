@@ -142,8 +142,9 @@ function monthKeyLabel(key: string): string {
 export function advancedStats(entries: DiaryTimelineEntry[], year: number): AdvancedStats {
   const yearEntries = entries.filter((entry) => yearOf(entry) === year);
 
-  const monthlyCounts = Array.from({ length: 12 }, (_, i) =>
-    yearEntries.filter((entry) => monthOf(entry) === i + 1).length,
+  const monthlyCounts = Array.from(
+    { length: 12 },
+    (_, i) => yearEntries.filter((entry) => monthOf(entry) === i + 1).length,
   );
 
   const ratingDistribution = [0, 0, 0, 0, 0];
@@ -159,7 +160,9 @@ export function advancedStats(entries: DiaryTimelineEntry[], year: number): Adva
   }
   const topPlatformEntry = [...platformCounts.entries()].sort((a, b) => b[1] - a[1])[0];
 
-  const monthKeys = Array.from(new Set(entries.map((entry) => entry.finishedOn.slice(0, 7)))).sort();
+  const monthKeys = Array.from(
+    new Set(entries.map((entry) => entry.finishedOn.slice(0, 7))),
+  ).sort();
   let longest: AdvancedStats["longestMonthlyStreak"] = null;
   let streakStart = 0;
   for (let i = 0; i < monthKeys.length; i += 1) {

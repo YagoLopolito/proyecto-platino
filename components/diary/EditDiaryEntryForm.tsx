@@ -65,11 +65,11 @@ export default function EditDiaryEntryForm({
           )}
           {(entry.source === "platinum_sync" || entry.source === "completion_sync") &&
             entry.rating === null && (
-            <p className="text-xs text-zinc-500">
-              Creada automáticamente al detectar el platino en PSN. Editala para puntuarla y
-              reseñarla.
-            </p>
-          )}
+              <p className="text-xs text-zinc-500">
+                Creada automáticamente al detectar el platino en PSN. Editala para puntuarla y
+                reseñarla.
+              </p>
+            )}
         </div>
         {/* En mobile las acciones bajan a su propia fila y ocupan la mitad
             del ancho cada una, para tener área táctil real. */}
@@ -141,7 +141,11 @@ export default function EditDiaryEntryForm({
       <FormError>{state.error}</FormError>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={pending} className="flex-1 py-2 text-xs sm:flex-none sm:py-1.5">
+        <Button
+          type="submit"
+          disabled={pending}
+          className="flex-1 py-2 text-xs sm:flex-none sm:py-1.5"
+        >
           {pending ? "Guardando..." : "Guardar"}
         </Button>
         <Button

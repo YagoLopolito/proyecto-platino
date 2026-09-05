@@ -32,7 +32,13 @@ export default function LoginForm({ confirmError }: { confirmError: boolean }) {
 
           <div className="space-y-1">
             <Label htmlFor="password">Contraseña</Label>
-            <Input id="password" name="password" type="password" required autoComplete="current-password" />
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+            />
           </div>
 
           <FormError>{state.error}</FormError>

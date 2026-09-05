@@ -121,10 +121,7 @@ async function queryFiles(
  * Devuelve [] si falta la key, no hay appid o falla la red -- nunca bloquea al
  * resto de las fuentes.
  */
-export async function findSteamGuides(
-  gameName: string,
-  limit = 5,
-): Promise<SteamGuideLink[]> {
+export async function findSteamGuides(gameName: string, limit = 5): Promise<SteamGuideLink[]> {
   const apiKey = process.env.STEAM_API_KEY;
   if (!apiKey) return [];
 
@@ -155,7 +152,9 @@ export async function findSteamGuides(
     if (!deduped.has(guide.id)) deduped.set(guide.id, guide);
   }
 
-  return rankSteamGuides([...deduped.values()], taggedIds, limit).map(
-    ({ title, url, source }) => ({ title, url, source }),
-  );
+  return rankSteamGuides([...deduped.values()], taggedIds, limit).map(({ title, url, source }) => ({
+    title,
+    url,
+    source,
+  }));
 }

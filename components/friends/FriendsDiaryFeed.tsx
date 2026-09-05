@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { GameArt } from "@/components/game/GameArt";
 import Link from "next/link";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
 import { FriendAvatar } from "@/components/friends/FriendAvatar";
@@ -69,17 +69,16 @@ export function FriendsDiaryFeed({
               className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 hover:border-zinc-600"
             >
               {entry.imageUrl ? (
-                <Image
+                <GameArt
                   src={entry.imageUrl}
                   alt={entry.gameName}
                   width={48}
                   height={48}
                   className="h-12 w-12 shrink-0 rounded object-cover"
+                  fallback={<FeedCoverPlaceholder />}
                 />
               ) : (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
-                  Sin img
-                </div>
+                <FeedCoverPlaceholder />
               )}
               <div className="min-w-0 flex-1 space-y-1">
                 <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-zinc-100">
@@ -110,5 +109,13 @@ export function FriendsDiaryFeed({
         );
       })}
     </ul>
+  );
+}
+
+function FeedCoverPlaceholder() {
+  return (
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+      Sin img
+    </div>
   );
 }

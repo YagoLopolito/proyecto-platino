@@ -17,8 +17,7 @@ export interface GameScreenshot {
 }
 
 export type GameScreenshotsOutcome =
-  | { status: "ok"; screenshots: GameScreenshot[] }
-  | { status: "error"; message: string };
+  { status: "ok"; screenshots: GameScreenshot[] } | { status: "error"; message: string };
 
 /**
  * Capturas de un juego, más nuevas primero. La galería es pública igual que el
