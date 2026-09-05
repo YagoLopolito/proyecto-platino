@@ -1,6 +1,39 @@
 import type { NextConfig } from "next";
 
+/**
+ * Identidad del deploy. En Vercel es el SHA del commit, así que cambia con
+ * cada merge de un PR: es lo que le permite a la app instalada en el celular
+ * detectar que hay una versión nueva (ver `components/pwa/PwaRuntime.tsx`).
+ */
+const buildId = process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
+
 const nextConfig: NextConfig = {
+  // Horneado en el bundle del cliente para poder compararlo contra el que
+  // devuelve /api/version, que siempre es el del deploy vivo.
+  env: { NEXT_PUBLIC_BUILD_ID: buildId },
+
+  // Sólo se pisa en Vercel: en local, dejar que Next genere uno distinto por
+  // build mantiene el cache-busting de los assets con hash.
+  ...(process.env.VERCEL_GIT_COMMIT_SHA ? { generateBuildId: async () => buildId } : {}),
+
+  async headers() {
+    return [
+      {
+        // El service worker es un archivo estático de `public/`, que Vercel
+        // sirve con caché larga por defecto. Si se cachea, un cambio en el SW
+        // puede tardar días en llegar a los celulares ya instalados.
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          // Sin esto el scope máximo del SW sería el directorio del archivo;
+          // acá coincide con la raíz, pero queda explícito para que mover el
+          // archivo no rompa el registro en silencio.
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+    ];
+  },
+
   images: {
     // Hosts conocidos de donde vienen las carátulas/íconos (PSN, RAWG, SteamGridDB).
     // Sin esto, next/image rechaza el host y forzaba `unoptimized` en todos lados.

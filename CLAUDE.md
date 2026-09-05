@@ -164,6 +164,53 @@ Diagnóstico (2026-08-19) sobre por qué la app se sentía lenta "en todos lados
 
 Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos tocados; se levantó el dev server y se confirmó con `curl` que `/juegos`, `/psn` y `/perfil` siguen devolviendo 307 a `/login` sin sesión (el middleware acotado sigue protegiendo esas rutas), y que rutas públicas (`/`, `/registro`) cargan sin pasar por el middleware.
 
+## App instalable en el celular (PWA)
+
+Platinoob se instala en el celular desde el navegador — "Añadir a pantalla de inicio" /
+"Instalar aplicación" — sin pasar por App Store ni Play Store. No hay build nativo ni
+wrapper: es la misma app de Next, con manifest y service worker.
+
+- `app/manifest.ts` (ruta de metadata de Next, se sirve en `/manifest.webmanifest`).
+  `start_url` es `/juegos` y no `/`: quien instala ya tiene cuenta. Los íconos son PNG
+  commiteados en `public/`, generados por `scripts/generate-icons.mjs` a partir del mismo
+  trofeo que `app/icon.svg`; hacen falta los dos `purpose` (`any` y `maskable`, porque
+  Android recorta hasta un 20% de cada borde).
+- `public/sw.js` cachea **sólo** `/_next/static/` (nombres con hash, inmutables) y la
+  pantalla `/offline`. **Nunca cachea HTML ni respuestas de API**: la app es toda contenido
+  privado detrás de sesión, y servir una página cacheada de otro usuario sería un agujero de
+  privacidad. Las navegaciones van siempre a la red, con `/offline` de fallback.
+- `next.config.ts` sirve `/sw.js` con `Cache-Control: max-age=0, must-revalidate`. Sin eso
+  Vercel lo cachea como cualquier archivo de `public/` y un service worker nuevo puede tardar
+  días en llegar a los celulares que ya lo tienen instalado.
+- iOS no lee el manifest: la configuración de la app instalada sale de los `appleWebApp` de
+  `app/layout.tsx`. Next sólo emite el `mobile-web-app-capable` moderno, así que el alias
+  `apple-mobile-web-app-capable` va a mano en `metadata.other`.
+- El viewport es `viewport-fit=cover` (la app instalada pinta debajo del notch y de la barra
+  de gestos): todo lo anclado a un borde compensa con las utilidades `pt-safe`/`pb-safe` de
+  `app/globals.css`.
+
+### Cómo se actualiza la app cuando mergeamos un PR
+
+Una app instalada no se refresca sola como una pestaña: el usuario puede quedarse con el
+bundle viejo por días. El mecanismo:
+
+1. `next.config.ts` hornea el SHA del commit deployado (`VERCEL_GIT_COMMIT_SHA`) en el
+   bundle del cliente como `NEXT_PUBLIC_BUILD_ID`.
+2. `/api/version` (`app/api/version/route.ts`, `force-dynamic` + `no-store`) devuelve el
+   build id del deploy que está vivo **ahora**.
+3. `components/pwa/PwaRuntime.tsx` compara los dos al montar, cada vez que la app vuelve a
+   primer plano y cada 5 minutos. Si difieren, muestra el cartel "Hay una versión nueva":
+   vacía las cachés del service worker y recarga.
+
+O sea: mergear el PR y esperar el deploy de Vercel alcanza, no hay nada que publicar aparte.
+En local el build id es `"dev"` y el chequeo se saltea, para que el cartel no sea ruido
+permanente.
+
+La navegación de mobile es la barra inferior de tabs (`app/(app)/MobileTabBar.tsx`, sólo
+debajo de `sm`); el header conserva la nav en escritorio. Los dos leen `app/(app)/nav-links.ts`
+para no desincronizarse. El header **no** es `sticky`: la ficha de juego tiene su propia
+barra `sticky top-0` y las dos se pisarían.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).

@@ -34,7 +34,7 @@ type SortOption = "default" | "rarest" | "commonest" | "type" | "name";
 const TYPE_WEIGHT: Record<string, number> = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
 
 const SELECT_CLASS =
-  "rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 focus:border-blue-500 focus:outline-none";
+  "min-h-11 rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 focus:border-blue-500 focus:outline-none sm:min-h-0";
 
 /**
  * Toda la lista de trofeos con sus filtros. El dataset es el de un solo juego
@@ -96,7 +96,8 @@ export default function TrophyList({
       if (sort === "rarest" || sort === "commonest") {
         // `earned_rate` (% que lo desbloqueó) es más granular que `rarity`, que
         // solo tiene 4 escalones; se usa como criterio principal cuando está.
-        const rate = (t: TrophyListItem) => t.earned_rate ?? (t.rarity !== null ? t.rarity * 25 : 100);
+        const rate = (t: TrophyListItem) =>
+          t.earned_rate ?? (t.rarity !== null ? t.rarity * 25 : 100);
         sorted.sort((a, b) => (sort === "rarest" ? rate(a) - rate(b) : rate(b) - rate(a)));
       } else if (sort === "type") {
         sorted.sort((a, b) => (TYPE_WEIGHT[a.type] ?? 9) - (TYPE_WEIGHT[b.type] ?? 9));
@@ -128,7 +129,7 @@ export default function TrophyList({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar trofeo por nombre o descripción..."
           aria-label="Buscar trofeo"
-          className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-blue-500 focus:outline-none"
+          className="min-h-11 w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm sm:min-h-0 text-zinc-100 placeholder:text-zinc-600 focus:border-blue-500 focus:outline-none"
         />
 
         <div className="flex flex-wrap gap-2">
@@ -194,7 +195,7 @@ export default function TrophyList({
                 setType("all");
                 setRarity("all");
               }}
-              className="rounded border border-zinc-700 px-2 py-1.5 text-sm text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+              className="min-h-11 rounded border border-zinc-700 px-2 py-1.5 text-sm text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 sm:min-h-0"
             >
               Limpiar filtros
             </button>

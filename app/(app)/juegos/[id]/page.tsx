@@ -57,10 +57,16 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     { data: cachedPlanRow },
     diaryOutcome,
   ] = await Promise.all([
-    supabase.from("games").select("id, name, platform, cover_url, icon_url, source").eq("id", gameId).single(),
+    supabase
+      .from("games")
+      .select("id, name, platform, cover_url, icon_url, source")
+      .eq("id", gameId)
+      .single(),
     supabase
       .from("trophies")
-      .select("id, name, description, type, hidden, icon_url, trophy_group_id, rarity, earned_rate, progress_target")
+      .select(
+        "id, name, description, type, hidden, icon_url, trophy_group_id, rarity, earned_rate, progress_target",
+      )
       .eq("game_id", gameId)
       .order("sort_order", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
@@ -103,14 +109,17 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const isSteam = game.source === "steam";
   // Steam no tiene platino: el equivalente es el 100% de los logros, y va con
   // su propio badge para no mezclarlo con el platino de PSN.
-  const isPlatinumed = !isSteam && (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
+  const isPlatinumed =
+    !isSteam && (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
   const isCompleted = isSteam && total > 0 && obtainedCount === total;
 
   // Si el juego tiene DLC/expansiones, PSN los trae como grupos de trofeos
   // aparte del "default" (juego base) -- se separan visualmente para poder
   // ver el % de completitud de cada uno por separado.
   const groupNameById = new Map((trophyGroups ?? []).map((g) => [g.group_id, g.name]));
-  const trophyGroupOrder = Array.from(new Set((trophies ?? []).map((t) => t.trophy_group_id ?? "default")));
+  const trophyGroupOrder = Array.from(
+    new Set((trophies ?? []).map((t) => t.trophy_group_id ?? "default")),
+  );
   const hasMultipleGroups = trophyGroupOrder.length > 1;
 
   const groupedTrophies: TrophyListGroup[] = trophyGroupOrder.map((groupId) => ({
@@ -136,34 +145,34 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
     <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
       <div className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
         {/*
-          * Igual que el header de la app: en mobile el nombre del juego va en su
-          * propia fila y la nav de secciones queda a lo ancho, scrolleable
-          * horizontalmente (las pills no entran en 375px sin desbordar la página).
-          */}
+         * Igual que el header de la app: en mobile el nombre del juego va en su
+         * propia fila y la nav de secciones queda a lo ancho, scrolleable
+         * horizontalmente (las pills no entran en 375px sin desbordar la página).
+         */}
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-1.5 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <p className="truncate text-sm text-zinc-400">{game.name}</p>
           <nav className="-mx-4 flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 text-sm sm:mx-0 sm:overflow-visible sm:px-0">
             <a
               href="#trofeos"
-              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+              className="inline-flex min-h-11 items-center whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500 sm:min-h-0"
             >
               🏆 Trofeos
             </a>
             <a
               href="#advisor"
-              className="whitespace-nowrap rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-blue-300 hover:border-blue-500"
+              className="inline-flex min-h-11 items-center whitespace-nowrap rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-blue-300 hover:border-blue-500 sm:min-h-0"
             >
               ✨ Advisor IA
             </a>
             <Link
               href={`/juegos/${gameId}/enlaces`}
-              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+              className="inline-flex min-h-11 items-center whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500 sm:min-h-0"
             >
               🔗 Enlaces
             </Link>
             <a
               href="#diario"
-              className="whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500"
+              className="inline-flex min-h-11 items-center whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500 sm:min-h-0"
             >
               📔 Diario
             </a>
@@ -176,7 +185,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            {game.cover_url ?? game.icon_url ? (
+            {(game.cover_url ?? game.icon_url) ? (
               <Image
                 src={game.cover_url ?? game.icon_url!}
                 alt={game.name}
@@ -218,7 +227,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <section id="trofeos" className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8">
+        <section
+          id="trofeos"
+          className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8"
+        >
           <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Trofeos {total > 0 && `(${total})`}
           </h2>
@@ -236,7 +248,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           )}
         </section>
 
-        <section id="diario" className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8">
+        <section
+          id="diario"
+          className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8"
+        >
           <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Diario</h2>
           {diaryOutcome.status === "error" ? (
             <ErrorState message={`No se pudo cargar el diario: ${diaryOutcome.message}`} />
@@ -245,8 +260,13 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
           )}
         </section>
 
-        <section id="advisor" className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Advisor con IA</h2>
+        <section
+          id="advisor"
+          className="scroll-mt-28 space-y-3 sm:scroll-mt-16 border-t border-zinc-800 pt-8"
+        >
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Advisor con IA
+          </h2>
           <AiAdvisorPanel
             gameId={gameId}
             trophies={(trophies ?? []).map((t) => ({

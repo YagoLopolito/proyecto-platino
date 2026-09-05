@@ -9,6 +9,7 @@ import { ConnectionCard, type ConnectionStatus } from "@/components/connections/
 import VerifySteamButton from "@/components/connections/VerifySteamButton";
 import ReplaceSteamAccountForm from "@/components/connections/ReplaceSteamAccountForm";
 import { ErrorState } from "@/components/ErrorState";
+import { InstallAppCard } from "@/components/pwa/InstallAppCard";
 import { disconnectPsnAccount, disconnectSteamAccount } from "./actions";
 
 /** Resultados del callback de Steam OpenID (ver /api/steam/openid). */
@@ -62,8 +63,8 @@ export default async function ConexionesPage({
   return (
     <div className="space-y-6">
       <p className="text-sm text-zinc-400">
-        Conectá las plataformas de las que querés traer tus juegos y trofeos. Podés tener una,
-        las dos, o ninguna.
+        Conectá las plataformas de las que querés traer tus juegos y trofeos. Podés tener una, las
+        dos, o ninguna.
       </p>
 
       {openIdResult && OPENID_MESSAGE[openIdResult] && (
@@ -168,9 +169,9 @@ export default async function ConexionesPage({
             ) : (
               <div className="space-y-2 rounded border border-zinc-700 bg-zinc-800/50 p-3">
                 <p className="text-sm text-zinc-400">
-                  <span className="text-zinc-200">Cuenta no verificada.</span> Escribiste el
-                  SteamID a mano, así que no podemos comprobar que el perfil sea tuyo: solo
-                  leemos datos públicos. Verificala iniciando sesión en Steam.
+                  <span className="text-zinc-200">Cuenta no verificada.</span> Escribiste el SteamID
+                  a mano, así que no podemos comprobar que el perfil sea tuyo: solo leemos datos
+                  públicos. Verificala iniciando sesión en Steam.
                 </p>
                 <VerifySteamButton label="Verificar con Steam" />
               </div>
@@ -202,14 +203,20 @@ export default async function ConexionesPage({
             <ConnectSteamForm />
             <div className="space-y-2 border-t border-zinc-800 pt-4">
               <p className="text-sm text-zinc-400">
-                O conectala directamente iniciando sesión en Steam: así queda verificada de
-                entrada y no hace falta escribir nada.
+                O conectala directamente iniciando sesión en Steam: así queda verificada de entrada
+                y no hace falta escribir nada.
               </p>
               <VerifySteamButton label="Iniciar sesión con Steam" />
             </div>
           </div>
         )}
       </ConnectionCard>
+
+      {/* Instalar la app en el celular. Va acá y no en una pantalla propia:
+          es una conexión más entre el usuario y la app, y Configuración es
+          donde ya viene a enchufar cosas. El componente se esconde solo si ya
+          está instalada. */}
+      <InstallAppCard />
     </div>
   );
 }

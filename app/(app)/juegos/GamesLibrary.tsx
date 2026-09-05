@@ -55,7 +55,11 @@ function compareDescending(a: LibraryGame, b: LibraryGame, sort: SortOption): nu
   return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
 }
 
-function sortGames(games: LibraryGame[], sort: SortOption, direction: SortDirection): LibraryGame[] {
+function sortGames(
+  games: LibraryGame[],
+  sort: SortOption,
+  direction: SortDirection,
+): LibraryGame[] {
   const sorted = [...games].sort((a, b) => compareDescending(a, b, sort));
   return direction === "asc" ? sorted.reverse() : sorted;
 }
@@ -130,7 +134,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                 key={option.value}
                 type="button"
                 onClick={() => handleSortClick(option.value)}
-                className={`flex items-center gap-1 rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                className={`flex min-h-9 items-center gap-1 rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                   sort === option.value
                     ? "border-blue-500 bg-blue-500/10 text-blue-400"
                     : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
@@ -152,7 +156,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                 key={option.value}
                 type="button"
                 onClick={() => setFilter(option.value)}
-                className={`rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                className={`flex min-h-9 items-center rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                   filter === option.value
                     ? "border-blue-500 bg-blue-500/10 text-blue-400"
                     : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
@@ -164,22 +168,22 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label className="flex items-center gap-2 text-xs text-zinc-400">
+            <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
               <input
                 type="checkbox"
                 checked={hidePlatinum}
                 onChange={(event) => setHidePlatinum(event.target.checked)}
-                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
               />
               Ocultar platinados
             </label>
 
-            <label className="flex items-center gap-2 text-xs text-zinc-400">
+            <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
               <input
                 type="checkbox"
                 checked={hideUnstarted}
                 onChange={(event) => setHideUnstarted(event.target.checked)}
-                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
               />
               Ocultar en 0%
             </label>

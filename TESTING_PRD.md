@@ -232,7 +232,7 @@ paralelo y cada uno es independiente (§3.4).
 | `setup` | — | `global-setup` | Crea usuarios, guarda sesión |
 | `anon` | ninguno | `01-auth`, `12-security` | Login, registro, redirects de rutas protegidas |
 | `authed` | `user.json` | todo lo demás | El grueso de la suite |
-| `mobile` | `user.json` | `11-a11y-mobile` | Pixel 7, valida lo del PR #101 |
+| `mobile` | `user.json` | `11-a11y-mobile` | Pixel 7: layout mobile, barra inferior y PWA |
 | `smoke` | ninguno | `smoke.spec.ts` | Contra `PLAYWRIGHT_BASE_URL` de Vercel |
 
 ### 5.3 Ciclo de vida
@@ -405,7 +405,7 @@ retirados y no se reutilizan.
 | PROF-04 | Perfil sin PSN conectada | CTA a conectar, sin números en cero confusos | P1 |
 | PROF-05 | Coherencia con `/juegos` | Los totales del perfil coinciden con los de la biblioteca (mismo RPC) | P1 |
 
-### 6.11 Accesibilidad y mobile (`11-a11y-mobile.spec.ts`) — proyecto `mobile`
+### 6.11 Accesibilidad, mobile y PWA (`11-a11y-mobile.spec.ts`) — proyecto `mobile`
 
 | ID | Caso | Resultado esperado | Prio |
 | --- | --- | --- | --- |
@@ -415,6 +415,14 @@ retirados y no se reutilizan.
 | A11Y-04 | Imágenes con `alt` | Carátulas e íconos de trofeo con texto alternativo | P2 |
 | A11Y-05 | Jerarquía de headings | Un solo `h1` por página | P2 |
 | A11Y-06 | Contraste WCAG AA | `@axe-core/playwright` sin violaciones serias en las 5 rutas principales | P1 |
+| MOB-01 | Barra inferior de navegación | En mobile la barra de tabs navega entre secciones y marca la activa con `aria-current` | P1 |
+| MOB-02 | La barra no tapa contenido | El spacer del layout reserva al menos el alto de la barra `fixed` | P1 |
+| MOB-03 | Una sola nav visible | La nav del header queda oculta en mobile; la visible es la de abajo | P2 |
+| PWA-01 | Manifest instalable | `display: standalone`, `start_url`, íconos 192/512 y uno `maskable` | P1 |
+| PWA-02 | Service worker sin caché larga | `/sw.js` responde con `max-age=0` (si no, un SW nuevo no llega a los celulares) | P1 |
+| PWA-03 | Build id en vivo | `/api/version` devuelve el build id con `no-store`: es lo que dispara el aviso de actualizar | P1 |
+| PWA-04 | Pantalla de offline pública | `/offline` carga sin sesión (el SW la precachea antes de que haya usuario) | P2 |
+| PWA-05 | Alta de la app | Configuración › Conexiones ofrece instalar Platinoob en el celular | P2 |
 
 ### 6.12 Aislamiento y seguridad (`12-security-isolation.spec.ts`)
 
@@ -545,6 +553,11 @@ test.describe("Enlaces externos", () => {
 | `ai-plan` | `app/(app)/juegos/[id]/AiAdvisorPanel.tsx` | Presencia del plan generado |
 | `connection-card` | `components/connections/ConnectionCard.tsx` | Identificar la tarjeta de cada plataforma en Conexiones |
 | `connection-status` | `components/connections/ConnectionCard.tsx` | Estado de la conexión (`data-status`: connected / attention / disconnected) |
+| `mobile-tab-bar` | `app/(app)/MobileTabBar.tsx` | Navegación inferior de mobile |
+| `tab-bar-spacer` | `app/(app)/layout.tsx` | Verificar que la barra `fixed` no tape el contenido |
+| `install-app-card` | `components/pwa/InstallAppCard.tsx` | Alta de la PWA en Conexiones |
+| `install-app-button` | `components/pwa/InstallAppCard.tsx` | Botón que dispara el diálogo nativo de instalación |
+| `update-banner` | `components/pwa/PwaRuntime.tsx` | Aviso de versión nueva de la app instalada |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo
 usa, nunca por adelantado "por las dudas".
