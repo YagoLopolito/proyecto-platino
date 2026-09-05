@@ -35,6 +35,19 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+## Instalar la app en el celular
+
+Platinoob es una PWA: se instala desde el navegador, sin App Store ni Play Store.
+
+- **Android / Chrome**: entrar a Configuración › Conexiones y tocar **Instalar app**, o usar
+  "Instalar aplicación" del menú del navegador.
+- **iPhone / Safari**: botón **Compartir** › **Añadir a pantalla de inicio**. (Tiene que ser
+  Safari: Chrome en iOS no puede instalar apps web.)
+
+Se actualiza sola: cuando se mergea un PR y Vercel deploya, la app instalada detecta el build
+nuevo y ofrece "Actualizar". No hay nada que publicar aparte. El detalle del mecanismo está en
+`CLAUDE.md`, sección "App instalable en el celular (PWA)".
+
 ## Tests end-to-end (Playwright)
 
 La estrategia completa, la matriz de casos y las convenciones están en

@@ -1,6 +1,6 @@
-import Image from "next/image";
-import Link from "next/link";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
+import { GamePoster } from "@/components/game/GamePoster";
+import { PosterGrid } from "@/components/game/PosterGrid";
 import { FriendAvatar } from "@/components/friends/FriendAvatar";
 import { profileLabel } from "@/lib/friends/constants";
 import type { FriendDiaryEntry, FriendProfile } from "@/lib/friends/queries";
@@ -61,48 +61,36 @@ export function FriendsDiaryGrid({
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-3 min-[480px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-5">
+    <PosterGrid>
       {entries.slice(0, limit).map((entry) => {
         const author = profileLabel(entry.author);
         return (
-          <li key={entry.id}>
-            <Link
+          <li key={entry.id} data-testid="friend-entry">
+            <GamePoster
               href={`/juegos/${entry.gameId}/diario`}
-              className="group block"
-              title={entry.review ? `${entry.gameName} — ver reseña de ${author}` : entry.gameName}
-            >
-              <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 transition group-hover:border-zinc-500">
-                {entry.imageUrl ? (
-                  <Image
-                    src={entry.imageUrl}
-                    alt={entry.gameName}
-                    fill
-                    sizes="(max-width: 480px) 45vw, (max-width: 640px) 30vw, (max-width: 1024px) 25vw, 200px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-zinc-500">
-                    {entry.gameName}
-                  </span>
-                )}
-
-                <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-zinc-950/85 px-2 py-1.5">
-                  <FriendAvatar url={entry.author.avatarUrl} name={author} size={18} />
-                  <span className="truncate text-xs text-zinc-300">{author}</span>
+              name={entry.gameName}
+              imageUrl={entry.imageUrl}
+              // El badge de platino no se puede derivar acá: sale de
+              // `user_trophies`, que es privado (ver CLAUDE.md).
+              overlay={
+                <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-zinc-950/85 px-1.5 py-1">
+                  <FriendAvatar url={entry.author.avatarUrl} name={author} size={14} />
+                  <span className="truncate text-[10px] text-zinc-300">{author}</span>
                 </div>
-              </div>
-
-              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-xs text-zinc-500">
-                <StarRatingDisplay rating={entry.rating} />
-                <span className="flex items-center gap-1">
-                  {entry.review && <span title="Tiene reseña">📝</span>}
-                  {shortDate(entry.finishedOn)}
+              }
+              caption={
+                <span className="flex flex-wrap items-center justify-between gap-x-1.5">
+                  <StarRatingDisplay rating={entry.rating} />
+                  <span className="flex items-center gap-1 text-zinc-600">
+                    {entry.review && <span title="Tiene reseña">📝</span>}
+                    {shortDate(entry.finishedOn)}
+                  </span>
                 </span>
-              </div>
-            </Link>
+              }
+            />
           </li>
         );
       })}
-    </ul>
+    </PosterGrid>
   );
 }

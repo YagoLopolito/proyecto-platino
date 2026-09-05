@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { createClient } from "@/lib/supabase/server";
 import { getUserDiaryEntries } from "@/lib/diary/queries";
 import { advancedStats, availableYears, MONTH_NAMES, summarizeYear } from "@/lib/diary/stats";
@@ -83,7 +84,9 @@ export default async function DiarySummaryPage({
         <Stat label="Platinos" value={String(summary.platinumCount)} />
         <Stat
           label="Rating promedio"
-          value={summary.averageRating !== null ? `${(summary.averageRating / 2).toFixed(1)}/5` : "—"}
+          value={
+            summary.averageRating !== null ? `${(summary.averageRating / 2).toFixed(1)}/5` : "—"
+          }
         />
         <Stat
           label="Mes más activo"
@@ -97,9 +100,7 @@ export default async function DiarySummaryPage({
 
       {summary.topRated.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Tus mejor puntuados de {year}
-          </h2>
+          <SectionHeader title={`Tus mejor puntuados de ${year}`} />
           <ul className="space-y-2">
             {summary.topRated.map((entry) => (
               <li
@@ -127,9 +128,7 @@ export default async function DiarySummaryPage({
       )}
 
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          Estadísticas avanzadas
-        </h2>
+        <SectionHeader title="Estadísticas avanzadas" />
 
         <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
           <p className="text-xs text-zinc-500">Juegos terminados por mes</p>
@@ -156,7 +155,9 @@ export default async function DiarySummaryPage({
         <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
           <p className="text-xs text-zinc-500">Cómo puntuaste ({advanced.ratedCount} valoradas)</p>
           {advanced.ratedCount === 0 ? (
-            <p className="mt-2 text-sm text-zinc-500">Todavía no puntuaste ninguna partida de {year}.</p>
+            <p className="mt-2 text-sm text-zinc-500">
+              Todavía no puntuaste ninguna partida de {year}.
+            </p>
           ) : (
             <ul className="mt-3 space-y-1">
               {[5, 4, 3, 2, 1].map((stars) => {
@@ -200,15 +201,17 @@ export default async function DiarySummaryPage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Mes a mes</h2>
+        <SectionHeader title="Mes a mes" />
         {monthsWithEntries.map((month) => (
           <div key={month.month} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="font-medium">{month.monthName}</h3>
               <p className="text-xs text-zinc-500">
                 {month.finishedCount} {month.finishedCount === 1 ? "juego" : "juegos"}
-                {month.platinumCount > 0 && ` · ${month.platinumCount} platino${month.platinumCount === 1 ? "" : "s"}`}
-                {month.averageRating !== null && ` · ${(month.averageRating / 2).toFixed(1)}/5 promedio`}
+                {month.platinumCount > 0 &&
+                  ` · ${month.platinumCount} platino${month.platinumCount === 1 ? "" : "s"}`}
+                {month.averageRating !== null &&
+                  ` · ${(month.averageRating / 2).toFixed(1)}/5 promedio`}
               </p>
             </div>
             <ul className="mt-3 flex flex-wrap gap-2">

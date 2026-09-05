@@ -46,12 +46,57 @@
   --font-mono: var(--font-geist-mono);
 }
 
+
+/*
+ * Base mobile / PWA.
+ *
+ * La app se instala en el celular (ver `app/manifest.ts`), así que la ventana
+ * puede ser la pantalla completa con notch y barra de gestos: todo lo que se
+ * ancle a un borde tiene que respetar los `env(safe-area-inset-*)`.
+ */
 html {
   color-scheme: dark;
+  /* Safari en landscape agranda el texto por su cuenta si no se le dice que no. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /*
+   * `overflow-x: clip` (no `hidden`): recorta el desborde horizontal --
+   * el backdrop de `GameHero` usa el truco de `w-screen` + `left-1/2`, que en
+   * mobile se pasa unos px del viewport -- sin convertir al body en un
+   * contenedor de scroll, que rompería el `position: sticky` de los headers.
+   */
+  overflow-x: clip;
+  /* Sin esto, Chrome en Android dispara el pull-to-refresh dentro de la app
+     instalada y se pierde el estado de la pantalla. */
+  overscroll-behavior-y: contain;
+  /* El flash gris al tocar cualquier cosa delata que es una web, no una app. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * iOS Safari hace zoom al enfocar un campo con `font-size` menor a 16px, y
+ * después no vuelve al zoom original. Se aplica sólo en pantallas táctiles
+ * chicas para no agrandar los campos en desktop.
+ */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Padding hasta el borde seguro de abajo (barra de gestos del iPhone). */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
 }

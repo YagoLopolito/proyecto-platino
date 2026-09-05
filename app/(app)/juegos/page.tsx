@@ -70,17 +70,21 @@ export default async function JuegosPage({
     libraryQuery = libraryQuery.eq("games.source", fuente);
   }
 
-  const [{ data: psnAccount }, { data: steamAccount }, { data: library, error }, { data: statsRows }] =
-    await Promise.all([
-      supabase
-        .from("psn_accounts")
-        .select("token_status, last_synced_at")
-        .eq("user_id", userId)
-        .maybeSingle(),
-      supabase.from("steam_accounts").select("persona_name").eq("user_id", userId).maybeSingle(),
-      libraryQuery,
-      supabase.rpc("get_library_trophy_stats"),
-    ]);
+  const [
+    { data: psnAccount },
+    { data: steamAccount },
+    { data: library, error },
+    { data: statsRows },
+  ] = await Promise.all([
+    supabase
+      .from("psn_accounts")
+      .select("token_status, last_synced_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase.from("steam_accounts").select("persona_name").eq("user_id", userId).maybeSingle(),
+    libraryQuery,
+    supabase.rpc("get_library_trophy_stats"),
+  ]);
 
   const statsByGame = new Map<string, GameStats>();
   for (const row of statsRows ?? []) {
@@ -94,49 +98,50 @@ export default async function JuegosPage({
 
   // Qué se lista y qué no lo decide `isVisibleInLibrary` (juegos de catálogo y
   // basura de Steam), compartido con /perfil para que los dos cuenten igual.
-  const games: LibraryGame[] = (library ?? [])
-    .flatMap((row) => {
-      const game = row.games;
-      if (!game) return [];
-      const stats = statsByGame.get(game.id) ?? {
-        total: 0,
-        obtained: 0,
-        percent: 0,
-        counts: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
-      };
+  const games: LibraryGame[] = (library ?? []).flatMap((row) => {
+    const game = row.games;
+    if (!game) return [];
+    const stats = statsByGame.get(game.id) ?? {
+      total: 0,
+      obtained: 0,
+      percent: 0,
+      counts: { platinum: 0, gold: 0, silver: 0, bronze: 0 },
+    };
 
-      if (
-        !isVisibleInLibrary({
-          source: game.source,
-          playtimeMinutes: row.playtime_minutes,
-          obtained: stats.obtained,
-        })
-      ) {
-        return [];
-      }
-
-      return {
-        id: game.id,
-        name: game.name,
-        platform: game.platform,
-        imageUrl: game.cover_url ?? game.icon_url,
-        addedAt: row.added_at,
-        lastPlayedAt: row.last_played_at,
-        total: stats.total,
-        obtained: stats.obtained,
-        percent: stats.percent,
-        counts: stats.counts,
+    if (
+      !isVisibleInLibrary({
         source: game.source,
         playtimeMinutes: row.playtime_minutes,
-      };
-    });
+        obtained: stats.obtained,
+      })
+    ) {
+      return [];
+    }
+
+    return {
+      id: game.id,
+      name: game.name,
+      platform: game.platform,
+      imageUrl: game.cover_url ?? game.icon_url,
+      addedAt: row.added_at,
+      lastPlayedAt: row.last_played_at,
+      total: stats.total,
+      obtained: stats.obtained,
+      percent: stats.percent,
+      counts: stats.counts,
+      source: game.source,
+      playtimeMinutes: row.playtime_minutes,
+    };
+  });
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
+    // max-w-5xl (antes 2xl): la biblioteca es una grilla de carátulas, y a
+    // 672px de ancho entraban tres columnas con mucho aire muerto a los lados.
+    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold">Mi biblioteca</h1>
+            <h1 className="text-xl font-semibold sm:text-2xl">Mi biblioteca</h1>
             {psnAccount && <SyncStatusBadge status={psnAccount.token_status as SyncTokenStatus} />}
           </div>
           <p className="text-sm text-zinc-400">
@@ -148,7 +153,10 @@ export default async function JuegosPage({
                 {psnAccount.token_status !== "valid" && (
                   <>
                     Reconectá tu cuenta para seguir sincronizando.{" "}
-                    <Link href="/configuracion/conexiones#reconectar-psn" className="text-blue-400 hover:underline">
+                    <Link
+                      href="/configuracion/conexiones#reconectar-psn"
+                      className="text-blue-400 hover:underline"
+                    >
                       Reconectar cuenta PSN
                     </Link>
                     .
@@ -176,7 +184,10 @@ export default async function JuegosPage({
         {/* El selector solo tiene sentido con las dos plataformas conectadas:
             con una sola, dos de los tres botones dan vacío siempre. */}
         {psnAccount && steamAccount && (
-          <nav aria-label="Filtrar por plataforma" className="flex flex-wrap items-center gap-1 text-xs">
+          <nav
+            aria-label="Filtrar por plataforma"
+            className="flex flex-wrap items-center gap-1 text-xs"
+          >
             {(["todos", ...SOURCE_FILTERS] as SourceFilter[]).map((value) => (
               <Link
                 key={value}

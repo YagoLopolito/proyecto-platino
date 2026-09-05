@@ -2,8 +2,11 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { GameCard } from "@/components/GameCard";
+import { GamePoster } from "@/components/game/GamePoster";
+import { PosterGrid } from "@/components/game/PosterGrid";
+import { formatPlaytime } from "@/lib/playtime";
 import { EmptyState } from "@/components/EmptyState";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { boolean, oneOf, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
@@ -55,7 +58,11 @@ function compareDescending(a: LibraryGame, b: LibraryGame, sort: SortOption): nu
   return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
 }
 
-function sortGames(games: LibraryGame[], sort: SortOption, direction: SortDirection): LibraryGame[] {
+function sortGames(
+  games: LibraryGame[],
+  sort: SortOption,
+  direction: SortDirection,
+): LibraryGame[] {
   const sorted = [...games].sort((a, b) => compareDescending(a, b, sort));
   return direction === "asc" ? sorted.reverse() : sorted;
 }
@@ -118,11 +125,20 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">
-          Juegos {games.length > 0 && `(${visibleGames.length}/${games.length})`}
-        </h2>
+      <SectionHeader
+        title={
+          <>
+            Juegos{" "}
+            {games.length > 0 && (
+              <span className="text-zinc-600">
+                {visibleGames.length}/{games.length}
+              </span>
+            )}
+          </>
+        }
+      />
 
+      <div className="flex flex-wrap items-center justify-between gap-2">
         {games.length > 1 && (
           <div className="flex flex-wrap items-center gap-1 text-xs">
             {SORT_OPTIONS.map((option) => (
@@ -130,7 +146,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                 key={option.value}
                 type="button"
                 onClick={() => handleSortClick(option.value)}
-                className={`flex items-center gap-1 rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                className={`flex min-h-9 items-center gap-1 rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                   sort === option.value
                     ? "border-blue-500 bg-blue-500/10 text-blue-400"
                     : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
@@ -152,7 +168,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                 key={option.value}
                 type="button"
                 onClick={() => setFilter(option.value)}
-                className={`rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                className={`flex min-h-9 items-center rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                   filter === option.value
                     ? "border-blue-500 bg-blue-500/10 text-blue-400"
                     : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
@@ -164,22 +180,22 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label className="flex items-center gap-2 text-xs text-zinc-400">
+            <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
               <input
                 type="checkbox"
                 checked={hidePlatinum}
                 onChange={(event) => setHidePlatinum(event.target.checked)}
-                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
               />
               Ocultar platinados
             </label>
 
-            <label className="flex items-center gap-2 text-xs text-zinc-400">
+            <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
               <input
                 type="checkbox"
                 checked={hideUnstarted}
                 onChange={(event) => setHideUnstarted(event.target.checked)}
-                className="h-3.5 w-3.5 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
               />
               Ocultar en 0%
             </label>
@@ -205,11 +221,42 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
         <EmptyState title="Ningún juego coincide con este filtro." />
       )}
 
-      <ul className="space-y-3">
-        {visibleGames.map((game) => (
-          <GameCard key={game.id} game={game} />
-        ))}
-      </ul>
+      {/*
+       * Grilla de carátulas al estilo Letterbox. Lo que antes era una fila de
+       * texto por juego (progreso, horas, desglose por tipo de trofeo) ahora
+       * está en la ficha: acá queda la barra fina de progreso sobre la
+       * carátula y el badge de platino / 100%, que es el vistazo rápido que
+       * un tracker sí necesita.
+       */}
+      <PosterGrid>
+        {visibleGames.map((game) => {
+          const isSteam = game.source === "steam";
+          const playtime = formatPlaytime(game.playtimeMinutes);
+          return (
+            <li key={game.id} data-testid="game-card">
+              <GamePoster
+                href={`/juegos/${game.id}`}
+                name={game.name}
+                imageUrl={game.imageUrl}
+                progress={game.total > 0 ? game : null}
+                isPlatinum={!isSteam && game.counts.platinum > 0}
+                isCompleted={isSteam && game.total > 0 && game.obtained === game.total}
+                showName
+                caption={
+                  game.total > 0 ? (
+                    <span className="flex flex-wrap items-center gap-x-1.5">
+                      <span>{game.percent}%</span>
+                      {playtime && <span className="text-zinc-600">· ⏱ {playtime}</span>}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-600">Sin sincronizar</span>
+                  )
+                }
+              />
+            </li>
+          );
+        })}
+      </PosterGrid>
     </section>
   );
 }
