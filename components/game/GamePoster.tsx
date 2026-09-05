@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { GameArt } from "@/components/game/GameArt";
 import type { ReactNode } from "react";
 
 export type PosterProgress = {
@@ -56,29 +56,16 @@ export function GamePoster({
     <Link href={href} className="group block" title={name}>
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 transition group-hover:border-zinc-500 group-focus-visible:border-blue-500">
         {imageUrl ? (
-          <Image
+          <GameArt
             src={imageUrl}
             alt={name}
-            fill
             sizes={sizes}
             priority={priority}
             className="object-cover"
+            fallback={<PosterPlaceholder name={name} showName={showName} />}
           />
-        ) : showName ? (
-          // Con el nombre debajo, repetirlo adentro del marco lo mostraba dos
-          // veces seguidas: queda sólo un glifo neutro de "sin carátula".
-          <span
-            className="flex h-full w-full items-center justify-center text-2xl text-zinc-700"
-            aria-hidden="true"
-          >
-            🎮
-          </span>
         ) : (
-          // Sin nombre debajo, el nombre hace de portada en vez de un "Sin img"
-          // genérico: en una grilla de pósters es lo único que la distingue.
-          <span className="flex h-full w-full items-center justify-center p-2 text-center text-[11px] leading-tight text-zinc-500">
-            {name}
-          </span>
+          <PosterPlaceholder name={name} showName={showName} />
         )}
 
         {(isPlatinum || isCompleted) && (
@@ -112,5 +99,28 @@ export function GamePoster({
       )}
       {caption && <div className="mt-1 text-[11px] text-zinc-500">{caption}</div>}
     </Link>
+  );
+}
+
+/**
+ * Marco sin carátula: o porque el juego no tiene imagen, o porque la que tenía
+ * no cargó (ver `GameArt`).
+ */
+function PosterPlaceholder({ name, showName }: { name: string; showName: boolean }) {
+  // Con el nombre debajo, repetirlo adentro del marco lo mostraba dos veces
+  // seguidas: queda sólo un glifo neutro de "sin carátula". Sin nombre debajo,
+  // el nombre hace de portada: en una grilla de pósters es lo único que la
+  // distingue.
+  return showName ? (
+    <span
+      className="flex h-full w-full items-center justify-center text-2xl text-zinc-700"
+      aria-hidden="true"
+    >
+      🎮
+    </span>
+  ) : (
+    <span className="flex h-full w-full items-center justify-center p-2 text-center text-[11px] leading-tight text-zinc-500">
+      {name}
+    </span>
   );
 }
