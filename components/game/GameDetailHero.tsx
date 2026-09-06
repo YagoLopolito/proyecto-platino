@@ -1,6 +1,7 @@
 import { GameArt } from "@/components/game/GameArt";
 import type { ReactNode } from "react";
 import type { GameCardData } from "@/lib/catalog/details";
+import { TimeToBeat, timeToBeatProps } from "@/components/game/TimeToBeat";
 
 /**
  * Encabezado de la ficha de juego al estilo Letterbox: wallpaper a ancho
@@ -85,6 +86,10 @@ export function GameDetailHero({
             )}
           </div>
         </div>
+
+        {/* Debajo del bloque de carátula + título y no al lado: en mobile, con
+            la carátula ocupando la mitad del ancho, los dos chips no entran. */}
+        <TimeToBeat {...timeToBeatProps(game)} />
 
         {/*
          * Tira de números, como la de una ficha de Letterbox: número grande,

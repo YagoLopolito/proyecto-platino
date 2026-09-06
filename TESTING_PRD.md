@@ -504,7 +504,25 @@ spec, igual que `steam-relevance`); SHOT-06 es de UI y no sube nada a Storage.
 | SHOT-06 | Pantalla de importación | Elegidos los archivos, se ve el grupo con el juego preseleccionado y el botón con la cantidad a importar | P1 |
 | SHOT-07 | Grupo sin juego | Con "— No importar —" esas capturas no se suben | P2 |
 
-**Total: 113 casos** — 45 P0, 48 P1, 20 P2.
+### 6.17 Tiempos estimados de juego (`18-time-to-beat.spec.ts`)
+
+Cuánto lleva pasarse la historia y cuánto llegar al 100%, en la ficha de trofeos y en la de
+diario. HowLongToBeat no tiene API pública, así que la fuente es IGDB (`game_time_to_beat`) con
+el `playtime` de RAWG como último recurso — ver la sección correspondiente de `CLAUDE.md`.
+TIME-01..03 son de la función pura (`lib/time-to-beat/match.ts`); TIME-04/05 corren contra el
+mock de `lib/time-to-beat/mocks.ts` (12 h / 30 h para los juegos `[E2E]`), así que CI nunca
+llama a IGDB.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| TIME-01 | Elección del juego en IGDB | Matchea el título exacto; un DLC u otra entrega de la saga no lo reemplazan, y sin match devuelve `null` | P0 |
+| TIME-02 | Ediciones | "Remastered"/"Director's Cut" matchean contra el juego base (`normalizeName`) | P1 |
+| TIME-03 | Unidades y valores vacíos | Segundos y horas pasan a minutos; 0 y negativos devuelven `null` en vez de "0 h" | P0 |
+| TIME-04 | Ficha de trofeos | Se ven "Pasarlo" y "Al 100%" con sus horas, y la fuente citada | P0 |
+| TIME-05 | Caché y ficha de diario | Los tiempos quedan guardados en `games` y la ficha de diario muestra los mismos | P1 |
+| TIME-06 | `@live`: IGDB real | Un juego conocido devuelve los dos tiempos mayores a cero | P2 |
+
+**Total: 119 casos** — 48 P0, 50 P1, 21 P2.
 
 ---
 
@@ -581,6 +599,7 @@ test.describe("Enlaces externos", () => {
 | `install-app-button` | `components/pwa/InstallAppCard.tsx` | Botón que dispara el diálogo nativo de instalación |
 | `update-banner` | `components/pwa/PwaRuntime.tsx` | Aviso de versión nueva de la app instalada |
 | `screenshot-import-groups` | `components/diary/ScreenshotImporter.tsx` | Grupos detectados al importar capturas en masa |
+| `time-to-beat` | `components/game/TimeToBeat.tsx` | Tiempos estimados de juego en las dos fichas |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo
 usa, nunca por adelantado "por las dudas".
