@@ -17,8 +17,11 @@ export function GameDetailHero({
   game,
   badges,
   stats,
+  hasPlatinum,
 }: {
   game: GameCardData;
+  /** El juego tiene trofeo de platino: cambia la etiqueta del tiempo de completitud. */
+  hasPlatinum?: boolean;
   /** Platino / 100%, al lado del título. */
   badges?: ReactNode;
   /** Tira de números: 2 a 4 celdas. Un valor `null` se muestra como "—". */
@@ -89,7 +92,7 @@ export function GameDetailHero({
 
         {/* Debajo del bloque de carátula + título y no al lado: en mobile, con
             la carátula ocupando la mitad del ancho, los dos chips no entran. */}
-        <TimeToBeat {...timeToBeatProps(game)} />
+        <TimeToBeat {...timeToBeatProps(game)} hasPlatinum={hasPlatinum} />
 
         {/*
          * Tira de números, como la de una ficha de Letterbox: número grande,

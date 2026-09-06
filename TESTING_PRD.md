@@ -507,8 +507,9 @@ spec, igual que `steam-relevance`); SHOT-06 es de UI y no sube nada a Storage.
 ### 6.17 Tiempos estimados de juego (`18-time-to-beat.spec.ts`)
 
 Cuánto lleva pasarse la historia y cuánto llegar al 100%, en la ficha de trofeos y en la de
-diario. HowLongToBeat no tiene API pública, así que la fuente es IGDB (`game_time_to_beat`) con
-el `playtime` de RAWG como último recurso — ver la sección correspondiente de `CLAUDE.md`.
+diario. HowLongToBeat no tiene API pública, así que la fuente es IGDB (`game_time_to_beat`), y
+es la única: el `playtime` de RAWG se probó como fallback y se revirtió por dar números
+equivocados — ver la sección correspondiente de `CLAUDE.md`.
 TIME-01..03 son de la función pura (`lib/time-to-beat/match.ts`); TIME-04/05 corren contra el
 mock de `lib/time-to-beat/mocks.ts` (12 h / 30 h para los juegos `[E2E]`), así que CI nunca
 llama a IGDB.
@@ -517,8 +518,8 @@ llama a IGDB.
 | --- | --- | --- | --- |
 | TIME-01 | Elección del juego en IGDB | Matchea el título exacto; un DLC u otra entrega de la saga no lo reemplazan, y sin match devuelve `null` | P0 |
 | TIME-02 | Ediciones | "Remastered"/"Director's Cut" matchean contra el juego base (`normalizeName`) | P1 |
-| TIME-03 | Unidades y valores vacíos | Segundos y horas pasan a minutos; 0 y negativos devuelven `null` en vez de "0 h" | P0 |
-| TIME-04 | Ficha de trofeos | Se ven "Pasarlo" y "Al 100%" con sus horas, y la fuente citada | P0 |
+| TIME-03 | Unidades y valores vacíos | Los segundos pasan a minutos; 0 y negativos devuelven `null` en vez de "0 h" | P0 |
+| TIME-04 | Ficha de trofeos | Se ven "Pasarlo" y "Platino" con sus horas, y la fuente citada; en un juego sin platino la segunda dice "Al 100%" | P0 |
 | TIME-05 | Caché y ficha de diario | Los tiempos quedan guardados en `games` y la ficha de diario muestra los mismos | P1 |
 | TIME-06 | `@live`: IGDB real | Un juego conocido devuelve los dos tiempos mayores a cero | P2 |
 

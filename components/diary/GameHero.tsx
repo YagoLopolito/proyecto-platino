@@ -17,8 +17,11 @@ export function GameHero({
   score,
   distribution,
   playtimeMinutes,
+  hasPlatinum,
 }: {
   game: GameCardData;
+  /** El juego tiene trofeo de platino: cambia la etiqueta del tiempo de completitud. */
+  hasPlatinum?: boolean;
   score: { average_rating: number | null; rating_count: number | null };
   distribution: number[];
   /**
@@ -119,7 +122,7 @@ export function GameHero({
 
           {/* Estimaciones de la comunidad, debajo de las horas propias del
               usuario: son dos cosas distintas y no se pueden confundir. */}
-          <TimeToBeat {...timeToBeatProps(game)} />
+          <TimeToBeat {...timeToBeatProps(game)} hasPlatinum={hasPlatinum} />
 
           {description ? (
             isLong ? (

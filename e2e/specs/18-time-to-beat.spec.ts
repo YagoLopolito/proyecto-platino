@@ -1,6 +1,6 @@
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
-import { hoursToMinutes, pickIgdbGame, secondsToMinutes } from "../../lib/time-to-beat/match";
+import { pickIgdbGame, secondsToMinutes } from "../../lib/time-to-beat/match";
 
 /**
  * Tiempos estimados de juego al estilo HowLongToBeat, en la ficha de trofeos y
@@ -36,8 +36,6 @@ test.describe("Elección del juego y unidades", () => {
     expect(secondsToMinutes(-5)).toBeNull();
     expect(secondsToMinutes(undefined)).toBeNull();
     expect(secondsToMinutes(43_200)).toBe(720);
-    expect(hoursToMinutes(0)).toBeNull();
-    expect(hoursToMinutes(12)).toBe(720);
   });
 });
 
@@ -48,7 +46,9 @@ test.describe("Tiempos estimados en las fichas", () => {
     users,
   }) => {
     const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
-      n: 2,
+      // 4 trofeos = el ciclo bronce/plata/oro/platino completo del seed: el
+      // juego tiene platino, que es lo que cambia la etiqueta.
+      n: 4,
       nameSuffix: "Tiempos Uno",
       np: 1801,
     });
@@ -60,7 +60,9 @@ test.describe("Tiempos estimados en las fichas", () => {
     const estimates = page.getByTestId("time-to-beat");
     await expect(estimates.getByText("Pasarlo")).toBeVisible();
     await expect(estimates.getByText("12 h")).toBeVisible();
-    await expect(estimates.getByText("Al 100%")).toBeVisible();
+    // El juego seedeado es de PSN y tiene platino, así que el tiempo de
+    // completitud se etiqueta "Platino" y no "Al 100%".
+    await expect(estimates.getByText("Platino")).toBeVisible();
     await expect(estimates.getByText("30 h")).toBeVisible();
     // La fuente se cita siempre: los números de IGDB y los de RAWG no se miden igual.
     await expect(estimates.getByText(/IGDB/)).toBeVisible();

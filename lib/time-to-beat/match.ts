@@ -45,9 +45,3 @@ export function secondsToMinutes(seconds: unknown): number | null {
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds <= 0) return null;
   return Math.round(seconds / 60);
 }
-
-/** Horas (RAWG las publica así) a minutos, con el mismo criterio. */
-export function hoursToMinutes(hours: unknown): number | null {
-  if (typeof hours !== "number" || !Number.isFinite(hours) || hours <= 0) return null;
-  return Math.round(hours * 60);
-}

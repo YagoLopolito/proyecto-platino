@@ -17,10 +17,19 @@ export function TimeToBeat({
   beatMinutes,
   completeMinutes,
   source,
+  hasPlatinum = false,
 }: {
   beatMinutes: number | null;
   completeMinutes: number | null;
   source: string | null;
+  /**
+   * Si el juego tiene platino (PSN), el tiempo de completarlo se muestra como
+   * "Platino": IGDB no publica un tiempo de platino -- nadie lo hace -- pero
+   * su `completely` es el 100% de completitud, que es justamente lo que
+   * destraba el platino en la enorme mayoría de los juegos. En Steam, que no
+   * tiene platino, la etiqueta se queda en "Al 100%".
+   */
+  hasPlatinum?: boolean;
 }) {
   const beat = formatPlaytime(beatMinutes);
   const complete = formatPlaytime(completeMinutes);
@@ -30,7 +39,7 @@ export function TimeToBeat({
     <div className="space-y-1" data-testid="time-to-beat">
       <dl className="flex flex-wrap gap-2">
         {beat && <Estimate label="Pasarlo" value={beat} />}
-        {complete && <Estimate label="Al 100%" value={complete} />}
+        {complete && <Estimate label={hasPlatinum ? "Platino" : "Al 100%"} value={complete} />}
       </dl>
       <p className="text-[10px] text-zinc-500">
         Tiempo estimado por la comunidad{sourceLabel(source)}.
@@ -53,9 +62,7 @@ function Estimate({ label, value }: { label: string; value: string }) {
  * no se miden igual, y el usuario tiene que poder saber de dónde salen.
  */
 function sourceLabel(source: string | null): string {
-  if (source === "igdb") return " (IGDB)";
-  if (source === "rawg") return " (RAWG)";
-  return "";
+  return source === "igdb" ? " (IGDB)" : "";
 }
 
 /** Las props que las dos fichas sacan de `GameCardData`, sin repetir el mapeo. */
