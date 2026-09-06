@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition, type ChangeEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { registerScreenshots } from "@/app/(app)/juegos/[id]/diario/screenshot-actions";
@@ -150,6 +151,14 @@ export default function ScreenshotUploader({ gameId }: { gameId: string }) {
           JPG, PNG, WebP o AVIF · hasta {MAX_MB} MB · {MAX_SCREENSHOTS_PER_UPLOAD} por vez
         </p>
       </div>
+
+      <p className="text-xs text-zinc-500">
+        ¿Exportaste la carpeta de capturas de la consola?{" "}
+        <Link href="/diario/capturas" className="text-blue-400 hover:underline">
+          Importalas todas juntas
+        </Link>{" "}
+        y se reparten solas por juego.
+      </p>
 
       <input
         ref={inputRef}

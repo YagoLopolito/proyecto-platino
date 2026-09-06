@@ -485,7 +485,26 @@ nunca llaman a Groq.
 | REC-06 | Biblioteca vacía | Mensaje propio pidiendo sincronizar, sin llamar al proveedor | P2 |
 | REC-07 | `@live`: Groq real | Respuesta válida contra `aiRecommendationsSchema` | P2 |
 
-**Total: 106 casos** — 41 P0, 46 P1, 19 P2.
+### 6.16 Importación masiva de capturas (`17-screenshot-import.spec.ts`)
+
+Sony **no expone la galería de capturas de PSN** por ninguna API usable (ver `CLAUDE.md`), así
+que las capturas siguen saliendo del archivo del usuario. Lo que reemplaza al import automático
+es `/diario/capturas`: se suelta la carpeta exportada de la consola y cada archivo se asigna al
+juego que dice su ruta. SHOT-01..SHOT-05 son tests de la función pura
+(`lib/diary/screenshot-import.ts`, sin `server-only` justamente para poder importarla desde el
+spec, igual que `steam-relevance`); SHOT-06 es de UI y no sube nada a Storage.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| SHOT-01 | Nombre desde la carpeta de la consola | `PS4/SHARE/Screenshots/<Juego>/...` y `PS5/CREATE/Screenshots/<Juego>/...` devuelven el título; las carpetas estructurales se saltean | P0 |
+| SHOT-02 | Nombre desde el archivo | Se recortan los sufijos de fecha/hora (`_20230115121314`, `_20230115_121314`, `-2023-01-15-12-13-14`) y el contador `(1)` | P0 |
+| SHOT-03 | Números que son parte del título | "Battlefield 2042" y "Forza Horizon 5" no se recortan; un nombre puramente numérico devuelve `null` | P0 |
+| SHOT-04 | Match contra la biblioteca | Tolera ediciones ("Remastered") y no confunde "God of War" con "God of War Ragnarök" | P0 |
+| SHOT-05 | Agrupación | Archivos del mismo juego caen en un grupo (venga de carpeta o de nombre) y lo no deducido queda aparte | P1 |
+| SHOT-06 | Pantalla de importación | Elegidos los archivos, se ve el grupo con el juego preseleccionado y el botón con la cantidad a importar | P1 |
+| SHOT-07 | Grupo sin juego | Con "— No importar —" esas capturas no se suben | P2 |
+
+**Total: 113 casos** — 45 P0, 48 P1, 20 P2.
 
 ---
 
@@ -561,6 +580,7 @@ test.describe("Enlaces externos", () => {
 | `install-app-card` | `components/pwa/InstallAppCard.tsx` | Alta de la PWA en Conexiones |
 | `install-app-button` | `components/pwa/InstallAppCard.tsx` | Botón que dispara el diálogo nativo de instalación |
 | `update-banner` | `components/pwa/PwaRuntime.tsx` | Aviso de versión nueva de la app instalada |
+| `screenshot-import-groups` | `components/diary/ScreenshotImporter.tsx` | Grupos detectados al importar capturas en masa |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo
 usa, nunca por adelantado "por las dudas".

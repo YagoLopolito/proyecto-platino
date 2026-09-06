@@ -356,6 +356,26 @@ barra `sticky top-0` y las dos se pisarían.
   UI: `ScreenshotUploader` (multi-archivo con preview local en `blob:`, por eso ese `<img>` va
   sin `next/image`) + `ScreenshotGallery` (grilla tipo Instagram con lightbox sobre `Modal`),
   ambos en `/juegos/[id]/diario`.
+- **Importación masiva** (`/diario/capturas`): como no hay import automático posible, lo que
+  reemplaza a "traer las fotos de PSN" es soltar la carpeta que la consola exporta al USB y
+  que cada archivo caiga solo en su juego. La consola escribe el título en la ruta
+  (`PS5/CREATE/Screenshots/<Juego>/<Juego>_20230115121314.jpg`, `PS4/SHARE/Screenshots/...`),
+  así que `lib/diary/screenshot-import.ts` deduce el nombre de la **carpeta** primero (más
+  confiable que el nombre de archivo, y sobrevive a los renombres del navegador) y lo cruza
+  con la biblioteca por `normalizeName` — el mismo criterio que el dedup de catálogo, con las
+  mismas limitaciones (un remaster puede no matchear). Es un módulo **puro y sin
+  `server-only`** a propósito: corre en el cliente y se testea directo desde el spec, igual
+  que `steam-relevance`. Dos detalles que importan: el recorte del sufijo de fecha exige la
+  fecha completa (8 dígitos), porque recortar cualquier grupo final de números convertía
+  "Battlefield 2042" en "Battlefield"; y las capturas que baja la PS App tienen nombre opaco,
+  así que caen en un grupo "sin juego detectado" que el usuario asigna a mano (o deja en
+  "— No importar —"). El drop de una carpeta se recorre con `webkitGetAsEntry` para conservar
+  la ruta relativa; el `<input webkitdirectory>` es el camino equivalente con el picker.
+  La Server Action es `app/(app)/diario/capturas/actions.ts`
+  (`registerImportedScreenshots`): mismo contrato que `registerScreenshots` — el archivo sube
+  directo del browser a Storage y la action sólo indexa paths, revalidando que el prefijo sea
+  el uuid del usuario — pero abarcando varios juegos por llamada, con tope
+  `MAX_SCREENSHOTS_PER_IMPORT`.
 - **El caché de la ficha se escribe con service role** (`persistGameCardData` en
   `lib/catalog/details.ts`). La RLS de `games` sólo deja actualizar las filas propias
   (`created_by`), así que con el cliente de sesión la descripción, el fondo y la carátula
