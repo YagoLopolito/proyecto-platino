@@ -5,6 +5,7 @@ export {
   generateAiRecommendations,
   generateTrophyHint,
   generateGameDescription,
+  generateTimeEstimates,
 } from "./client";
 export { AiProviderError, AiSchemaValidationError } from "./errors";
 export { aiGamePlanSchema, parseAiGamePlan, type AiGamePlan } from "./schema";
@@ -17,6 +18,9 @@ export {
   type AiPlanGuideInput,
   type TrophyHintInput,
   type GameDescriptionInput,
+  TIME_ESTIMATES_SYSTEM_PROMPT,
+  buildTimeEstimatesUserPrompt,
+  type TimeEstimatesInput,
   AI_RECOMMENDATIONS_SYSTEM_PROMPT,
   buildAiRecommendationsUserPrompt,
   type AiRecommendationsInput,

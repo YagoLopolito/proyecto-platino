@@ -1,11 +1,17 @@
 import "server-only";
 import { findIgdbTimeToBeat } from "./igdb";
+import { generateTimeEstimates } from "@/lib/ai";
 import { TIME_TO_BEAT_MOCKS_ENABLED, mockTimeEstimates } from "./mocks";
 
 export { pickIgdbGame, secondsToMinutes } from "./match";
 
-/** De dónde salieron los tiempos; `none` = se consultó y no había nada. */
-export type TimeEstimatesSource = "igdb" | "none";
+/**
+ * De dónde salieron los tiempos.
+ * - `igdb`: agregados de la comunidad, el dato bueno.
+ * - `ai`: estimación del modelo, para los juegos que IGDB no tiene.
+ * - `none`: ninguna fuente lo conoce.
+ */
+export type TimeEstimatesSource = "igdb" | "ai" | "none";
 
 export interface TimeEstimates {
   beatMinutes: number | null;
@@ -24,8 +30,11 @@ export type TimeEstimatesOutcome = TimeEstimates | null;
 const EMPTY: TimeEstimates = { beatMinutes: null, completeMinutes: null, source: "none" };
 
 /**
- * Tiempos estimados de un juego, al estilo HowLongToBeat. IGDB es la **única**
- * fuente.
+ * Tiempos estimados de un juego, al estilo HowLongToBeat.
+ *
+ * IGDB primero (agregados reales de la comunidad) y, para los juegos que no
+ * tiene, una estimación del modelo. La ficha siempre cita cuál de las dos fue:
+ * no son igual de confiables, y el usuario tiene que poder distinguirlas.
  *
  * Se probó usar el `playtime` de RAWG como fallback y fue un error que hubo
  * que revertir: ese campo no es "cuánto lleva pasarlo" sino las horas que los
@@ -39,7 +48,10 @@ const EMPTY: TimeEstimates = { beatMinutes: null, completeMinutes: null, source:
  * cuando el problema se arregle. Un `source: "none"` sí se cachea: significa
  * que IGDB contestó y no tiene el dato.
  */
-export async function fetchTimeEstimates(gameName: string): Promise<TimeEstimatesOutcome> {
+export async function fetchTimeEstimates(
+  gameName: string,
+  context: { platform?: string | null; releaseYear?: number | null } = {},
+): Promise<TimeEstimatesOutcome> {
   if (TIME_TO_BEAT_MOCKS_ENABLED) {
     const mocked = mockTimeEstimates(gameName);
     if (mocked.status === "unavailable") return null;
@@ -52,12 +64,33 @@ export async function fetchTimeEstimates(gameName: string): Promise<TimeEstimate
   }
 
   const lookup = await findIgdbTimeToBeat(gameName);
-  if (lookup.status === "unavailable") return null;
-  if (lookup.status === "not_found") return EMPTY;
+  if (lookup.status === "ok") {
+    return {
+      beatMinutes: lookup.times.beatMinutes,
+      completeMinutes: lookup.times.completeMinutes,
+      source: "igdb",
+    };
+  }
 
-  return {
-    beatMinutes: lookup.times.beatMinutes,
-    completeMinutes: lookup.times.completeMinutes,
-    source: "igdb",
-  };
+  // IGDB no lo tiene (o no se pudo consultar): se le pregunta al modelo, que
+  // es lo único que hace que la ficha muestre un tiempo para los juegos que no
+  // están en su catálogo. La UI lo marca como estimación de IA porque es
+  // bastante menos confiable que un agregado de la comunidad.
+  const estimated = await generateTimeEstimates({
+    gameName,
+    platform: context.platform ?? null,
+    releaseYear: context.releaseYear ?? null,
+  }).catch((cause) => {
+    // Sin `AI_PROVIDER_API_KEY`, o con el rate limit de Groq agotado.
+    console.error(`[time-to-beat] falló la estimación por IA de "${gameName}":`, cause);
+    return null;
+  });
+
+  if (estimated) {
+    return { ...estimated, source: "ai" };
+  }
+
+  // Si IGDB no se pudo consultar y la IA tampoco dio nada, no se cachea: el
+  // problema puede ser transitorio y el juego tiene que reintentarse.
+  return lookup.status === "unavailable" ? null : EMPTY;
 }

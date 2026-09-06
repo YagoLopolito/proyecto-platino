@@ -1,6 +1,6 @@
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
-import { pickIgdbGame, secondsToMinutes } from "../../lib/time-to-beat/match";
+import { comparableName, pickIgdbGame, secondsToMinutes } from "../../lib/time-to-beat/match";
 
 /**
  * Tiempos estimados de juego al estilo HowLongToBeat, en la ficha de trofeos y
@@ -12,7 +12,7 @@ import { pickIgdbGame, secondsToMinutes } from "../../lib/time-to-beat/match";
  * responde 12 h / 30 h para los juegos `[E2E]` sin salir a IGDB.
  */
 test.describe("Elección del juego y unidades", () => {
-  test("TIME-01: sólo matchea el juego exacto, nunca un DLC ni otra entrega", () => {
+  test("TIME-01: matchea el juego correcto, nunca un DLC ni otra entrega", () => {
     const candidates = [
       { id: 1, name: "God of War Ragnarök: Valhalla" },
       { id: 2, name: "God of War Ragnarök" },
@@ -23,6 +23,33 @@ test.describe("Elección del juego y unidades", () => {
     expect(pickIgdbGame("God of War", candidates)?.id).toBe(3);
     // Nada parecido: preferimos no mostrar tiempos antes que mostrar los de otro juego.
     expect(pickIgdbGame("Elden Ring", candidates)).toBeNull();
+    // Sin el juego base entre los candidatos, un sufijo NO alcanza: "God of
+    // War Ragnarök" es otra entrega, no "God of War".
+    expect(
+      pickIgdbGame("God of War", [{ id: 1, name: "God of War Ragnarök: Valhalla" }]),
+    ).toBeNull();
+  });
+
+  test("TIME-08: los nombres del catálogo de PSN matchean contra el título de IGDB", () => {
+    // Casos reales de la biblioteca: el match exacto los descartaba a todos.
+    const cases: [string, string][] = [
+      ["Skyrim", "The Elder Scrolls V: Skyrim"],
+      ["Call of Duty: Black Ops II - Multiplayer", "Call of Duty: Black Ops II"],
+      ["Assassin's Creed® Brotherhood", "Assassin's Creed: Brotherhood"],
+      ["HOT WHEELS UNLEASHED™ 2 - Turbocharged", "Hot Wheels Unleashed 2: Turbocharged"],
+      ["LEGO® Harry Potter™ Collection", "LEGO Harry Potter Collection"],
+      ["ASTRO BOT", "Astro Bot"],
+    ];
+
+    for (const [libraryName, igdbName] of cases) {
+      const picked = pickIgdbGame(libraryName, [{ id: 7, name: igdbName }]);
+      expect(picked?.name, libraryName).toBe(igdbName);
+    }
+
+    // El nombre corto de la tienda se limpia antes de comparar.
+    expect(comparableName("Call of Duty: Black Ops II - Multiplayer")).toBe(
+      "call of duty black ops ii",
+    );
   });
 
   test("TIME-02: las ediciones matchean contra el juego base", () => {

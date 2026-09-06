@@ -2,6 +2,9 @@ import "server-only";
 import Groq from "groq-sdk";
 import { AiProviderError, AiSchemaValidationError } from "./errors";
 import {
+  TIME_ESTIMATES_SYSTEM_PROMPT,
+  buildTimeEstimatesUserPrompt,
+  type TimeEstimatesInput,
   AI_PLAN_SYSTEM_PROMPT,
   buildAiPlanUserPrompt,
   TROPHY_HINT_SYSTEM_PROMPT,
@@ -18,6 +21,7 @@ import {
 import {
   parseAiGamePlan,
   parseAiRecommendations,
+  parseAiTimeEstimates,
   type AiGamePlan,
   type AiRecommendations,
 } from "./schema";
@@ -153,6 +157,64 @@ export async function generateGameDescription(input: GameDescriptionInput): Prom
   } catch (cause) {
     throw new AiProviderError(cause);
   }
+}
+
+/**
+ * Tiempos estimados de juego (historia y 100%) para los títulos que IGDB no
+ * tiene. Es la fuente de último recurso de `lib/time-to-beat/`, y por eso la
+ * UI los muestra etiquetados como estimación de IA: son menos confiables que
+ * los agregados de la comunidad que publica IGDB.
+ *
+ * Devuelve `null` cuando el modelo admite no conocer el juego, cuando el JSON
+ * no valida (acá no se reintenta: es un dato decorativo, no vale una segunda
+ * llamada por ficha) o cuando el juego no tiene final -- un multijugador o un
+ * roguelike no tiene "horas para terminarlo".
+ *
+ * Las horas vuelven convertidas a minutos, que es la unidad de las columnas.
+ */
+export async function generateTimeEstimates(
+  input: TimeEstimatesInput,
+): Promise<{ beatMinutes: number | null; completeMinutes: number | null } | null> {
+  const client = getClient();
+  let text: string | undefined;
+  try {
+    const response = await client.chat.completions.create({
+      model: MODEL,
+      max_tokens: 120,
+      reasoning_effort: "low",
+      messages: [
+        { role: "system", content: TIME_ESTIMATES_SYSTEM_PROMPT },
+        { role: "user", content: buildTimeEstimatesUserPrompt(input) },
+      ],
+    });
+    text = response.choices[0]?.message?.content?.trim();
+  } catch (cause) {
+    throw new AiProviderError(cause);
+  }
+
+  if (!text || text.includes(UNKNOWN_GAME_MARKER)) return null;
+
+  try {
+    const { historia, completo } = parseAiTimeEstimates(extractJsonObject(text));
+    const beatMinutes = historia > 0 ? historia * 60 : null;
+    const completeMinutes = completo > 0 ? completo * 60 : null;
+    if (beatMinutes === null && completeMinutes === null) return null;
+    return { beatMinutes, completeMinutes };
+  } catch {
+    // El modelo contestó algo que no es el JSON pedido: se descarta en
+    // silencio, igual que una descripción que no se pudo generar.
+    return null;
+  }
+}
+
+/**
+ * El modelo a veces envuelve el JSON en un bloque de markdown pese al prompt.
+ * Se recorta al primer objeto que aparezca en el texto.
+ */
+function extractJsonObject(text: string): string {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  return start !== -1 && end > start ? text.slice(start, end + 1) : text;
 }
 
 /**

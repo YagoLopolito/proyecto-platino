@@ -194,7 +194,12 @@ export async function getGameCardData(
     // consultado a propósito: si no, un fallo transitorio dejaría el juego sin
     // tiempos para siempre. Cuando IGDB contesta y no sabe, devuelve
     // `source: "none"`, que sí se cachea.
-    const estimates = needsTimeEstimates ? await fetchTimeEstimates(game.name) : null;
+    const estimates = needsTimeEstimates
+      ? await fetchTimeEstimates(game.name, {
+          platform: game.platform,
+          releaseYear: details?.releaseYear ?? game.release_year,
+        })
+      : null;
 
     await persistGameCardData(supabase, game.id, {
       ...(needsDescription

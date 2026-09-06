@@ -41,9 +41,7 @@ export function TimeToBeat({
         {beat && <Estimate label="Pasarlo" value={beat} />}
         {complete && <Estimate label={hasPlatinum ? "Platino" : "Al 100%"} value={complete} />}
       </dl>
-      <p className="text-[10px] text-zinc-500">
-        Tiempo estimado por la comunidad{sourceLabel(source)}.
-      </p>
+      <p className="text-[10px] text-zinc-500">{sourceLabel(source)}</p>
     </div>
   );
 }
@@ -58,11 +56,13 @@ function Estimate({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * Citar la fuente no es decorativo: los dos números de IGDB y el único de RAWG
- * no se miden igual, y el usuario tiene que poder saber de dónde salen.
+ * Citar la fuente no es decorativo: un agregado de miles de partidas reales
+ * (IGDB) y la estimación de un modelo no valen lo mismo, y el usuario tiene
+ * que poder distinguirlas de un vistazo.
  */
 function sourceLabel(source: string | null): string {
-  return source === "igdb" ? " (IGDB)" : "";
+  if (source === "ai") return "✨ Tiempo estimado por IA: puede tener errores.";
+  return "Tiempo estimado por la comunidad (IGDB).";
 }
 
 /** Las props que las dos fichas sacan de `GameCardData`, sin repetir el mapeo. */
