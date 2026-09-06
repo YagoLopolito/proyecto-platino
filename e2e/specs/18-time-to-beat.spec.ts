@@ -4,7 +4,7 @@ import { pickIgdbGame, secondsToMinutes } from "../../lib/time-to-beat/match";
 
 /**
  * Tiempos estimados de juego al estilo HowLongToBeat, en la ficha de trofeos y
- * en la de diario. Casos TIME-01..TIME-05 de TESTING_PRD.md §6.17.
+ * en la de diario. Casos TIME-01..TIME-07 de TESTING_PRD.md §6.17.
  *
  * TIME-01..03 son de la función pura (`lib/time-to-beat/match.ts`, sin
  * `server-only` justamente para poder importarla desde el spec); TIME-04 y 05
@@ -106,6 +106,38 @@ test.describe("Tiempos estimados en las fichas", () => {
   });
 });
 
+test.describe("Fallo al consultar IGDB", () => {
+  test("TIME-07: si no se pudo consultar, el juego no queda marcado como consultado", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    // El mock devuelve "unavailable" para los nombres con este marcador: es el
+    // caso de credenciales/red/401, distinto de "IGDB no conoce el juego".
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: `SIN-IGDB ${users.runId}`,
+      np: 1803,
+    });
+
+    await page.goto(`/juegos/${gameId}`);
+    // La ficha carga igual, sólo que sin la sección de tiempos.
+    await expect(page.getByRole("heading", { name: /Trofeos\s+2/i })).toBeVisible();
+    await expect(page.getByTestId("time-to-beat")).toHaveCount(0);
+
+    const { data } = await supabase
+      .from("games")
+      .select("time_estimates_checked_at, time_estimates_source")
+      .eq("id", gameId)
+      .single();
+
+    // Lo que importa: NO se cachea. Si se marcara como consultado, el juego
+    // quedaría sin tiempos para siempre por un fallo pasajero.
+    expect(data?.time_estimates_checked_at).toBeNull();
+    expect(data?.time_estimates_source).toBeNull();
+  });
+});
+
 /**
  * Verificación contra IGDB real. Fuera de la corrida por defecto (`@live`,
  * `npm run e2e:live`): necesita `IGDB_CLIENT_ID`/`IGDB_CLIENT_SECRET` y sale a
@@ -117,10 +149,13 @@ test.describe("IGDB real", () => {
     test.skip(!process.env.IGDB_CLIENT_ID, "Sin credenciales de IGDB.");
 
     const { findIgdbTimeToBeat } = await import("../../lib/time-to-beat/igdb");
-    const times = await findIgdbTimeToBeat("The Witcher 3: Wild Hunt");
+    const lookup = await findIgdbTimeToBeat("The Witcher 3: Wild Hunt");
 
-    expect(times).not.toBeNull();
-    expect(times?.beatMinutes ?? 0).toBeGreaterThan(0);
-    expect(times?.completeMinutes ?? 0).toBeGreaterThan(0);
+    // `unavailable` es el que importa distinguir: significa que las
+    // credenciales o el endpoint están mal, no que IGDB no conozca el juego.
+    expect(lookup.status).toBe("ok");
+    if (lookup.status !== "ok") return;
+    expect(lookup.times.beatMinutes ?? 0).toBeGreaterThan(0);
+    expect(lookup.times.completeMinutes ?? 0).toBeGreaterThan(0);
   });
 });

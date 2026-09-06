@@ -17,11 +17,28 @@ export const MOCK_BEAT_MINUTES = 12 * 60;
 export const MOCK_COMPLETE_MINUTES = 30 * 60;
 
 /**
- * Sólo responde para los juegos de test (`[E2E]`). Para cualquier otro nombre
- * devuelve "no hay datos", que es el otro camino que la UI tiene que saber
- * mostrar.
+ * Marcador en el nombre del juego para simular que IGDB no se pudo consultar
+ * (credenciales, red, 401). Es el caso que NO se cachea, distinto de "IGDB no
+ * conoce el juego".
  */
-export function mockTimeEstimates(gameName: string) {
-  if (!gameName.startsWith("[E2E]")) return null;
-  return { beatMinutes: MOCK_BEAT_MINUTES, completeMinutes: MOCK_COMPLETE_MINUTES };
+export const MOCK_UNAVAILABLE_MARKER = "SIN-IGDB";
+
+export type MockTimeEstimates =
+  | { status: "ok"; beatMinutes: number; completeMinutes: number }
+  | { status: "not_found" }
+  | { status: "unavailable" };
+
+/**
+ * Sólo responde con datos para los juegos de test (`[E2E]`). Un nombre con
+ * `SIN-IGDB` simula el fallo de consulta; cualquier otro nombre devuelve "no
+ * hay datos", que es el otro camino que la UI tiene que saber mostrar.
+ */
+export function mockTimeEstimates(gameName: string): MockTimeEstimates {
+  if (gameName.includes(MOCK_UNAVAILABLE_MARKER)) return { status: "unavailable" };
+  if (!gameName.startsWith("[E2E]")) return { status: "not_found" };
+  return {
+    status: "ok",
+    beatMinutes: MOCK_BEAT_MINUTES,
+    completeMinutes: MOCK_COMPLETE_MINUTES,
+  };
 }
