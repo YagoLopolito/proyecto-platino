@@ -2,6 +2,7 @@ import { GameArt } from "@/components/game/GameArt";
 import type { GameCardData } from "@/lib/catalog/details";
 import { GameScore } from "@/components/diary/GameScore";
 import { formatPlaytime } from "@/lib/playtime";
+import { TimeToBeat, timeToBeatProps } from "@/components/game/TimeToBeat";
 
 const DESCRIPTION_PREVIEW_CHARS = 340;
 
@@ -115,6 +116,10 @@ export function GameHero({
               </p>
             )}
           </div>
+
+          {/* Estimaciones de la comunidad, debajo de las horas propias del
+              usuario: son dos cosas distintas y no se pueden confundir. */}
+          <TimeToBeat {...timeToBeatProps(game)} />
 
           {description ? (
             isLong ? (

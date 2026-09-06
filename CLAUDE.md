@@ -139,6 +139,40 @@ Pobla `game_external_guides` (tabla sin RLS de insert para `authenticated` — s
 - Se dispara manualmente desde `app/juegos/[id]/enlaces/` (botón "Buscar guías externas", `FindExternalGuidesButton.tsx` + `actions.ts`), no hay cron todavía.
 - PowerPyx/PSNProfiles/TrueTrophies no tienen API propia y bloquean scraping directo (Cloudflare); si en el futuro se necesita traer el contenido real de sus guías (no solo un link de búsqueda), primero hay que revisar sus términos de uso (regla general de la sección "Guías de desbloqueo" arriba).
 
+## Tiempos estimados de juego: `lib/time-to-beat/`
+
+Cuánto lleva pasarse la historia principal y cuánto llegar al 100%, como HowLongToBeat. Se
+muestran en la ficha de trofeos (`GameDetailHero`) y en la de diario (`GameHero`), las dos vía
+`components/game/TimeToBeat.tsx`.
+
+- **HowLongToBeat no tiene API pública** y no se usa: lo que circula por ahí es su endpoint
+  interno de búsqueda, que exige un hash sacado del bundle JS del sitio y cambia en cada
+  release (el mismo problema que el GraphQL de la PS App), además de un ToS que no permite
+  scrapearlo. La fuente es **IGDB** (`game_time_to_beat`, de Twitch/Amazon): API oficial,
+  gratis, y es el único proveedor que publica los **dos** números (`normally` y `completely`,
+  en segundos).
+- Fallback: el `playtime` de RAWG, que ya viene en la misma respuesta que la descripción de la
+  ficha. **Sólo aporta el tiempo de historia** — RAWG no publica nada del 100% — así que un
+  juego que caiga por ese camino muestra una sola cifra. Por eso la UI **cita siempre la
+  fuente**: los dos números no se miden igual.
+- `lib/time-to-beat/match.ts` es puro y sin `server-only` (se testea desde el spec, igual que
+  `steam-relevance` y `screenshot-import`). Dos reglas que importan: el match contra IGDB es
+  **exacto** por `normalizeName` y si no matchea no se muestra nada — el tiempo del juego
+  equivocado es peor que ningún tiempo, y una búsqueda por texto en IGDB devuelve DLCs,
+  ediciones y hasta bandas de sonido; y un tiempo en 0 (así manda IGDB lo que no sabe) se
+  trata como "no hay dato", nunca como "0 h".
+- Se cachean en `games` (`time_to_beat_minutes`, `time_to_complete_minutes`,
+  `time_estimates_source`, `time_estimates_checked_at`; migración
+  `20260906000000_games_time_to_beat.sql`) desde `getGameCardData`, con la misma escritura por
+  service role que la descripción y el fondo. **`time_estimates_checked_at` es la marca de "ya
+  preguntamos"**: con valor no se vuelve a consultar aunque los dos tiempos hayan quedado en
+  NULL, que es lo que evita pegarle a IGDB en cada visita a la ficha de un juego que no está
+  en su catálogo.
+- Requiere `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET` (gratis en dev.twitch.tv, son credenciales
+  de app: no hay nada por usuario y el token de client credentials se cachea en memoria del
+  proceso). Sin ellas la app no rompe: cae al `playtime` de RAWG y, si tampoco hay, la ficha
+  simplemente no muestra la sección.
+
 ## Advisor con IA: `lib/ai/`
 
 Igual patrón que `lib/psn/`: toda llamada al LLM vive acá, nunca directo en componentes ni rutas. Ver `PRODUCT_SPEC.md` sección 4 para el diseño completo (input/output esperado).
@@ -356,6 +390,26 @@ barra `sticky top-0` y las dos se pisarían.
   UI: `ScreenshotUploader` (multi-archivo con preview local en `blob:`, por eso ese `<img>` va
   sin `next/image`) + `ScreenshotGallery` (grilla tipo Instagram con lightbox sobre `Modal`),
   ambos en `/juegos/[id]/diario`.
+- **Importación masiva** (`/diario/capturas`): como no hay import automático posible, lo que
+  reemplaza a "traer las fotos de PSN" es soltar la carpeta que la consola exporta al USB y
+  que cada archivo caiga solo en su juego. La consola escribe el título en la ruta
+  (`PS5/CREATE/Screenshots/<Juego>/<Juego>_20230115121314.jpg`, `PS4/SHARE/Screenshots/...`),
+  así que `lib/diary/screenshot-import.ts` deduce el nombre de la **carpeta** primero (más
+  confiable que el nombre de archivo, y sobrevive a los renombres del navegador) y lo cruza
+  con la biblioteca por `normalizeName` — el mismo criterio que el dedup de catálogo, con las
+  mismas limitaciones (un remaster puede no matchear). Es un módulo **puro y sin
+  `server-only`** a propósito: corre en el cliente y se testea directo desde el spec, igual
+  que `steam-relevance`. Dos detalles que importan: el recorte del sufijo de fecha exige la
+  fecha completa (8 dígitos), porque recortar cualquier grupo final de números convertía
+  "Battlefield 2042" en "Battlefield"; y las capturas que baja la PS App tienen nombre opaco,
+  así que caen en un grupo "sin juego detectado" que el usuario asigna a mano (o deja en
+  "— No importar —"). El drop de una carpeta se recorre con `webkitGetAsEntry` para conservar
+  la ruta relativa; el `<input webkitdirectory>` es el camino equivalente con el picker.
+  La Server Action es `app/(app)/diario/capturas/actions.ts`
+  (`registerImportedScreenshots`): mismo contrato que `registerScreenshots` — el archivo sube
+  directo del browser a Storage y la action sólo indexa paths, revalidando que el prefijo sea
+  el uuid del usuario — pero abarcando varios juegos por llamada, con tope
+  `MAX_SCREENSHOTS_PER_IMPORT`.
 - **El caché de la ficha se escribe con service role** (`persistGameCardData` en
   `lib/catalog/details.ts`). La RLS de `games` sólo deja actualizar las filas propias
   (`created_by`), así que con el cliente de sesión la descripción, el fondo y la carátula
@@ -555,6 +609,8 @@ AI_PROVIDER_API_KEY=
 RAWG_API_KEY=
 STEAMGRIDDB_API_KEY=
 STEAM_API_KEY=
+IGDB_CLIENT_ID=
+IGDB_CLIENT_SECRET=
 CRON_SECRET=
 ```
 
@@ -563,6 +619,7 @@ CRON_SECRET=
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
 - `STEAMGRIDDB_API_KEY`: opcional. Fallback de `lib/covers` cuando RAWG no encuentra la carátula (o falta `RAWG_API_KEY`). Sin ninguna de las dos, el sync sigue funcionando igual con los íconos que trae PSN.
 - `STEAM_API_KEY`: opcional para las guías, **requerida para conectar y sincronizar Steam**. Gratis en steamcommunity.com/dev/apikey. Sin ella, `lib/external-guides/steam.ts` no trae guías de Steam Community (los links de búsqueda a PowerPyx/PSNProfiles/TrueTrophies siguen funcionando) y `lib/steam/` tira `SteamApiKeyMissingError` en el primer llamado, que la UI de Conexiones muestra como mensaje propio en vez de un error genérico. Es la credencial de la app, no del usuario: no hay equivalente al NPSSO ni nada que expire.
+- `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET`: opcionales, para los tiempos estimados de juego (`lib/time-to-beat/`). Gratis en dev.twitch.tv/console/apps (una "aplicación" de Twitch; el secret se genera una vez y no se puede volver a ver). Sin ellas los tiempos caen al `playtime` de RAWG, que sólo trae el de historia, y sin RAWG la ficha no muestra la sección.
 - `CRON_SECRET`: requerida para que `/api/cron/sync` acepte invocaciones. Vercel la agrega sola como header en las llamadas que dispara desde `vercel.json` si está seteada en el proyecto — sin ella el cron queda deshabilitado (401 siempre) pero el sync manual (`/api/psn/sync`) no se ve afectado.
 
 <!-- BEGIN:nextjs-agent-rules -->

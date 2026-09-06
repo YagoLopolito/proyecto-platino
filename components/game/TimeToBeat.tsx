@@ -1,0 +1,68 @@
+import { formatPlaytime } from "@/lib/playtime";
+import type { GameCardData } from "@/lib/catalog/details";
+
+/**
+ * Tiempos estimados del juego, al estilo HowLongToBeat: cuánto lleva pasarse
+ * la historia y cuánto llegar al 100%.
+ *
+ * Va en las dos fichas (la de trofeos y la del diario) para que el dato no
+ * dependa de por dónde entró el usuario. Son estimaciones de la comunidad,
+ * no del usuario: se distinguen de las horas jugadas propias porque citan la
+ * fuente y dicen "estimado".
+ *
+ * No renderiza nada si no hay ningún dato -- la ficha no muestra un hueco con
+ * guiones para los juegos que ninguna fuente conoce.
+ */
+export function TimeToBeat({
+  beatMinutes,
+  completeMinutes,
+  source,
+}: {
+  beatMinutes: number | null;
+  completeMinutes: number | null;
+  source: string | null;
+}) {
+  const beat = formatPlaytime(beatMinutes);
+  const complete = formatPlaytime(completeMinutes);
+  if (!beat && !complete) return null;
+
+  return (
+    <div className="space-y-1" data-testid="time-to-beat">
+      <dl className="flex flex-wrap gap-2">
+        {beat && <Estimate label="Pasarlo" value={beat} />}
+        {complete && <Estimate label="Al 100%" value={complete} />}
+      </dl>
+      <p className="text-[10px] text-zinc-500">
+        Tiempo estimado por la comunidad{sourceLabel(source)}.
+      </p>
+    </div>
+  );
+}
+
+function Estimate({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="inline-flex items-baseline gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1">
+      <dt className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">{label}</dt>
+      <dd className="text-sm font-semibold tabular-nums text-zinc-100">{value}</dd>
+    </div>
+  );
+}
+
+/**
+ * Citar la fuente no es decorativo: los dos números de IGDB y el único de RAWG
+ * no se miden igual, y el usuario tiene que poder saber de dónde salen.
+ */
+function sourceLabel(source: string | null): string {
+  if (source === "igdb") return " (IGDB)";
+  if (source === "rawg") return " (RAWG)";
+  return "";
+}
+
+/** Las props que las dos fichas sacan de `GameCardData`, sin repetir el mapeo. */
+export function timeToBeatProps(game: GameCardData) {
+  return {
+    beatMinutes: game.timeToBeatMinutes,
+    completeMinutes: game.timeToCompleteMinutes,
+    source: game.timeEstimatesSource,
+  };
+}

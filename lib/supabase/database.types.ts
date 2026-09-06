@@ -282,6 +282,10 @@ export type Database = {
           source: string;
           steam_appid: number | null;
           steam_has_achievements: boolean | null;
+          time_estimates_checked_at: string | null;
+          time_estimates_source: string | null;
+          time_to_beat_minutes: number | null;
+          time_to_complete_minutes: number | null;
           updated_at: string;
         };
         Insert: {
@@ -302,6 +306,10 @@ export type Database = {
           source?: string;
           steam_appid?: number | null;
           steam_has_achievements?: boolean | null;
+          time_estimates_checked_at?: string | null;
+          time_estimates_source?: string | null;
+          time_to_beat_minutes?: number | null;
+          time_to_complete_minutes?: number | null;
           updated_at?: string;
         };
         Update: {
@@ -322,6 +330,10 @@ export type Database = {
           source?: string;
           steam_appid?: number | null;
           steam_has_achievements?: boolean | null;
+          time_estimates_checked_at?: string | null;
+          time_estimates_source?: string | null;
+          time_to_beat_minutes?: number | null;
+          time_to_complete_minutes?: number | null;
           updated_at?: string;
         };
         Relationships: [

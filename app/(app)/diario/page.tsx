@@ -62,6 +62,12 @@ export default async function DiaryPage({
             >
               📊 Resumen del año
             </Link>
+            <Link
+              href="/diario/capturas"
+              className="block rounded border border-zinc-700 px-3 py-2 text-center text-sm text-zinc-300 hover:border-zinc-500 sm:py-1.5"
+            >
+              📷 Importar capturas
+            </Link>
             <ImportPlatinumsButton />
             <MarkAsFinishedModal defaultOpen={nuevo === "1"} />
           </div>

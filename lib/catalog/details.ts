@@ -8,6 +8,7 @@ import {
   findSteamHeroUrl,
 } from "@/lib/covers";
 import { generateGameDescription } from "@/lib/ai";
+import { fetchTimeEstimates } from "@/lib/time-to-beat";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export interface GameCardData {
@@ -21,6 +22,12 @@ export interface GameCardData {
   descriptionSource: string | null;
   developer: string | null;
   releaseYear: number | null;
+  /** Minutos estimados para terminar la historia principal (HowLongToBeat-style). */
+  timeToBeatMinutes: number | null;
+  /** Minutos estimados para llegar al 100%. RAWG no lo publica: sólo sale de IGDB. */
+  timeToCompleteMinutes: number | null;
+  /** "igdb" | "rawg" | "none" | null -- la ficha cita la fuente del dato. */
+  timeEstimatesSource: string | null;
 }
 
 type GameRow = {
@@ -35,10 +42,14 @@ type GameRow = {
   developer: string | null;
   release_year: number | null;
   external_catalog_id: string | null;
+  time_to_beat_minutes: number | null;
+  time_to_complete_minutes: number | null;
+  time_estimates_source: string | null;
+  time_estimates_checked_at: string | null;
 };
 
 export const GAME_CARD_COLUMNS =
-  "id, name, platform, cover_url, icon_url, background_url, description, description_source, developer, release_year, external_catalog_id";
+  "id, name, platform, cover_url, icon_url, background_url, description, description_source, developer, release_year, external_catalog_id, time_to_beat_minutes, time_to_complete_minutes, time_estimates_source, time_estimates_checked_at";
 
 function toCardData(game: GameRow): GameCardData {
   return {
@@ -51,6 +62,9 @@ function toCardData(game: GameRow): GameCardData {
     descriptionSource: game.description_source,
     developer: game.developer,
     releaseYear: game.release_year,
+    timeToBeatMinutes: game.time_to_beat_minutes,
+    timeToCompleteMinutes: game.time_to_complete_minutes,
+    timeEstimatesSource: game.time_estimates_source,
   };
 }
 
@@ -114,10 +128,16 @@ export async function getGameCardData(
   // pixelado o directamente vacío. Si ya estamos consultando RAWG por la ficha,
   // aprovechamos para completar la carátula real.
   const needsCover = game.cover_url === null;
-  if (!needsDescription && !needsBackground && !needsCover) return base;
+  // Los tiempos estimados se consultan una sola vez por juego: `checked_at`
+  // con valor significa "ya preguntamos", aunque las dos columnas hayan
+  // quedado en NULL porque ninguna fuente lo conocía.
+  const needsTimeEstimates = game.time_estimates_checked_at === null;
+  if (!needsDescription && !needsBackground && !needsCover && !needsTimeEstimates) return base;
 
   try {
-    const wantsRawg = needsDescription || needsCover;
+    // También se pide RAWG para los tiempos: su `playtime` es el fallback
+    // cuando IGDB no conoce el juego, y viene en la misma respuesta.
+    const wantsRawg = needsDescription || needsCover || needsTimeEstimates;
     const [details, heroUrl] = await Promise.all([
       wantsRawg
         ? game.external_catalog_id
@@ -167,6 +187,13 @@ export async function getGameCardData(
 
     const coverUrl = needsCover ? (details?.coverUrl ?? null) : game.cover_url;
 
+    // Va después del Promise.all y no adentro porque necesita el `playtime`
+    // de RAWG como fallback. Es un fetch extra sólo en la primera visita a la
+    // ficha; a partir de ahí sale del caché en `games`.
+    const estimates = needsTimeEstimates
+      ? await fetchTimeEstimates(game.name, details?.playtimeHours)
+      : null;
+
     await persistGameCardData(supabase, game.id, {
       ...(needsDescription
         ? {
@@ -178,6 +205,14 @@ export async function getGameCardData(
         : {}),
       ...(needsBackground ? { background_url: backgroundUrl } : {}),
       ...(needsCover && coverUrl ? { cover_url: coverUrl } : {}),
+      ...(estimates
+        ? {
+            time_to_beat_minutes: estimates.beatMinutes,
+            time_to_complete_minutes: estimates.completeMinutes,
+            time_estimates_source: estimates.source,
+            time_estimates_checked_at: new Date().toISOString(),
+          }
+        : {}),
     });
 
     return {
@@ -188,6 +223,9 @@ export async function getGameCardData(
       descriptionSource,
       developer: details?.developer ?? base.developer,
       releaseYear: details?.releaseYear ?? base.releaseYear,
+      timeToBeatMinutes: estimates?.beatMinutes ?? base.timeToBeatMinutes,
+      timeToCompleteMinutes: estimates?.completeMinutes ?? base.timeToCompleteMinutes,
+      timeEstimatesSource: estimates?.source ?? base.timeEstimatesSource,
     };
   } catch {
     return base;

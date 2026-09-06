@@ -23,8 +23,16 @@ export const ACCEPTED_SCREENSHOT_TYPES = [
 /** Valor del `accept` del <input type="file">. */
 export const SCREENSHOT_ACCEPT = ACCEPTED_SCREENSHOT_TYPES.join(",");
 
-/** Cuántas capturas se pueden subir de una sola vez. */
+/** Cuántas capturas se pueden subir de una sola vez desde la ficha del juego. */
 export const MAX_SCREENSHOTS_PER_UPLOAD = 10;
+
+/**
+ * Tope del importador masivo (`/diario/capturas`), donde el usuario suelta la
+ * carpeta entera que exportó de la consola. Es más alto que
+ * `MAX_SCREENSHOTS_PER_UPLOAD` porque ahí subir de a 10 no tendría sentido,
+ * pero sigue habiendo tope: cada archivo es una subida a Storage y una fila.
+ */
+export const MAX_SCREENSHOTS_PER_IMPORT = 100;
 
 export const MAX_CAPTION_LENGTH = 280;
 

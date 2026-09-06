@@ -227,6 +227,12 @@ export interface GameDetails {
   releaseYear: number | null;
   backgroundUrl: string | null;
   coverUrl: string | null;
+  /**
+   * Horas promedio que la comunidad de RAWG tarda en terminarlo. Es el único
+   * tiempo que publica RAWG (no tiene equivalente del 100%), y lo usa
+   * `lib/time-to-beat/` como último recurso cuando IGDB no conoce el juego.
+   */
+  playtimeHours: number | null;
 }
 
 function firstString(raw: unknown, key: string): string | null {
@@ -275,6 +281,8 @@ export async function fetchGameDetails(externalId: string): Promise<GameDetails 
             ? obj.background_image
             : null,
       coverUrl: typeof obj.background_image === "string" ? obj.background_image : null,
+      // RAWG manda 0 cuando no tiene el dato; `hoursToMinutes` lo descarta.
+      playtimeHours: typeof obj.playtime === "number" ? obj.playtime : null,
     };
   } catch {
     return null;
