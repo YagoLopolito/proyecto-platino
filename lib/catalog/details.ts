@@ -135,9 +135,7 @@ export async function getGameCardData(
   if (!needsDescription && !needsBackground && !needsCover && !needsTimeEstimates) return base;
 
   try {
-    // También se pide RAWG para los tiempos: su `playtime` es el fallback
-    // cuando IGDB no conoce el juego, y viene en la misma respuesta.
-    const wantsRawg = needsDescription || needsCover || needsTimeEstimates;
+    const wantsRawg = needsDescription || needsCover;
     const [details, heroUrl] = await Promise.all([
       wantsRawg
         ? game.external_catalog_id
@@ -187,12 +185,9 @@ export async function getGameCardData(
 
     const coverUrl = needsCover ? (details?.coverUrl ?? null) : game.cover_url;
 
-    // Va después del Promise.all y no adentro porque necesita el `playtime`
-    // de RAWG como fallback. Es un fetch extra sólo en la primera visita a la
-    // ficha; a partir de ahí sale del caché en `games`.
-    const estimates = needsTimeEstimates
-      ? await fetchTimeEstimates(game.name, details?.playtimeHours)
-      : null;
+    // Un fetch extra a IGDB sólo en la primera visita a la ficha; a partir de
+    // ahí sale del caché en `games`.
+    const estimates = needsTimeEstimates ? await fetchTimeEstimates(game.name) : null;
 
     await persistGameCardData(supabase, game.id, {
       ...(needsDescription

@@ -151,10 +151,17 @@ muestran en la ficha de trofeos (`GameDetailHero`) y en la de diario (`GameHero`
   scrapearlo. La fuente es **IGDB** (`game_time_to_beat`, de Twitch/Amazon): API oficial,
   gratis, y es el único proveedor que publica los **dos** números (`normally` y `completely`,
   en segundos).
-- Fallback: el `playtime` de RAWG, que ya viene en la misma respuesta que la descripción de la
-  ficha. **Sólo aporta el tiempo de historia** — RAWG no publica nada del 100% — así que un
-  juego que caiga por ese camino muestra una sola cifra. Por eso la UI **cita siempre la
-  fuente**: los dos números no se miden igual.
+- **IGDB es la única fuente. No hay fallback**, y eso es a propósito: se probó con el
+  `playtime` de RAWG y hubo que revertirlo. Ese campo no es "cuánto lleva pasarlo" sino las
+  horas que los usuarios de RAWG declaran haber jugado, así que para un juego con pocos
+  registros devuelve 1 o 2 — en la biblioteca real puso **1 h en SILENT HILL 2** y 8 h en
+  RESIDENT EVIL 6. Un número creíble pero equivocado es peor que ninguno: el usuario no tiene
+  cómo saber que está mal. Si IGDB no conoce el juego, la ficha no muestra la sección.
+- **El tiempo de completitud se etiqueta "Platino"** cuando el juego tiene un trofeo de ese
+  tipo, y "Al 100%" cuando no (Steam). Nadie publica un tiempo de platino — IGDB tampoco —
+  pero su `completely` es el 100% de completitud, que es justo lo que destraba el platino en
+  la enorme mayoría de los juegos. La ficha de trofeos ya tiene los trofeos cargados; la de
+  diario hace un `count` con `head: true` sobre `trophies` para saberlo.
 - `lib/time-to-beat/match.ts` es puro y sin `server-only` (se testea desde el spec, igual que
   `steam-relevance` y `screenshot-import`). Dos reglas que importan: el match contra IGDB es
   **exacto** por `normalizeName` y si no matchea no se muestra nada — el tiempo del juego
@@ -162,16 +169,17 @@ muestran en la ficha de trofeos (`GameDetailHero`) y en la de diario (`GameHero`
   ediciones y hasta bandas de sonido; y un tiempo en 0 (así manda IGDB lo que no sabe) se
   trata como "no hay dato", nunca como "0 h".
 - Se cachean en `games` (`time_to_beat_minutes`, `time_to_complete_minutes`,
-  `time_estimates_source`, `time_estimates_checked_at`; migración
+  `time_estimates_source` (`igdb` o `none`), `time_estimates_checked_at`; migración
   `20260906000000_games_time_to_beat.sql`) desde `getGameCardData`, con la misma escritura por
   service role que la descripción y el fondo. **`time_estimates_checked_at` es la marca de "ya
   preguntamos"**: con valor no se vuelve a consultar aunque los dos tiempos hayan quedado en
   NULL, que es lo que evita pegarle a IGDB en cada visita a la ficha de un juego que no está
   en su catálogo.
-- Requiere `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET` (gratis en dev.twitch.tv, son credenciales
-  de app: no hay nada por usuario y el token de client credentials se cachea en memoria del
-  proceso). Sin ellas la app no rompe: cae al `playtime` de RAWG y, si tampoco hay, la ficha
-  simplemente no muestra la sección.
+- **Requiere `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET`** (gratis en dev.twitch.tv, son
+  credenciales de app: no hay nada por usuario y el token de client credentials se cachea en
+  memoria del proceso). Sin ellas **la sección no aparece en ninguna ficha**: no es una
+  degradación elegante que pase inadvertida, es la feature apagada. Si los tiempos no se ven,
+  lo primero a mirar es si esas dos variables están en el proyecto de Vercel.
 
 ## Advisor con IA: `lib/ai/`
 
@@ -619,7 +627,7 @@ CRON_SECRET=
 - `RAWG_API_KEY`: opcional. Sin ella, `lib/covers` no completa carátulas y el sync sigue funcionando igual con los íconos que trae PSN.
 - `STEAMGRIDDB_API_KEY`: opcional. Fallback de `lib/covers` cuando RAWG no encuentra la carátula (o falta `RAWG_API_KEY`). Sin ninguna de las dos, el sync sigue funcionando igual con los íconos que trae PSN.
 - `STEAM_API_KEY`: opcional para las guías, **requerida para conectar y sincronizar Steam**. Gratis en steamcommunity.com/dev/apikey. Sin ella, `lib/external-guides/steam.ts` no trae guías de Steam Community (los links de búsqueda a PowerPyx/PSNProfiles/TrueTrophies siguen funcionando) y `lib/steam/` tira `SteamApiKeyMissingError` en el primer llamado, que la UI de Conexiones muestra como mensaje propio en vez de un error genérico. Es la credencial de la app, no del usuario: no hay equivalente al NPSSO ni nada que expire.
-- `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET`: opcionales, para los tiempos estimados de juego (`lib/time-to-beat/`). Gratis en dev.twitch.tv/console/apps (una "aplicación" de Twitch; el secret se genera una vez y no se puede volver a ver). Sin ellas los tiempos caen al `playtime` de RAWG, que sólo trae el de historia, y sin RAWG la ficha no muestra la sección.
+- `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET`: requeridas para los tiempos estimados de juego (`lib/time-to-beat/`). Gratis en dev.twitch.tv/console/apps (una "aplicación" de Twitch; el secret se genera una vez y no se puede volver a ver). Sin ellas la ficha no muestra la sección de tiempos — no hay fuente alternativa, ver la sección de `lib/time-to-beat/`.
 - `CRON_SECRET`: requerida para que `/api/cron/sync` acepte invocaciones. Vercel la agrega sola como header en las llamadas que dispara desde `vercel.json` si está seteada en el proyecto — sin ella el cron queda deshabilitado (401 siempre) pero el sync manual (`/api/psn/sync`) no se ve afectado.
 
 <!-- BEGIN:nextjs-agent-rules -->

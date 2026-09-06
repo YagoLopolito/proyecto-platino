@@ -42,6 +42,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
     card,
     screenshotsOutcome,
     { data: userGame },
+    { count: platinumCount },
   ] = await Promise.all([
     supabase
       .from("game_diary_entries")
@@ -60,6 +61,14 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
       .eq("user_id", user.id)
       .eq("game_id", gameId)
       .maybeSingle(),
+    // Si el juego tiene platino: decide si el tiempo de completitud se muestra
+    // como "Platino" o como "Al 100%" (Steam no tiene platino). `head: true`
+    // porque sólo interesa el conteo, no las filas.
+    supabase
+      .from("trophies")
+      .select("id", { count: "exact", head: true })
+      .eq("game_id", gameId)
+      .eq("type", "platinum"),
   ]);
 
   const ownEntries = (entries ?? []).filter((entry) => entry.user_id === user.id);
@@ -83,6 +92,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
             }}
             distribution={diaryOutcome.summary.distribution}
             playtimeMinutes={userGame?.playtime_minutes ?? null}
+            hasPlatinum={(platinumCount ?? 0) > 0}
           />
         )}
 

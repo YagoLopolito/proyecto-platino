@@ -124,6 +124,9 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   const isPlatinumed =
     !isSteam && (trophies ?? []).some((t) => t.type === "platinum" && obtained.has(t.id));
   const isCompleted = isSteam && total > 0 && obtainedCount === total;
+  // Distinto de `isPlatinumed`: no importa si el usuario lo sacó, sino si el
+  // juego tiene platino -- decide la etiqueta del tiempo de completitud.
+  const hasPlatinumTrophy = (trophies ?? []).some((t) => t.type === "platinum");
 
   // Si el juego tiene DLC/expansiones, PSN los trae como grupos de trofeos
   // aparte del "default" (juego base) -- se separan visualmente para poder
@@ -197,6 +200,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
         <GameDetailHero
           game={card}
+          hasPlatinum={hasPlatinumTrophy}
           badges={
             <>
               {isPlatinumed && <PlatinumBadge />}
