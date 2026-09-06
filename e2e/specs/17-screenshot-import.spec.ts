@@ -94,7 +94,11 @@ test.describe("Pantalla de importación", () => {
     users,
   }) => {
     const suffix = `Capturas ${users.runId}`;
-    await seedGameWithTrophies(supabase, users.userA.id, { n: 1, nameSuffix: suffix, np: 1701 });
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: suffix,
+      np: 1701,
+    });
     const gameName = testGameTitle(suffix);
 
     await page.goto("/diario/capturas");
@@ -111,8 +115,11 @@ test.describe("Pantalla de importación", () => {
       },
     ]);
 
+    // El nombre del juego aparece dos veces (el título del grupo y su opción
+    // en el select), así que la aserción va sobre el valor del select: es
+    // además lo que importa, que el juego venga preseleccionado.
     const groups = page.getByTestId("screenshot-import-groups");
-    await expect(groups.getByText(gameName, { exact: true })).toBeVisible();
+    await expect(groups.getByRole("combobox")).toHaveValue(gameId);
     await expect(groups.getByText(/detectado automáticamente/)).toBeVisible();
     await expect(page.getByRole("button", { name: /Importar 1 captura/ })).toBeVisible();
   });
