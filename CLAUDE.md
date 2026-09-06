@@ -151,23 +151,33 @@ muestran en la ficha de trofeos (`GameDetailHero`) y en la de diario (`GameHero`
   scrapearlo. La fuente es **IGDB** (`game_time_to_beat`, de Twitch/Amazon): API oficial,
   gratis, y es el único proveedor que publica los **dos** números (`normally` y `completely`,
   en segundos).
-- **IGDB es la única fuente. No hay fallback**, y eso es a propósito: se probó con el
-  `playtime` de RAWG y hubo que revertirlo. Ese campo no es "cuánto lleva pasarlo" sino las
-  horas que los usuarios de RAWG declaran haber jugado, así que para un juego con pocos
-  registros devuelve 1 o 2 — en la biblioteca real puso **1 h en SILENT HILL 2** y 8 h en
-  RESIDENT EVIL 6. Un número creíble pero equivocado es peor que ninguno: el usuario no tiene
-  cómo saber que está mal. Si IGDB no conoce el juego, la ficha no muestra la sección.
+- **IGDB primero y, para lo que no tiene, una estimación del LLM** (`generateTimeEstimates` en
+  `lib/ai/`, horas enteras, con el mismo `NO_CONOZCO` que la descripción). La ficha **siempre
+  cita la fuente**, y la de IA lleva el ✨ y un "puede tener errores": un agregado de partidas
+  reales y la estimación de un modelo no valen lo mismo. El fallback existe porque IGDB no
+  cubre buena parte de una biblioteca real (juegos nuevos, colecciones LEGO, ediciones
+  regionales) y la sección desaparecía justo donde más se la busca.
+- **El `playtime` de RAWG no sirve para esto y no se vuelve a intentar.** Se probó como
+  fallback y hubo que revertirlo: ese campo no es "cuánto lleva pasarlo" sino las horas que
+  los usuarios de RAWG declaran haber jugado, así que para un juego con pocos registros
+  devuelve 1 o 2 — en la biblioteca real puso **1 h en SILENT HILL 2** y 8 h en RESIDENT EVIL
+  6. Un número creíble pero equivocado bajo una etiqueta que no le corresponde es peor que
+  ninguno.
 - **El tiempo de completitud se etiqueta "Platino"** cuando el juego tiene un trofeo de ese
   tipo, y "Al 100%" cuando no (Steam). Nadie publica un tiempo de platino — IGDB tampoco —
   pero su `completely` es el 100% de completitud, que es justo lo que destraba el platino en
   la enorme mayoría de los juegos. La ficha de trofeos ya tiene los trofeos cargados; la de
   diario hace un `count` con `head: true` sobre `trophies` para saberlo.
 - `lib/time-to-beat/match.ts` es puro y sin `server-only` (se testea desde el spec, igual que
-  `steam-relevance` y `screenshot-import`). Dos reglas que importan: el match contra IGDB es
-  **exacto** por `normalizeName` y si no matchea no se muestra nada — el tiempo del juego
-  equivocado es peor que ningún tiempo, y una búsqueda por texto en IGDB devuelve DLCs,
-  ediciones y hasta bandas de sonido; y un tiempo en 0 (así manda IGDB lo que no sabe) se
-  trata como "no hay dato", nunca como "0 h".
+  `steam-relevance` y `screenshot-import`). El match contra IGDB **no puede ser exacto**: los
+  nombres del catálogo traen ®/™, sufijos de tienda ("Call of Duty: Black Ops II -
+  Multiplayer") o son más cortos que el título real ("Skyrim"), y exigir igualdad descartaba
+  casi todo. Va en tres pasadas: exacto por `comparableName`, después **sufijo** (el catálogo
+  guarda el nombre corto y IGDB le antepone la saga) y por último similitud de palabras sobre
+  `MIN_NAME_SIMILARITY`. La asimetría prefijo/sufijo es la regla clave: que el candidato
+  **agregue palabras al final** ("God of War" → "God of War Ragnarök") significa otra entrega
+  o un DLC, y se descarta. Un tiempo en 0 (así manda IGDB lo que no sabe) se trata como "no
+  hay dato", nunca como "0 h".
 - **Un fallo al consultar no se cachea.** `findIgdbTimeToBeat` distingue tres cosas:
   `ok`, `not_found` (IGDB contestó y no sabe → se cachea) y `unavailable` (sin credenciales,
   red, 401, timeout → **no** se escribe `time_estimates_checked_at`). Sin esa distinción, la
@@ -176,17 +186,18 @@ muestran en la ficha de trofeos (`GameDetailHero`) y en la de diario (`GameHero`
   limpiarlos a mano. Cada camino que no termina en datos se loguea con prefijo `[igdb]`: sin
   eso, "faltan credenciales" y "IGDB no conoce el juego" se veían idénticos desde afuera.
 - Se cachean en `games` (`time_to_beat_minutes`, `time_to_complete_minutes`,
-  `time_estimates_source` (`igdb` o `none`), `time_estimates_checked_at`; migración
+  `time_estimates_source` (`igdb`, `ai` o `none`), `time_estimates_checked_at`; migración
   `20260906000000_games_time_to_beat.sql`) desde `getGameCardData`, con la misma escritura por
   service role que la descripción y el fondo. **`time_estimates_checked_at` es la marca de "ya
   preguntamos"**: con valor no se vuelve a consultar aunque los dos tiempos hayan quedado en
   NULL, que es lo que evita pegarle a IGDB en cada visita a la ficha de un juego que no está
   en su catálogo.
-- **Requiere `IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET`** (gratis en dev.twitch.tv, son
-  credenciales de app: no hay nada por usuario y el token de client credentials se cachea en
-  memoria del proceso). Sin ellas **la sección no aparece en ninguna ficha**: no es una
-  degradación elegante que pase inadvertida, es la feature apagada. Si los tiempos no se ven,
-  lo primero a mirar es si esas dos variables están en el proyecto de Vercel.
+- **`IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET`** (gratis en dev.twitch.tv; son credenciales de
+  app, el token de client credentials se cachea en memoria del proceso). La app de Twitch
+  tiene que ser de tipo **Confidential**: una de tipo Público no tiene secreto, y el tipo no
+  se puede cambiar después de crearla. Sin estas variables los tiempos salen todos del LLM
+  (peor dato, y consumiendo el rate limit de Groq), así que si en la ficha todo aparece con
+  el ✨ de IA, lo primero a mirar es si están cargadas en Vercel.
 
 ## Advisor con IA: `lib/ai/`
 

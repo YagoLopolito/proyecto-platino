@@ -141,3 +141,19 @@ export function parseAiRecommendations(raw: string): AiRecommendations {
   const json: unknown = JSON.parse(raw);
   return aiRecommendationsSchema.parse(json);
 }
+
+/**
+ * Tiempos estimados por el modelo para un juego que IGDB no tiene. Horas
+ * enteras: ver `TIME_ESTIMATES_SYSTEM_PROMPT`.
+ */
+export const aiTimeEstimatesSchema = z.object({
+  historia: z.number().int().min(0).max(1000),
+  completo: z.number().int().min(0).max(2000),
+});
+
+export type AiTimeEstimates = z.infer<typeof aiTimeEstimatesSchema>;
+
+export function parseAiTimeEstimates(raw: string): AiTimeEstimates {
+  const json: unknown = JSON.parse(raw);
+  return aiTimeEstimatesSchema.parse(json);
+}

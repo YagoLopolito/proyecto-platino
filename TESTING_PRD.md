@@ -523,8 +523,9 @@ llama a IGDB.
 | TIME-05 | Caché y ficha de diario | Los tiempos quedan guardados en `games` y la ficha de diario muestra los mismos | P1 |
 | TIME-06 | `@live`: IGDB real | Un juego conocido devuelve `status: "ok"` con los dos tiempos mayores a cero | P2 |
 | TIME-07 | No se pudo consultar IGDB | El juego **no** queda marcado como consultado, para que se reintente cuando el problema se arregle | P0 |
+| TIME-08 | Nombres del catálogo contra IGDB | "Skyrim", "…- Multiplayer" y los que traen ®/™ matchean contra el título real; una entrega distinta de la saga no | P0 |
 
-**Total: 120 casos** — 49 P0, 50 P1, 21 P2.
+**Total: 121 casos** — 50 P0, 50 P1, 21 P2.
 
 ---
 

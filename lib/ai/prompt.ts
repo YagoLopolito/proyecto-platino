@@ -64,6 +64,45 @@ export function buildGameDescriptionUserPrompt(input: GameDescriptionInput): str
     .join("\n");
 }
 
+export type TimeEstimatesInput = {
+  gameName: string;
+  platform: string | null;
+  releaseYear: number | null;
+};
+
+/**
+ * Estimador de tiempos de juego, para los títulos que IGDB no tiene.
+ *
+ * Pide horas enteras a propósito: un modelo no puede afinar más que eso, y un
+ * "37,5 h" daría una falsa sensación de precisión. El marcador `NO_CONOZCO`
+ * es la misma convención que la descripción: preferimos no mostrar nada antes
+ * que inventar un número.
+ */
+export const TIME_ESTIMATES_SYSTEM_PROMPT = `Sos una base de datos de duración de videojuegos, tipo HowLongToBeat. Te paso el nombre de un juego y devolvés cuántas horas lleva terminarlo.
+
+Respondé SOLO un objeto JSON con esta forma exacta:
+{"historia": <horas para terminar la historia principal>, "completo": <horas para completarlo al 100%>}
+
+Reglas:
+- Los dos valores son números enteros de horas, mayores a 0.
+- "historia" es una partida normal hasta los créditos, sin desviarse a contenido opcional.
+- "completo" es el 100%: todo el contenido opcional, coleccionables y logros. Siempre mayor o igual que "historia".
+- Usá el promedio de la comunidad, no tu mejor partida ni la más lenta.
+- Si el juego no tiene final (multijugador, roguelike infinito, deportivo), poné "historia" en 0.
+- Si no conocés el juego, o no estás seguro de la duración, respondé exactamente: NO_CONOZCO`;
+
+export function buildTimeEstimatesUserPrompt(input: TimeEstimatesInput): string {
+  return [
+    `Juego: ${input.gameName}`,
+    input.platform ? `Plataforma: ${input.platform}` : null,
+    input.releaseYear !== null ? `Año: ${input.releaseYear}` : null,
+    "",
+    "Devolvé el JSON con las horas.",
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+}
+
 /** Un juego ya platinado (PSN) o al 100% (Steam): la "muestra de gusto" del usuario. */
 export type AiRecommendationPlatinumInput = {
   name: string;
