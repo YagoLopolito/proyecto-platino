@@ -13,6 +13,14 @@ export interface TimeEstimates {
   source: TimeEstimatesSource;
 }
 
+/**
+ * `null` = **no se pudo consultar** (sin credenciales, red, 401, timeout). El
+ * caller tiene que distinguirlo de un `TimeEstimates` con `source: "none"`:
+ * ese se cachea ("IGDB no lo sabe, no vuelvas a preguntar") y este no, porque
+ * si no un fallo transitorio deja el juego sin tiempos para siempre.
+ */
+export type TimeEstimatesOutcome = TimeEstimates | null;
+
 const EMPTY: TimeEstimates = { beatMinutes: null, completeMinutes: null, source: "none" };
 
 /**
@@ -26,18 +34,30 @@ const EMPTY: TimeEstimates = { beatMinutes: null, completeMinutes: null, source:
  * HILL 2 y 8 h en RESIDENT EVIL 6. Un número creíble pero equivocado es peor
  * que ninguno: el usuario no tiene cómo saber que está mal.
  *
- * Nunca tira: sin credenciales, con la red caída o con una respuesta rara
- * devuelve `source: "none"`, y el caller lo guarda igual para no volver a
- * consultar en cada visita.
+ * Nunca tira. Devuelve `null` cuando no se pudo preguntar (sin credenciales,
+ * red caída, 401): eso **no se cachea**, para que el juego se re-consulte solo
+ * cuando el problema se arregle. Un `source: "none"` sí se cachea: significa
+ * que IGDB contestó y no tiene el dato.
  */
-export async function fetchTimeEstimates(gameName: string): Promise<TimeEstimates> {
+export async function fetchTimeEstimates(gameName: string): Promise<TimeEstimatesOutcome> {
   if (TIME_TO_BEAT_MOCKS_ENABLED) {
     const mocked = mockTimeEstimates(gameName);
-    return mocked ? { ...mocked, source: "igdb" } : EMPTY;
+    if (mocked.status === "unavailable") return null;
+    if (mocked.status === "not_found") return EMPTY;
+    return {
+      beatMinutes: mocked.beatMinutes,
+      completeMinutes: mocked.completeMinutes,
+      source: "igdb",
+    };
   }
 
-  const igdb = await findIgdbTimeToBeat(gameName);
-  if (!igdb) return EMPTY;
+  const lookup = await findIgdbTimeToBeat(gameName);
+  if (lookup.status === "unavailable") return null;
+  if (lookup.status === "not_found") return EMPTY;
 
-  return { beatMinutes: igdb.beatMinutes, completeMinutes: igdb.completeMinutes, source: "igdb" };
+  return {
+    beatMinutes: lookup.times.beatMinutes,
+    completeMinutes: lookup.times.completeMinutes,
+    source: "igdb",
+  };
 }

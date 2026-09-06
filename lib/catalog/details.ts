@@ -187,6 +187,13 @@ export async function getGameCardData(
 
     // Un fetch extra a IGDB sólo en la primera visita a la ficha; a partir de
     // ahí sale del caché en `games`.
+    //
+    // `null` significa dos cosas distintas, y las dos terminan en lo mismo (no
+    // escribir el caché): que no hacía falta consultar, o que **no se pudo**
+    // (sin credenciales, red, 401). Ese segundo caso no se marca como
+    // consultado a propósito: si no, un fallo transitorio dejaría el juego sin
+    // tiempos para siempre. Cuando IGDB contesta y no sabe, devuelve
+    // `source: "none"`, que sí se cachea.
     const estimates = needsTimeEstimates ? await fetchTimeEstimates(game.name) : null;
 
     await persistGameCardData(supabase, game.id, {

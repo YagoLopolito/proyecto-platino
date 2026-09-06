@@ -168,6 +168,13 @@ muestran en la ficha de trofeos (`GameDetailHero`) y en la de diario (`GameHero`
   equivocado es peor que ningún tiempo, y una búsqueda por texto en IGDB devuelve DLCs,
   ediciones y hasta bandas de sonido; y un tiempo en 0 (así manda IGDB lo que no sabe) se
   trata como "no hay dato", nunca como "0 h".
+- **Un fallo al consultar no se cachea.** `findIgdbTimeToBeat` distingue tres cosas:
+  `ok`, `not_found` (IGDB contestó y no sabe → se cachea) y `unavailable` (sin credenciales,
+  red, 401, timeout → **no** se escribe `time_estimates_checked_at`). Sin esa distinción, la
+  primera visita a una ficha con las credenciales todavía sin cargar dejaba el juego marcado
+  como consultado y sin tiempos para siempre; pasó de verdad con 13 juegos y hubo que
+  limpiarlos a mano. Cada camino que no termina en datos se loguea con prefijo `[igdb]`: sin
+  eso, "faltan credenciales" y "IGDB no conoce el juego" se veían idénticos desde afuera.
 - Se cachean en `games` (`time_to_beat_minutes`, `time_to_complete_minutes`,
   `time_estimates_source` (`igdb` o `none`), `time_estimates_checked_at`; migración
   `20260906000000_games_time_to_beat.sql`) desde `getGameCardData`, con la misma escritura por

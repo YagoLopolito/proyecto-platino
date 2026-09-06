@@ -521,9 +521,10 @@ llama a IGDB.
 | TIME-03 | Unidades y valores vacíos | Los segundos pasan a minutos; 0 y negativos devuelven `null` en vez de "0 h" | P0 |
 | TIME-04 | Ficha de trofeos | Se ven "Pasarlo" y "Platino" con sus horas, y la fuente citada; en un juego sin platino la segunda dice "Al 100%" | P0 |
 | TIME-05 | Caché y ficha de diario | Los tiempos quedan guardados en `games` y la ficha de diario muestra los mismos | P1 |
-| TIME-06 | `@live`: IGDB real | Un juego conocido devuelve los dos tiempos mayores a cero | P2 |
+| TIME-06 | `@live`: IGDB real | Un juego conocido devuelve `status: "ok"` con los dos tiempos mayores a cero | P2 |
+| TIME-07 | No se pudo consultar IGDB | El juego **no** queda marcado como consultado, para que se reintente cuando el problema se arregle | P0 |
 
-**Total: 119 casos** — 48 P0, 50 P1, 21 P2.
+**Total: 120 casos** — 49 P0, 50 P1, 21 P2.
 
 ---
 
