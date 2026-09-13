@@ -41,7 +41,13 @@ test.describe.serial("Perfil", () => {
 
     const modal = page.getByRole("dialog");
     await modal.getByLabel("Buscar en tu biblioteca").fill("Top Five");
-    await modal.getByTestId("favorite-candidate").first().click();
+    // El filtro va con debounce: hasta que corre, la grilla sigue mostrando la
+    // biblioteca entera. Se espera a que quede solo el juego seedeado en vez de
+    // clickear el primero que haya (que sería cualquier otro juego del usuario).
+    const candidate = modal.getByTestId("favorite-candidate").filter({ hasText: "Top Five" });
+    await expect(candidate).toHaveCount(1);
+    await expect(modal.getByTestId("favorite-candidate")).toHaveCount(1);
+    await candidate.click();
     await expect(modal.getByText("1 de 5 elegidos")).toBeVisible();
     await modal.getByRole("button", { name: "Guardar Top 5" }).click();
 
