@@ -125,6 +125,67 @@ test.describe.serial("Perfil", () => {
     await expect(page.getByRole("button", { name: "Editar" })).toHaveCount(0);
   });
 
+  test("PROF-11: el buscador del Top 5 no saca el foco del campo al tipear", async ({ page }) => {
+    await page.goto("/perfil");
+    await page.getByRole("button", { name: /Elegir|Editar/ }).click();
+
+    const modal = page.getByRole("dialog");
+    const search = modal.getByLabel("Buscar en tu biblioteca");
+    await search.click();
+    await search.pressSequentially("Top Five", { delay: 50 });
+
+    // El modal reenfocaba la ✕ en cada render (su effect dependía de un
+    // `onClose` inline que cambia de identidad en cada tecla), lo que en mobile
+    // cerraba el teclado a mitad de palabra.
+    await expect(search).toBeFocused();
+    await expect(search).toHaveValue("Top Five");
+  });
+
+  test("PROF-12: se puede sumar al Top 5 un juego que no está en la biblioteca", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    // Un juego que existe en `games` pero que este usuario no tiene vinculado:
+    // es el caso de los juegos de PC o de consolas que la app no sincroniza.
+    const game = await seedGameWithTrophies(supabase, users.userB.id, {
+      n: 1,
+      nameSuffix: "Fuera De Biblioteca",
+      np: 904,
+    });
+    await supabase
+      .from("user_games")
+      .delete()
+      .eq("user_id", users.userA.id)
+      .eq("game_id", game.gameId);
+    await supabase.from("user_favorite_games").delete().eq("user_id", users.userA.id);
+
+    await page.goto("/perfil");
+    await page.getByRole("button", { name: /Elegir|Editar/ }).click();
+
+    const modal = page.getByRole("dialog");
+    await modal.getByLabel("Buscar en tu biblioteca").fill("Fuera De Biblioteca");
+    await modal.getByTestId("favorite-catalog-result").first().click();
+
+    await expect(modal.getByText("1 de 5 elegidos")).toBeVisible();
+    await modal.getByRole("button", { name: "Guardar Top 5" }).click();
+
+    await expect(page.getByTestId("favorite-game")).toHaveCount(1);
+    const { data: rows } = await supabase
+      .from("user_favorite_games")
+      .select("game_id, slot")
+      .eq("user_id", users.userA.id);
+    expect(rows).toEqual([{ game_id: game.gameId, slot: 1 }]);
+    // Quedó vinculado en la biblioteca del usuario: sin eso la Server Action
+    // habría rechazado el guardado.
+    const { data: link } = await supabase
+      .from("user_games")
+      .select("game_id")
+      .eq("user_id", users.userA.id)
+      .eq("game_id", game.gameId);
+    expect(link).toHaveLength(1);
+  });
+
   test("PROF-10: el propio id redirige al perfil propio", async ({ page, users }) => {
     await page.goto(`/perfil/${users.userA.id}`);
 

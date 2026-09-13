@@ -415,6 +415,8 @@ ninguna API externa.
 | PROF-08 | Últimas reseñas propias | El perfil muestra las últimas entradas del diario con su puntuación y el arranque de la reseña | P1 |
 | PROF-09 | Perfil de otro usuario | `/perfil/[id]` muestra su Top 5 y sus reseñas, ofrece agregarlo a amigos y **no** deja editar su Top 5 | P0 |
 | PROF-10 | Perfil propio por id | `/perfil/<mi id>` redirige a `/perfil` (la pantalla propia, con el editor) | P2 |
+| PROF-11 | Foco del buscador del Top 5 | Tipear en el campo no devuelve el foco a la ✕ del modal (en mobile cerraba el teclado tecla por medio) | P1 |
+| PROF-12 | Top 5 más allá de la biblioteca | Un juego que el usuario no tiene sincronizado se busca en el catálogo, se vincula en `user_games` y entra al Top 5 | P1 |
 
 ### 6.11 Accesibilidad, mobile y PWA (`11-a11y-mobile.spec.ts`) — proyecto `mobile`
 
@@ -615,6 +617,8 @@ test.describe("Enlaces externos", () => {
 | `time-to-beat` | `components/game/TimeToBeat.tsx` | Tiempos estimados de juego en las dos fichas |
 | `favorite-game` | `components/profile/FavoriteGamesSection.tsx` | Carátulas del Top 5 de un perfil |
 | `favorite-candidate` | `components/profile/TopFiveEditor.tsx` | Juegos elegibles en el editor del Top 5 |
+| `favorite-catalog-results` | `components/profile/TopFiveEditor.tsx` | Bloque de resultados de catálogo del editor del Top 5 |
+| `favorite-catalog-result` | `components/profile/TopFiveEditor.tsx` | Cada juego de catálogo que se puede sumar al Top 5 |
 | `profile-diary-entry` | `components/profile/DiaryPreviewSection.tsx` | Últimas reseñas de un perfil |
 | `friend-link` | `components/profile/FriendsStrip.tsx` | Acceso al perfil de cada amigo |
 

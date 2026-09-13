@@ -545,6 +545,21 @@ lo que el usuario **elige** mostrar.
   `user_id = auth.uid()`.
 - La RLS de select es `using (true)`, igual que `game_diary_entries`: el Top 5
   es justamente lo que muestra un perfil público.
+- **El Top 5 no se limita a la biblioteca sincronizada.** El editor filtra la
+  biblioteca del usuario y, cuando nada coincide, busca en el catálogo
+  (`searchCatalog`) y da de alta el juego elegido con `addCatalogGame` — el
+  mismo camino que "Marcar como terminado", incluso cuando la fila de `games`
+  ya existe porque la sincronizó otro usuario: sin pasar por ahí el juego no
+  queda en `user_games` y la Server Action lo rechaza al guardar. Por eso
+  `searchCatalogGames` **ya no descarta lo que no está en PlayStation**: con
+  Steam como segunda plataforma, ese filtro dejaba afuera juegos de PC y buena
+  parte del catálogo histórico (el caso que lo destapó fue Minecraft). Las
+  plataformas ahora **ordenan** los resultados (PlayStation, después PC), no los
+  filtran.
+- El campo de búsqueda del editor va con debounce y `components/Modal.tsx`
+  enfoca la ✕ **solo al abrir**: su effect dependía de un `onClose` inline, que
+  cambia de identidad en cada render, así que cada tecla tipeada adentro de
+  cualquier modal robaba el foco (en mobile, cerrando el teclado).
 - El editor (`components/profile/TopFiveEditor.tsx`) recibe la biblioteca por
   props del Server Component — es la misma consulta que el perfil ya hacía para
   contar juegos, así que filtrar en el cliente no cuesta un round-trip — y el
