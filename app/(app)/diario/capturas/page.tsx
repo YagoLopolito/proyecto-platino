@@ -61,7 +61,7 @@ export default async function ImportScreenshotsPage() {
         {error ? (
           <ErrorState message={`No se pudo cargar tu biblioteca: ${error.message}`} />
         ) : (
-          <ScreenshotImporter games={games} />
+          <ScreenshotImporter games={games} userId={user.id} />
         )}
       </div>
     </div>

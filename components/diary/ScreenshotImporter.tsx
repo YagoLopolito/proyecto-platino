@@ -39,7 +39,13 @@ const MAX_MB = Math.round(MAX_SCREENSHOT_BYTES / (1024 * 1024));
  * y una captura pesa varios MB) y recién después una Server Action indexa los
  * paths.
  */
-export default function ScreenshotImporter({ games }: { games: ImporterGame[] }) {
+export default function ScreenshotImporter({
+  games,
+  userId,
+}: {
+  games: ImporterGame[];
+  userId: string;
+}) {
   const [picked, setPicked] = useState<PickedFile[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -143,20 +149,18 @@ export default function ScreenshotImporter({ games }: { games: ImporterGame[] })
     setUploaded(0);
 
     const supabase = createClient();
+    // Ver el comentario equivalente en `ScreenshotUploader`: `getUser()` es un
+    // round-trip de red y su fallo se veía como "Tenés que iniciar sesión."
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Tenés que iniciar sesión.");
-      setUploaded(null);
-      return;
-    }
+      data: { session },
+    } = await supabase.auth.getSession();
+    const ownerId = session?.user?.id ?? userId;
 
     const items: { gameId: string; path: string }[] = [];
     const failed: string[] = [];
 
     for (const assignment of assignments) {
-      const path = buildScreenshotPath(user.id, assignment.gameId, assignment.file.type);
+      const path = buildScreenshotPath(ownerId, assignment.gameId, assignment.file.type);
       const { error: uploadError } = await supabase.storage
         .from(SCREENSHOTS_BUCKET)
         .upload(path, assignment.file, { contentType: assignment.file.type, upsert: false });

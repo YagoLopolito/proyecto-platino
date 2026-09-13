@@ -98,7 +98,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
 
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-zinc-300">Capturas</h2>
-          <ScreenshotUploader gameId={gameId} />
+          <ScreenshotUploader gameId={gameId} userId={user.id} />
           {screenshotsOutcome.status === "error" ? (
             <ErrorState
               message={`No se pudieron cargar las capturas: ${screenshotsOutcome.message}`}

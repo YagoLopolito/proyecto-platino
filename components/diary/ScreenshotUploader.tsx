@@ -32,7 +32,13 @@ const MAX_MB = Math.round(MAX_SCREENSHOT_BYTES / (1024 * 1024));
  * pesa varios MB), y recién después una Server Action indexa los paths en
  * `game_screenshots`. Ver `screenshot-actions.ts`.
  */
-export default function ScreenshotUploader({ gameId }: { gameId: string }) {
+export default function ScreenshotUploader({
+  gameId,
+  userId,
+}: {
+  gameId: string;
+  userId: string;
+}) {
   const [pending, setPending] = useState<PendingScreenshot[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -98,20 +104,22 @@ export default function ScreenshotUploader({ gameId }: { gameId: string }) {
     setSuccess(null);
 
     const supabase = createClient();
+    // `getUser()` pega a la API de Auth por red: en mobile con señal mala falla
+    // y devolvía `user: null`, que se mostraba como "Tenés que iniciar sesión."
+    // aunque la sesión estuviera perfecta (la página la renderizó el server con
+    // ella). Acá alcanza con la sesión local, y si no la hay se usa el id que
+    // mandó el server; quien decide de verdad es la policy de Storage y la
+    // Server Action, que siguen validando el dueño del path.
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Tenés que iniciar sesión.");
-      setUploading(false);
-      return;
-    }
+      data: { session },
+    } = await supabase.auth.getSession();
+    const ownerId = session?.user?.id ?? userId;
 
     const uploaded: { path: string; caption: string | null }[] = [];
     const failed: string[] = [];
 
     for (const item of pending) {
-      const path = buildScreenshotPath(user.id, gameId, item.file.type);
+      const path = buildScreenshotPath(ownerId, gameId, item.file.type);
       const { error: uploadError } = await supabase.storage
         .from(SCREENSHOTS_BUCKET)
         .upload(path, item.file, { contentType: item.file.type, upsert: false });
