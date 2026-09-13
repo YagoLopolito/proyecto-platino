@@ -396,7 +396,12 @@ retirados y no se reutilizan.
 | FRIEND-07 | Sin badge de platino en el feed ajeno | Nunca aparece (`user_trophies` es privado) | **P0 (seguridad)** |
 | FRIEND-08 | `public_profiles` no filtra secretos | Ni `npsso_encrypted`, ni `account_id`, ni email en ninguna respuesta | **P0 (seguridad)** |
 
-### 6.10 Perfil (`10-profile.spec.ts`)
+### 6.10 Perfil (`10-profile.spec.ts`, `19-profile.spec.ts`)
+
+PROF-06..PROF-10 son del rediseño del perfil: el Top 5 elegido por el usuario (que reemplazó a
+"Jugados recientemente") y el perfil público de otro usuario. No hay nada mockeado: el Top 5 y
+el diario son datos propios de la app (`user_favorite_games`, `game_diary_entries`), no salen de
+ninguna API externa.
 
 | ID | Caso | Resultado esperado | Prio |
 | --- | --- | --- | --- |
@@ -405,6 +410,11 @@ retirados y no se reutilizan.
 | PROF-03 | Juegos de catálogo no cuentan | "Juegos en biblioteca" los excluye | P1 |
 | PROF-04 | Perfil sin PSN conectada | CTA a conectar, sin números en cero confusos | P1 |
 | PROF-05 | Coherencia con `/juegos` | Los totales del perfil coinciden con los de la biblioteca (mismo RPC) | P1 |
+| PROF-06 | Sin "Últimos jugados" | La sección de jugados recientemente ya no está; en su lugar está el Top 5 | P1 |
+| PROF-07 | Elegir el Top 5 | Guardar deja las filas de `user_favorite_games` con su `slot` y las carátulas se ven numeradas en el perfil | P0 |
+| PROF-08 | Últimas reseñas propias | El perfil muestra las últimas entradas del diario con su puntuación y el arranque de la reseña | P1 |
+| PROF-09 | Perfil de otro usuario | `/perfil/[id]` muestra su Top 5 y sus reseñas, ofrece agregarlo a amigos y **no** deja editar su Top 5 | P0 |
+| PROF-10 | Perfil propio por id | `/perfil/<mi id>` redirige a `/perfil` (la pantalla propia, con el editor) | P2 |
 
 ### 6.11 Accesibilidad, mobile y PWA (`11-a11y-mobile.spec.ts`) — proyecto `mobile`
 
@@ -525,7 +535,7 @@ llama a IGDB.
 | TIME-07 | No se pudo consultar IGDB | El juego **no** queda marcado como consultado, para que se reintente cuando el problema se arregle | P0 |
 | TIME-08 | Nombres del catálogo contra IGDB | "Skyrim", "…- Multiplayer" y los que traen ®/™ matchean contra el título real; una entrega distinta de la saga no | P0 |
 
-**Total: 121 casos** — 50 P0, 50 P1, 21 P2.
+**Total: 126 casos** — 52 P0, 52 P1, 22 P2.
 
 ---
 
@@ -603,6 +613,10 @@ test.describe("Enlaces externos", () => {
 | `update-banner` | `components/pwa/PwaRuntime.tsx` | Aviso de versión nueva de la app instalada |
 | `screenshot-import-groups` | `components/diary/ScreenshotImporter.tsx` | Grupos detectados al importar capturas en masa |
 | `time-to-beat` | `components/game/TimeToBeat.tsx` | Tiempos estimados de juego en las dos fichas |
+| `favorite-game` | `components/profile/FavoriteGamesSection.tsx` | Carátulas del Top 5 de un perfil |
+| `favorite-candidate` | `components/profile/TopFiveEditor.tsx` | Juegos elegibles en el editor del Top 5 |
+| `profile-diary-entry` | `components/profile/DiaryPreviewSection.tsx` | Últimas reseñas de un perfil |
+| `friend-link` | `components/profile/FriendsStrip.tsx` | Acceso al perfil de cada amigo |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo
 usa, nunca por adelantado "por las dudas".

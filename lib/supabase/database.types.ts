@@ -668,6 +668,42 @@ export type Database = {
           },
         ];
       };
+      user_favorite_games: {
+        Row: {
+          created_at: string;
+          game_id: string;
+          slot: number;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          game_id: string;
+          slot: number;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          game_id?: string;
+          slot?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_favorite_games_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_favorite_games_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_games: {
         Row: {
           added_at: string;
@@ -818,10 +854,16 @@ export type Database = {
         Row: {
           avatar_url: string | null;
           display_name: string | null;
+          earned_bronze: number | null;
+          earned_gold: number | null;
+          earned_platinum: number | null;
+          earned_silver: number | null;
           id: string | null;
           psn_online_id: string | null;
           steam_avatar_url: string | null;
           steam_persona_name: string | null;
+          trophy_level: number | null;
+          trophy_progress: number | null;
         };
         Relationships: [];
       };

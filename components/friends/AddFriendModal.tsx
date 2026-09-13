@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { Input, Label } from "@/components/Input";
@@ -128,17 +129,25 @@ export default function AddFriendModal() {
                       <span className="min-w-0 truncate text-sm text-zinc-200">{label}</span>
                     </div>
 
-                    <form action={profile.isFriend ? removeAction : addAction}>
-                      <input type="hidden" name="friendId" value={profile.id} />
-                      <Button
-                        type="submit"
-                        variant={profile.isFriend ? "secondary" : "primary"}
-                        disabled={addPending || removePending}
-                        className="shrink-0 text-xs"
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Link
+                        href={`/perfil/${profile.id}`}
+                        className="text-xs text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
                       >
-                        {profile.isFriend ? "Quitar" : "Agregar"}
-                      </Button>
-                    </form>
+                        Ver perfil
+                      </Link>
+                      <form action={profile.isFriend ? removeAction : addAction}>
+                        <input type="hidden" name="friendId" value={profile.id} />
+                        <Button
+                          type="submit"
+                          variant={profile.isFriend ? "secondary" : "primary"}
+                          disabled={addPending || removePending}
+                          className="shrink-0 text-xs"
+                        >
+                          {profile.isFriend ? "Quitar" : "Agregar"}
+                        </Button>
+                      </form>
+                    </div>
                   </li>
                 );
               })}
