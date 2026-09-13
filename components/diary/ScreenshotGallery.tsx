@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Image from "next/image";
+import { GameArt } from "@/components/game/GameArt";
 import { useRouter } from "next/navigation";
 import type { GameScreenshot } from "@/lib/diary/screenshots";
 import { Modal } from "@/components/Modal";
@@ -19,6 +19,12 @@ import {
  * lightbox con la imagen grande, el texto y quién la subió. Editar el texto y
  * borrar solo aparecen en las propias (`isOwn`); la RLS de `game_screenshots` y
  * la policy del bucket lo cortan igual del lado de la base.
+ *
+ * Las imágenes van por `GameArt` como el resto del arte de la app: sin el
+ * optimizador de Vercel (el plan Hobby da 5.000 transformaciones por mes y ya
+ * se agotaron una vez; cuando pasa, `/_next/image` deja de servir y las
+ * capturas quedan rotas mientras el resto de la app se ve bien, porque todo lo
+ * demás ya era `unoptimized`) y con fallback visible si una no carga.
  */
 export default function ScreenshotGallery({
   gameId,
@@ -98,12 +104,16 @@ export default function ScreenshotGallery({
               className="group relative block aspect-video w-full overflow-hidden rounded border border-zinc-800 bg-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label={screenshot.caption ?? `Captura de ${screenshot.authorLabel}`}
             >
-              <Image
+              <GameArt
                 src={screenshot.url}
                 alt={screenshot.caption ?? `Captura subida por ${screenshot.authorLabel}`}
-                fill
                 sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                 className="object-cover transition-transform group-hover:scale-105"
+                fallback={
+                  <span className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] text-zinc-500">
+                    No se pudo cargar la captura
+                  </span>
+                }
               />
               {screenshot.caption && (
                 <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-2 pb-1 pt-4 text-left text-[11px] text-zinc-200">
@@ -124,12 +134,16 @@ export default function ScreenshotGallery({
         >
           <div className="space-y-3">
             <div className="relative aspect-video w-full overflow-hidden rounded bg-black">
-              <Image
+              <GameArt
                 src={current.url}
                 alt={current.caption ?? `Captura subida por ${current.authorLabel}`}
-                fill
                 sizes="(min-width: 640px) 32rem, 100vw"
                 className="object-contain"
+                fallback={
+                  <span className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-zinc-500">
+                    No se pudo cargar la captura
+                  </span>
+                }
               />
             </div>
 

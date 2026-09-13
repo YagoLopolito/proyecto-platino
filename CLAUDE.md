@@ -458,8 +458,13 @@ barra `sticky top-0` y las dos se pisarían.
   lo que servimos ya son JPG/PNG comprimidos de las CDNs de RAWG, Steam y PSN, pensados para
   mostrarse a este tamaño. Esto revierte a propósito una parte de la pasada de performance de
   2026-08-19 (sacar `unoptimized`): el ahorro de bytes no compensa que la app se quede sin
-  imágenes. **Las capturas que suben los usuarios (`ScreenshotGallery`) sí se siguen
-  optimizando**: ahí el original pesa megas y la transformación se paga sola.
+  imágenes. **Las capturas que suben los usuarios (`ScreenshotGallery`) también van por
+  `GameArt`** desde el 2026-09-13: eran lo único que seguía pasando por `/_next/image`, así
+  que con la cuota agotada quedaban rotas mientras el resto de la app se veía bien. Se
+  aguanta el peso del original (tope de 10 MB por archivo, ver
+  `lib/diary/screenshot-constants.ts`) antes que una galería de imágenes rotas. Si algún día
+  hace falta bajar ese peso, el camino es transformar **al subir** (redimensionar en el
+  browser antes del upload), no el optimizador.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
   vez del promedio, para que un voto solo no defina el score de un juego (issue #92).
