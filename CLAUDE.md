@@ -263,6 +263,11 @@ el caché de la otra.
 `components/GameCard.tsx` (la fila de la biblioteca con progreso, horas y desglose por tipo)
 **se eliminó**: la reemplazó la grilla de carátulas.
 
+`components/profile/` son las piezas del perfil (`ProfileHeader`,
+`ProfileStatStrip`, `FavoriteGamesSection`, `DiaryPreviewSection`,
+`FriendsStrip`), compartidas entre el perfil propio y el de otro usuario — ver la
+sección de perfil más abajo.
+
 ## App instalable en el celular (PWA)
 
 Platinoob se instala en el celular desde el navegador — "Añadir a pantalla de inicio" /
@@ -518,6 +523,55 @@ inferido por IA a partir de los juegos ya platinados (PSN) o al 100% (Steam).
   lista desde las props del server y usa estado local solo para el error y el pending.
 - Los juegos de "Para probar" no existen en `games` (el usuario no los tiene), así que van como
   tarjetas de texto y no como grilla de carátulas: no hay ficha adónde linkear.
+
+## Perfil: Top 5 y perfil público (`user_favorite_games`, `/perfil/[id]`)
+
+Rediseño del 2026-09-13. El perfil dejó de ser una tira de números con
+"Jugados recientemente" abajo: ahora arranca con una portada (`ProfileHeader`,
+la única pantalla de la app con banda degradada), la tira de stats, y después
+lo que el usuario **elige** mostrar.
+
+- **Se sacó "Jugados recientemente"**: repetía lo que ya es `/juegos` (que
+  además está a un tap) y no decía nada del usuario. Lo reemplaza el **Top 5**,
+  que sí es una decisión suya. Por eso el perfil ya no consulta
+  `user_games.last_played_at`.
+- `user_favorite_games` (migración `20260913000000_profile_favorites.sql`) es
+  `user_id + game_id + slot` (1..5), con `unique (user_id, slot)`. La Server
+  Action `app/(app)/perfil/actions.ts` **reescribe la lista entera** (delete +
+  insert) en vez de actualizar casilleros: cualquier reordenamiento pasaría por
+  un estado intermedio con dos juegos en el mismo `slot` y ese unique lo
+  rechazaría. Doble capa igual que la autoría de guías: la action valida que los
+  juegos estén en `user_games` del usuario **y** la RLS exige
+  `user_id = auth.uid()`.
+- La RLS de select es `using (true)`, igual que `game_diary_entries`: el Top 5
+  es justamente lo que muestra un perfil público.
+- El editor (`components/profile/TopFiveEditor.tsx`) recibe la biblioteca por
+  props del Server Component — es la misma consulta que el perfil ya hacía para
+  contar juegos, así que filtrar en el cliente no cuesta un round-trip — y el
+  **orden de selección es el orden del Top 5**: para cinco elementos alcanza, no
+  hace falta drag & drop. `MAX_FAVORITE_GAMES` vive en `lib/profile/constants.ts`
+  y no en `queries.ts` porque ese módulo es `server-only` (misma razón que
+  `lib/catalog/constants.ts`).
+- **`/perfil/[id]` es el perfil de otro usuario**: su Top 5, sus últimas
+  partidas terminadas con reseña y el nivel/totales de trofeos que informa PSN.
+  Todo eso es público por diseño. Lo que **no** se puede mostrar es cualquier
+  número derivado de `user_trophies` (privado): no hay progreso por juego ni
+  "juegos en biblioteca", que desde la sesión del que mira darían cero. `/perfil`
+  y `/perfil/[id]` comparten los componentes de `components/profile/`; lo único
+  exclusivo del propio es el editor del Top 5, el email y las acciones de cuenta.
+  Un link a `/perfil/<el id propio>` redirige a `/perfil`.
+- `public_profiles` suma `trophy_level`, `trophy_progress` y los cuatro
+  `earned_*`. Sigue siendo SECURITY DEFINER, así que **cada columna nueva expone
+  un dato que la RLS de `psn_accounts` no dejaría leer**: estos son los que
+  cualquiera ve en un perfil de PSN, y nunca el `npsso_encrypted`, el
+  `account_id` ni el email. La vista se **dropea y se recrea** (no
+  `create or replace`): cambiar la lista de columnas no se puede reemplazar en
+  caliente, y la definición arranca de la de `20260823010000` para no perder las
+  columnas de Steam.
+- Se llega al perfil de un amigo desde la fila de amigos del perfil propio
+  (`FriendsStrip`), desde `/diario/amigos` y desde el "Ver perfil" del buscador
+  de "Agregar amigo". El feed de amigos **no** linkea a la persona: su fila
+  entera ya es un link al juego, y anidar links es HTML inválido.
 
 ## Amigos y feed "Jugados por amigos" (`friendships`, `public_profiles`)
 

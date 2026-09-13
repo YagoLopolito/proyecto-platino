@@ -5,6 +5,7 @@ import { getFriendsDiaryFeed } from "@/lib/friends/queries";
 import { FriendsDiaryFeed } from "@/components/friends/FriendsDiaryFeed";
 import AddFriendModal from "@/components/friends/AddFriendModal";
 import { ErrorState } from "@/components/ErrorState";
+import { FriendsStrip } from "@/components/profile/FriendsStrip";
 
 /**
  * Actividad completa de los amigos, con reseñas. En `/diario` solo entra un
@@ -42,6 +43,11 @@ export default async function FriendsActivityPage() {
             <AddFriendModal />
           </div>
         </div>
+
+        {/* Los avatares llevan al perfil de cada amigo: el feed de abajo
+            linkea al juego, así que sin esto no había forma de llegar a la
+            persona. */}
+        {outcome.status === "ok" && <FriendsStrip friends={outcome.friends} />}
 
         {outcome.status === "error" ? (
           <ErrorState message={`No se pudo cargar la actividad: ${outcome.message}`} />

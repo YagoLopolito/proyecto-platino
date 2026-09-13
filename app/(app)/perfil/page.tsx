@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { FriendAvatar } from "@/components/friends/FriendAvatar";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
 import {
@@ -9,20 +8,26 @@ import {
   PSN_TROPHY_TYPES,
   type PsnTrophyType,
 } from "@/components/TrophyTypeIcon";
-import { ProgressBar } from "@/components/ProgressBar";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/Button";
 import { isVisibleInLibrary } from "@/lib/library/visibility";
-import { GamePoster } from "@/components/game/GamePoster";
-import { PosterRow, PosterRowItem } from "@/components/game/PosterGrid";
 import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
+import { ProfileHeader, ProfileBadge } from "@/components/profile/ProfileHeader";
+import { ProfileStatStrip } from "@/components/profile/ProfileStatStrip";
+import { FavoriteGamesSection } from "@/components/profile/FavoriteGamesSection";
+import {
+  DiaryPreviewSection,
+  PROFILE_DIARY_PREVIEW_LIMIT,
+} from "@/components/profile/DiaryPreviewSection";
+import { FriendsStrip } from "@/components/profile/FriendsStrip";
+import { TopFiveEditor } from "@/components/profile/TopFiveEditor";
+import { getFavoriteGames } from "@/lib/profile/queries";
+import { getUserDiaryEntries } from "@/lib/diary/queries";
+import { getFriends } from "@/lib/friends/queries";
 
 // Solo los tipos de PSN: los logros de Steam no tienen desglose ni puntos de
 // nivel, así que no entran en este panel (ver PRODUCT_SPEC.md 12.4).
 const TROPHY_TYPES = PSN_TROPHY_TYPES;
-
-/** Cuántas carátulas entran en la fila de "Últimos jugados" del perfil. */
-const RECENT_GAMES_LIMIT = 12;
 
 /**
  * Puntos por tipo de trofeo, según la escala clásica que usa PSN para calcular
@@ -81,31 +86,39 @@ export default async function PerfilPage() {
   // biblioteca) en vez de paginar manualmente por TODOS los user_trophies de la
   // cuenta (con backlogs grandes eran varios round-trips seriales de a 1000 filas
   // solo para totalizar 4 números).
-  const [{ data: psnAccount }, { data: steamAccount }, { data: libraryRows }, { data: statsRows }] =
-    await Promise.all([
-      supabase
-        .from("psn_accounts")
-        .select(
-          "online_id, avatar_url, trophy_level, trophy_progress, trophy_tier, earned_platinum, earned_gold, earned_silver, earned_bronze",
-        )
-        .eq("user_id", user.id)
-        .maybeSingle(),
-      supabase.from("steam_accounts").select("persona_name").eq("user_id", user.id).maybeSingle(),
-      // Mismo criterio que /juegos, vía `isVisibleInLibrary`: los juegos de
-      // catálogo y la basura de Steam (nunca jugada y sin logros) no cuentan
-      // como biblioteca. Se traen las filas en vez de pedir un count porque el
-      // criterio cruza `playtime_minutes` con los logros obtenidos, que salen
-      // del RPC.
-      // Se traen también carátula y último jugado: el perfil muestra una fila
-      // de "Últimos jugados" con las mismas carátulas que la biblioteca.
-      supabase
-        .from("user_games")
-        .select(
-          "game_id, playtime_minutes, last_played_at, games!inner (id, name, cover_url, icon_url, source)",
-        )
-        .eq("user_id", user.id),
-      supabase.rpc("get_library_trophy_stats"),
-    ]);
+  const [
+    { data: psnAccount },
+    { data: steamAccount },
+    { data: libraryRows },
+    { data: statsRows },
+    favorites,
+    diaryOutcome,
+    friends,
+  ] = await Promise.all([
+    supabase
+      .from("psn_accounts")
+      .select(
+        "online_id, avatar_url, trophy_level, trophy_progress, trophy_tier, earned_platinum, earned_gold, earned_silver, earned_bronze",
+      )
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase.from("steam_accounts").select("persona_name").eq("user_id", user.id).maybeSingle(),
+    // Mismo criterio que /juegos, vía `isVisibleInLibrary`: los juegos de
+    // catálogo y la basura de Steam (nunca jugada y sin logros) no cuentan
+    // como biblioteca. Se traen las filas en vez de pedir un count porque el
+    // criterio cruza `playtime_minutes` con los logros obtenidos, que salen
+    // del RPC.
+    // La carátula viaja también porque la misma lista alimenta al editor del
+    // Top 5, que muestra la biblioteca para elegir.
+    supabase
+      .from("user_games")
+      .select("game_id, playtime_minutes, games!inner (id, name, cover_url, icon_url, source)")
+      .eq("user_id", user.id),
+    supabase.rpc("get_library_trophy_stats"),
+    getFavoriteGames(supabase, user.id),
+    getUserDiaryEntries(supabase, user.id, PROFILE_DIARY_PREVIEW_LIMIT),
+    getFriends(supabase, user.id),
+  ]);
 
   const statsByGame = new Map((statsRows ?? []).map((row) => [row.game_id, row]));
   const visibleGames = (libraryRows ?? []).filter((row) =>
@@ -117,33 +130,22 @@ export default async function PerfilPage() {
   );
   const gamesCount = visibleGames.length;
 
-  // Últimos jugados, para la fila de carátulas del perfil. Los que nunca se
-  // jugaron van al fondo en vez de mezclarse con los recientes.
-  const recentGames = [...visibleGames]
-    .sort((a, b) => {
-      const aTime = a.last_played_at ? new Date(a.last_played_at).getTime() : -1;
-      const bTime = b.last_played_at ? new Date(b.last_played_at).getTime() : -1;
-      return bTime - aTime;
-    })
-    .slice(0, RECENT_GAMES_LIMIT)
-    .flatMap((row) => {
-      const game = row.games;
-      if (!game) return [];
-      const stats = statsByGame.get(row.game_id);
-      const total = stats?.total ?? 0;
-      const obtained = stats?.obtained ?? 0;
-      return {
-        id: game.id,
-        name: game.name,
-        imageUrl: game.cover_url ?? game.icon_url,
-        isSteam: game.source === "steam",
-        total,
-        obtained,
-        // El RPC devuelve totales, no el %: se calcula acá igual que en /juegos.
-        percent: total > 0 ? Math.round((obtained / total) * 100) : 0,
-        platinum: stats?.platinum ?? 0,
-      };
-    });
+  // Candidatos del editor del Top 5: la biblioteca visible, alfabética (el
+  // editor filtra por nombre, así que el orden que sirve es el del abecedario y
+  // no el del último sync).
+  const favoriteCandidates = visibleGames
+    .flatMap((row) =>
+      row.games
+        ? [
+            {
+              id: row.games.id,
+              name: row.games.name,
+              imageUrl: row.games.cover_url ?? row.games.icon_url,
+            },
+          ]
+        : [],
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   // Las stats van SEPARADAS por plataforma: un platino de PSN y un 100% de
   // Steam no son la misma unidad, y sumarlos da un número que no significa
@@ -193,83 +195,67 @@ export default async function PerfilPage() {
   const level = psnAccount?.trophy_level ?? computed.level;
   const progressPercent = psnAccount?.trophy_progress ?? computed.progressPercent;
   const isRealPsnData = psnCounts !== null && psnAccount?.trophy_level !== null;
+  const diaryEntries = diaryOutcome.status === "ok" ? diaryOutcome.entries : [];
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <FriendAvatar
-              url={psnAccount?.avatar_url ?? null}
-              name={psnAccount?.online_id ?? "?"}
-              size={64}
-            />
-            <div className="min-w-0 space-y-0.5">
-              <h1 className="truncate text-xl font-semibold sm:text-2xl">
-                {psnAccount?.online_id ?? "Perfil"}
-              </h1>
-              <p className="truncate font-mono text-xs text-zinc-500 sm:text-sm">{user.email}</p>
-            </div>
-          </div>
-          <form action={logout}>
-            <Button type="submit" variant="secondary">
-              Cerrar sesión
-            </Button>
-          </form>
-        </div>
+        <ProfileHeader
+          name={psnAccount?.online_id ?? "Perfil"}
+          subtitle={user.email}
+          avatarUrl={psnAccount?.avatar_url ?? null}
+          badges={
+            <>
+              {psnAccount && <ProfileBadge>PSN · {psnAccount.online_id}</ProfileBadge>}
+              {steamAccount && (
+                <ProfileBadge>Steam · {steamAccount.persona_name ?? "conectada"}</ProfileBadge>
+              )}
+              {!psnAccount && !steamAccount && (
+                <ProfileBadge>Sin plataformas conectadas</ProfileBadge>
+              )}
+            </>
+          }
+          actions={
+            <form action={logout}>
+              <Button type="submit" variant="secondary">
+                Cerrar sesión
+              </Button>
+            </form>
+          }
+        />
 
-        {/*
-         * Tira de números al estilo Letterbox: número grande, etiqueta chica
-         * en versalitas, separadas por una línea de 1px. Reemplaza a las
-         * tarjetas sueltas, que en mobile ocupaban media pantalla.
-         */}
-        <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800">
-          <div className="bg-zinc-950 px-3 py-3">
-            <dd className="text-2xl font-semibold leading-none">{level}</dd>
-            <dt className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-500">
-              Nivel PSN
-            </dt>
-            <ProgressBar percent={progressPercent} className="mt-2 h-1" />
-          </div>
-          <div className="bg-zinc-950 px-3 py-3">
-            <dd className="text-2xl font-semibold leading-none">{gamesCount}</dd>
-            <dt className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-500">Juegos</dt>
-          </div>
-          <div className="bg-zinc-950 px-3 py-3">
-            <dd className="text-2xl font-semibold leading-none">{totalTrophies}</dd>
-            <dt className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-500">Trofeos</dt>
-          </div>
-        </dl>
+        <ProfileStatStrip
+          stats={[
+            { label: "Nivel PSN", value: level, progressPercent },
+            { label: "Juegos", value: gamesCount },
+            { label: "Trofeos", value: totalTrophies },
+          ]}
+        />
 
-        {recentGames.length > 0 && (
-          <section className="space-y-3">
-            <SectionHeader
-              title="Últimos jugados"
-              action={
-                <Link href="/juegos">
-                  <SectionAction>Ver todo</SectionAction>
-                </Link>
-              }
+        {/* El Top 5 lo elige el usuario: es lo primero que se ve del perfil,
+            antes que cualquier número. */}
+        <FavoriteGamesSection
+          games={favorites}
+          emptyMessage="Todavía no elegiste tu Top 5. Elegí hasta 5 juegos de tu biblioteca para mostrarlos acá."
+          action={
+            <TopFiveEditor
+              games={favoriteCandidates}
+              selectedIds={favorites.map((game) => game.id)}
             />
-            {/* Carrusel horizontal: el orden importa (lo más reciente primero)
-                y no hace falta ver la biblioteca entera desde el perfil. */}
-            <PosterRow>
-              {recentGames.map((game) => (
-                <PosterRowItem key={game.id}>
-                  <GamePoster
-                    href={`/juegos/${game.id}`}
-                    name={game.name}
-                    imageUrl={game.imageUrl}
-                    progress={game.total > 0 ? game : null}
-                    isPlatinum={!game.isSteam && game.platinum > 0}
-                    isCompleted={game.isSteam && game.total > 0 && game.obtained === game.total}
-                    sizes="(max-width: 640px) 26vw, 112px"
-                  />
-                </PosterRowItem>
-              ))}
-            </PosterRow>
-          </section>
-        )}
+          }
+        />
+
+        <DiaryPreviewSection
+          entries={diaryEntries}
+          emptyMessage="Todavía no marcaste ninguna partida como terminada."
+          action={
+            <Link href="/diario">
+              <SectionAction>Ver diario</SectionAction>
+            </Link>
+          }
+        />
+
+        <FriendsStrip friends={friends} />
 
         <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
           {/* Todo este panel es de PSN: nivel, puntos y los cuatro tipos de
