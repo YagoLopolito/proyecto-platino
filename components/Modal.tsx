@@ -24,25 +24,43 @@ export function Modal({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
 
-  // Efectos imperativos del browser (tecla Escape, scroll del body, foco
-  // inicial), no sincronización de estado -- por eso van en un effect.
+  // `onClose` suele venir como arrow inline desde el que usa el modal, así que
+  // cambia de identidad en CADA render del padre. Guardarla en un ref deja que
+  // los effects de abajo dependan solo de `open`: sin esto, el effect del foco
+  // se volvía a correr con cada tecla tipeada adentro del modal y devolvía el
+  // foco a la ✕, sacando al usuario del campo (y cerrando el teclado en
+  // mobile).
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  // Efectos imperativos del browser (tecla Escape, scroll del body), no
+  // sincronización de estado -- por eso van en un effect.
   useEffect(() => {
     if (!open) return;
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
     }
 
     document.addEventListener("keydown", onKeyDown);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
+
+  // El foco inicial va en su propio effect y depende SOLO de `open`: es algo
+  // que pasa una vez, al abrir, y no cada vez que el contenido del modal se
+  // vuelve a renderizar.
+  useEffect(() => {
+    if (!open) return;
+    closeButtonRef.current?.focus();
+  }, [open]);
 
   if (!open) return null;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { Input, Label } from "@/components/Input";
@@ -9,6 +9,9 @@ import { GameArt } from "@/components/game/GameArt";
 import { SectionAction } from "@/components/ui/SectionHeader";
 import { saveFavoriteGames, type FavoritesActionState } from "@/app/(app)/perfil/actions";
 import { MAX_FAVORITE_GAMES } from "@/lib/profile/constants";
+import { searchCatalog, addCatalogGame } from "@/lib/catalog/actions";
+import { MIN_QUERY_LENGTH } from "@/lib/catalog/constants";
+import type { CombinedSearchResult } from "@/lib/catalog/dedup";
 
 export type FavoriteCandidate = {
   id: string;
@@ -17,6 +20,13 @@ export type FavoriteCandidate = {
 };
 
 const initialState: FavoritesActionState = { error: null, success: null };
+
+/**
+ * Debounce del filtro y de la búsqueda de catálogo. Sin esto la grilla se
+ * reordenaba con cada tecla y el juego que el usuario estaba por tocar se movía
+ * de lugar entre la letra y el tap.
+ */
+const DEBOUNCE_MS = 250;
 
 /**
  * Editor del Top 5 del perfil: un modal con la biblioteca del usuario, donde
@@ -28,6 +38,12 @@ const initialState: FavoritesActionState = { error: null, success: null };
  * La biblioteca llega por props desde el Server Component: es la misma consulta
  * que el perfil ya hace para contar los juegos, así que filtrar en el cliente
  * no cuesta un round-trip extra.
+ *
+ * Lo que **no** está en la biblioteca (juegos de PC, de consolas que la app no
+ * sincroniza, o clásicos que nunca se jugaron en la cuenta conectada) se busca
+ * en el catálogo (RAWG, vía `lib/catalog/`) y se da de alta igual que en
+ * "Marcar como terminado": el Top 5 es una decisión del usuario sobre sus
+ * juegos favoritos, no un recorte de lo que PSN y Steam le sincronizaron.
  */
 export function TopFiveEditor({
   games,
@@ -39,7 +55,17 @@ export function TopFiveEditor({
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(selectedIds);
   const [query, setQuery] = useState("");
+  const [term, setTerm] = useState("");
   const [state, formAction, pending] = useActionState(saveFavoriteGames, initialState);
+
+  // Juegos dados de alta desde el catálogo en esta sesión del modal: el perfil
+  // (Server Component) todavía no los tiene en sus props, pero ya existen en
+  // `user_games`, que es lo que valida la Server Action al guardar.
+  const [added, setAdded] = useState<FavoriteCandidate[]>([]);
+  const [catalogResults, setCatalogResults] = useState<CombinedSearchResult[]>([]);
+  const [catalogMessage, setCatalogMessage] = useState<string | null>(null);
+  const [isSearching, startSearch] = useTransition();
+  const [isAdding, startAdd] = useTransition();
 
   // Cerrar el modal al guardar bien, ajustando el estado durante el render
   // (regla react-hooks/set-state-in-effect, ver CLAUDE.md).
@@ -49,8 +75,52 @@ export function TopFiveEditor({
     if (state.success) setOpen(false);
   }
 
-  const term = query.trim().toLowerCase();
-  const visible = term ? games.filter((game) => game.name.toLowerCase().includes(term)) : games;
+  // Debounce del texto tipeado. Los setState pasan dentro del callback del
+  // timer, no durante el render del effect (ver convenciones en CLAUDE.md).
+  useEffect(() => {
+    const timer = setTimeout(() => setTerm(query.trim()), DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const allGames = [...added, ...games];
+  const lowerTerm = term.toLowerCase();
+  const visible = lowerTerm
+    ? allGames.filter((game) => game.name.toLowerCase().includes(lowerTerm))
+    : allGames;
+
+  // La búsqueda de catálogo sólo sale a la red cuando el usuario escribió algo
+  // que su biblioteca no cubre: si el juego ya lo tiene, no hay nada que dar de
+  // alta.
+  const shouldSearchCatalog = term.length >= MIN_QUERY_LENGTH && visible.length === 0;
+
+  useEffect(() => {
+    if (!open || !shouldSearchCatalog) return;
+
+    let cancelled = false;
+    startSearch(async () => {
+      const outcome = await searchCatalog(term);
+      if (cancelled) return;
+      if (outcome.status === "error") {
+        setCatalogResults([]);
+        setCatalogMessage(outcome.message);
+      } else {
+        setCatalogResults(outcome.results);
+        setCatalogMessage(
+          outcome.status === "missing_api_key"
+            ? "La búsqueda de catálogo externo no está disponible (falta configurar RAWG_API_KEY)."
+            : null,
+        );
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, term, shouldSearchCatalog]);
+
+  // Los resultados de una búsqueda anterior se ocultan derivándolos, no
+  // limpiando el estado dentro del effect.
+  const visibleCatalogResults = shouldSearchCatalog ? catalogResults : [];
 
   function toggle(gameId: string) {
     setSelected((current) =>
@@ -60,6 +130,45 @@ export function TopFiveEditor({
           ? current
           : [...current, gameId],
     );
+  }
+
+  /**
+   * Suma al Top 5 un juego que no está en la biblioteca del usuario. Siempre
+   * pasa por `addCatalogGame`, incluso cuando la fila de `games` ya existe
+   * (la creó otro usuario al sincronizar): sin ese alta no queda vinculado en
+   * `user_games` y la Server Action del Top 5 lo rechazaría al guardar.
+   */
+  function addFromCatalog(result: CombinedSearchResult) {
+    const externalId = result.externalId ?? result.gameId;
+    if (!externalId) return;
+
+    startAdd(async () => {
+      const formData = new FormData();
+      formData.set("externalId", externalId);
+      formData.set("name", result.name);
+      if (result.coverUrl) formData.set("coverUrl", result.coverUrl);
+      // Una fila que ya existe se vincula, nunca se duplica: es el mismo camino
+      // que usa "Marcar como terminado" cuando el usuario confirma un remaster.
+      if (result.gameId) formData.set("confirmedDuplicateOfGameId", result.gameId);
+
+      const outcome = await addCatalogGame({ error: null }, formData);
+      if (outcome.error || !outcome.gameId) {
+        setCatalogMessage(outcome.error ?? "No se pudo agregar el juego.");
+        return;
+      }
+      const gameId = outcome.gameId;
+      setCatalogMessage(null);
+      setAdded((current) =>
+        current.some((game) => game.id === gameId)
+          ? current
+          : [{ id: gameId, name: result.name, imageUrl: result.coverUrl }, ...current],
+      );
+      setSelected((current) =>
+        current.includes(gameId) || current.length >= MAX_FAVORITE_GAMES
+          ? current
+          : [...current, gameId],
+      );
+    });
   }
 
   return (
@@ -97,14 +206,12 @@ export function TopFiveEditor({
             </p>
           </div>
 
-          {games.length === 0 ? (
+          {allGames.length === 0 && !shouldSearchCatalog ? (
             <p className="text-sm text-zinc-500">
-              Todavía no tenés juegos en tu biblioteca: sincronizá una cuenta para poder armar tu
-              Top {MAX_FAVORITE_GAMES}.
+              Todavía no tenés juegos en tu biblioteca: sincronizá una cuenta o buscá cualquier
+              juego por nombre para armar tu Top {MAX_FAVORITE_GAMES}.
             </p>
-          ) : visible.length === 0 ? (
-            <p className="text-sm text-zinc-500">Ningún juego coincide.</p>
-          ) : (
+          ) : visible.length > 0 ? (
             <ul className="grid max-h-80 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
               {visible.map((game) => {
                 const rank = selected.indexOf(game.id);
@@ -147,6 +254,55 @@ export function TopFiveEditor({
                 );
               })}
             </ul>
+          ) : (
+            <p className="text-sm text-zinc-500">
+              {term.length >= MIN_QUERY_LENGTH
+                ? "Ningún juego de tu biblioteca coincide."
+                : "Ningún juego coincide."}
+            </p>
+          )}
+
+          {shouldSearchCatalog && (
+            <div className="space-y-2" data-testid="favorite-catalog-results">
+              <p className="text-xs uppercase tracking-wide text-zinc-500">
+                {isSearching ? "Buscando en el catálogo..." : "Agregar desde el catálogo"}
+              </p>
+              {catalogMessage && <p className="text-sm text-zinc-400">{catalogMessage}</p>}
+              {!isSearching && !catalogMessage && visibleCatalogResults.length === 0 && (
+                <p className="text-sm text-zinc-500">No encontramos juegos con ese nombre.</p>
+              )}
+              <ul className="max-h-64 space-y-2 overflow-y-auto">
+                {visibleCatalogResults.map((result) => (
+                  <li key={result.gameId ?? result.externalId ?? result.name}>
+                    <button
+                      type="button"
+                      disabled={isAdding}
+                      onClick={() => addFromCatalog(result)}
+                      data-testid="favorite-catalog-result"
+                      className="flex w-full items-center gap-3 rounded-md border border-zinc-800 p-2 text-left transition hover:border-zinc-500 disabled:opacity-60"
+                    >
+                      <span className="relative block h-16 w-12 shrink-0 overflow-hidden rounded bg-zinc-900">
+                        {result.coverUrl && (
+                          <GameArt
+                            src={result.coverUrl}
+                            alt=""
+                            sizes="48px"
+                            className="object-cover"
+                            fallback={null}
+                          />
+                        )}
+                      </span>
+                      <span className="min-w-0 text-sm text-zinc-200">
+                        <span className="block truncate">{result.name}</span>
+                        {result.releaseYear && (
+                          <span className="block text-xs text-zinc-500">{result.releaseYear}</span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           <FormError>{state.error}</FormError>
@@ -156,7 +312,7 @@ export function TopFiveEditor({
             <Button type="button" variant="secondary" onClick={() => setSelected([])}>
               Vaciar
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || isAdding}>
               {pending ? "Guardando..." : "Guardar Top 5"}
             </Button>
           </div>

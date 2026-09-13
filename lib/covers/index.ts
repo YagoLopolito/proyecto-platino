@@ -1,6 +1,9 @@
 import "server-only";
 
 // Slugs que RAWG usa en parent_platforms para todo lo que sea PlayStation, de PS1 a PS5.
+// Ya no se usan para *descartar* resultados (ver `searchCatalogGames`), sino para
+// ordenarlos: PlayStation y PC primero, que son las dos plataformas que la app
+// sincroniza.
 const PLAYSTATION_PLATFORM_SLUGS = new Set([
   "playstation5",
   "playstation4",
@@ -188,8 +191,18 @@ function toCatalogSearchResult(raw: unknown): CatalogSearchResult | null {
   };
 }
 
-function isPlayStationTitle(result: CatalogSearchResult): boolean {
-  return result.platforms.some((slug) => PLAYSTATION_PLATFORM_SLUGS.has(slug));
+/**
+ * Prioridad de un resultado en la búsqueda de catálogo. **No** filtra: desde que
+ * Steam es la segunda plataforma, descartar lo que no está en PlayStation dejaba
+ * afuera juegos de PC y buena parte del catálogo histórico (Minecraft en su
+ * edición de PC, juegos viejos que RAWG no tiene mapeados a ninguna consola).
+ * Un juego que el usuario quiere poner en su Top 5 o loguear en su diario tiene
+ * que aparecer, venga de donde venga.
+ */
+function platformRank(result: CatalogSearchResult): number {
+  if (result.platforms.some((slug) => PLAYSTATION_PLATFORM_SLUGS.has(slug))) return 0;
+  if (result.platforms.includes("pc")) return 1;
+  return 2;
 }
 
 /**
@@ -213,7 +226,11 @@ export async function searchCatalogGames(
     const results = rawResults
       .map(toCatalogSearchResult)
       .filter((result): result is CatalogSearchResult => result !== null)
-      .filter(isPlayStationTitle);
+      // Orden estable: se respeta el ranking de relevancia de RAWG dentro de
+      // cada grupo de plataforma.
+      .map((result, index) => ({ result, index }))
+      .sort((a, b) => platformRank(a.result) - platformRank(b.result) || a.index - b.index)
+      .map((entry) => entry.result);
 
     return { status: "ok", results };
   } catch (err) {
