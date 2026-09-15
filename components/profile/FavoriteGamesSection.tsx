@@ -32,15 +32,20 @@ export function FavoriteGamesSection({
           {emptyMessage}
         </p>
       ) : (
-        <ul className="grid grid-cols-3 gap-x-2.5 gap-y-4 min-[520px]:grid-cols-5">
+        /*
+         * Cinco columnas desde el primer breakpoint (antes eran 3 en mobile):
+         * el Top 5 tiene que leerse como una sola fila, igual que la fila de
+         * favoritos de Letterboxd. Con 3 columnas quedaba una fila de 3 y otra
+         * de 2, que se lee como "hay más abajo" cuando no lo hay.
+         */
+        <ul className="grid grid-cols-5 gap-x-1.5 gap-y-3 sm:gap-x-2.5">
           {games.map((game, index) => (
             <li key={game.id} data-testid="favorite-game">
               <GamePoster
                 href={`/juegos/${game.id}`}
                 name={game.name}
                 imageUrl={game.imageUrl}
-                showName
-                sizes="(max-width: 520px) 31vw, 160px"
+                sizes="(max-width: 520px) 19vw, 160px"
                 overlay={
                   <span className="absolute left-1 top-1 rounded bg-zinc-950/80 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-zinc-200 backdrop-blur-sm">
                     #{index + 1}

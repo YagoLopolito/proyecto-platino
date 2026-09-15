@@ -12,12 +12,12 @@ export default function ImportPlatinumsButton() {
   const [state, formAction, pending] = useActionState(importPlatinumsToDiary, initialState);
 
   return (
-    <form action={formAction} className="space-y-1">
+    <form action={formAction} className="shrink-0 space-y-1">
       <Button
         type="submit"
         variant="secondary"
         disabled={pending}
-        className="w-full py-2 text-sm sm:w-auto sm:py-1.5"
+        className="whitespace-nowrap py-2 text-sm sm:py-1.5"
       >
         {pending ? "Importando..." : "🏆 Importar mis platinos y 100%"}
       </Button>

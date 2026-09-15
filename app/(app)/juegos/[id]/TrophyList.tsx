@@ -5,6 +5,7 @@ import TrophyItem from "./TrophyItem";
 import { FOCUS_TROPHY_EVENT, type FocusTrophyDetail } from "./focusTrophy";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EmptyState } from "@/components/EmptyState";
+import { MobileDisclosure } from "@/components/ui/MobileDisclosure";
 import { RARITY_LABEL } from "@/components/trophyRarity";
 
 export type TrophyListItem = {
@@ -132,75 +133,80 @@ export default function TrophyList({
           className="min-h-11 w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm sm:min-h-0 text-zinc-100 placeholder:text-zinc-600 focus:border-blue-500 focus:outline-none"
         />
 
-        <div className="flex flex-wrap gap-2">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as StatusFilter)}
-            aria-label="Filtrar por estado"
-            className={SELECT_CLASS}
-          >
-            <option value="all">Todos los trofeos</option>
-            <option value="pending">Ocultar obtenidos</option>
-            <option value="obtained">Solo obtenidos</option>
-          </select>
-
-          {hasTrophyTypes && (
+        {/* En mobile los cuatro selectores viven plegados: el buscador
+            alcanza para el 90% de los casos y así la lista de trofeos
+            empieza arriba del pliegue. En `sm` se ven siempre. */}
+        <MobileDisclosure label="Filtrar y ordenar">
+          <div className="flex flex-wrap gap-2">
             <select
-              value={type}
-              onChange={(e) => setType(e.target.value as TypeFilter)}
-              aria-label="Filtrar por tipo"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as StatusFilter)}
+              aria-label="Filtrar por estado"
               className={SELECT_CLASS}
             >
-              <option value="all">Todos los tipos</option>
-              <option value="platinum">Platino</option>
-              <option value="gold">Oro</option>
-              <option value="silver">Plata</option>
-              <option value="bronze">Bronce</option>
+              <option value="all">Todos los trofeos</option>
+              <option value="pending">Ocultar obtenidos</option>
+              <option value="obtained">Solo obtenidos</option>
             </select>
-          )}
 
-          <select
-            value={rarity}
-            onChange={(e) => setRarity(e.target.value)}
-            aria-label="Filtrar por rareza"
-            className={SELECT_CLASS}
-          >
-            <option value="all">Toda rareza</option>
-            {Object.entries(RARITY_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            {hasTrophyTypes && (
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as TypeFilter)}
+                aria-label="Filtrar por tipo"
+                className={SELECT_CLASS}
+              >
+                <option value="all">Todos los tipos</option>
+                <option value="platinum">Platino</option>
+                <option value="gold">Oro</option>
+                <option value="silver">Plata</option>
+                <option value="bronze">Bronce</option>
+              </select>
+            )}
 
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as SortOption)}
-            aria-label="Ordenar trofeos"
-            className={SELECT_CLASS}
-          >
-            <option value="default">Orden original</option>
-            <option value="rarest">Más raros primero</option>
-            <option value="commonest">Más comunes primero</option>
-            <option value="type">Por tipo (platino → bronce)</option>
-            <option value="name">Nombre (A-Z)</option>
-          </select>
-
-          {hasFilters && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                setStatus("all");
-                setType("all");
-                setRarity("all");
-              }}
-              className="min-h-11 rounded border border-zinc-700 px-2 py-1.5 text-sm text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 sm:min-h-0"
+            <select
+              value={rarity}
+              onChange={(e) => setRarity(e.target.value)}
+              aria-label="Filtrar por rareza"
+              className={SELECT_CLASS}
             >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
+              <option value="all">Toda rareza</option>
+              {Object.entries(RARITY_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortOption)}
+              aria-label="Ordenar trofeos"
+              className={SELECT_CLASS}
+            >
+              <option value="default">Orden original</option>
+              <option value="rarest">Más raros primero</option>
+              <option value="commonest">Más comunes primero</option>
+              <option value="type">Por tipo (platino → bronce)</option>
+              <option value="name">Nombre (A-Z)</option>
+            </select>
+
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setStatus("all");
+                  setType("all");
+                  setRarity("all");
+                }}
+                className="min-h-11 rounded border border-zinc-700 px-2 py-1.5 text-sm text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 sm:min-h-0"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        </MobileDisclosure>
 
         <p className="text-xs text-zinc-500">
           Mostrando {visibleCount} de {totalCount} trofeos

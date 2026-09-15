@@ -44,27 +44,30 @@ export default async function DiaryPage({
     <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-8">
         {/*
-         * En mobile el encabezado se apila y las acciones ocupan el ancho
-         * completo (a partir de `sm` vuelven a la derecha del título): con tres
-         * botones en una fila de 375px quedaban partidos y sin área táctil.
+         * En mobile las acciones son una fila de chips que scrollea con el
+         * dedo (antes eran botones grandes apilados en dos columnas: cuatro
+         * acciones secundarias empujaban el contenido del diario fuera de la
+         * pantalla). A partir de `sm` vuelven a la derecha del título.
          */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div className="space-y-1">
             <h1 className="text-xl font-semibold sm:text-2xl">Mi diario</h1>
             <p className="text-sm text-zinc-400">
               Todas tus partidas terminadas, de la más reciente a la más vieja.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
+          {/* `-mx-4 px-4`: la fila sangra hasta los bordes de la pantalla para
+              que se note que hay más chips a la derecha. */}
+          <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             <Link
               href="/diario/resumen"
-              className="block rounded border border-zinc-700 px-3 py-2 text-center text-sm text-zinc-300 hover:border-zinc-500 sm:py-1.5"
+              className="flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full border border-zinc-700 px-3 text-sm text-zinc-300 hover:border-zinc-500"
             >
               📊 Resumen del año
             </Link>
             <Link
               href="/diario/capturas"
-              className="block rounded border border-zinc-700 px-3 py-2 text-center text-sm text-zinc-300 hover:border-zinc-500 sm:py-1.5"
+              className="flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full border border-zinc-700 px-3 text-sm text-zinc-300 hover:border-zinc-500"
             >
               📷 Importar capturas
             </Link>
@@ -82,6 +85,8 @@ export default async function DiaryPage({
               </Link>
             }
           />
+          {/* Agregar amigo va dentro de la sección, no en una fila propia:
+              una fila entera para un solo botón secundario era puro alto. */}
           <div className="flex justify-end">
             <AddFriendModal />
           </div>

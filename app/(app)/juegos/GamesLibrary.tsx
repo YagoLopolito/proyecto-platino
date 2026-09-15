@@ -7,6 +7,7 @@ import { PosterGrid } from "@/components/game/PosterGrid";
 import { formatPlaytime } from "@/lib/playtime";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { MobileDisclosure } from "@/components/ui/MobileDisclosure";
 import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { boolean, oneOf, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
@@ -138,69 +139,80 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
         }
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {games.length > 1 && (
-          <div className="flex flex-wrap items-center gap-1 text-xs">
-            {SORT_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => handleSortClick(option.value)}
-                className={`flex min-h-9 items-center gap-1 rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
-                  sort === option.value
-                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-                }`}
-              >
-                {option.label}
-                {sort === option.value && <span>{direction === "desc" ? "↓" : "↑"}</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
       {games.length > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1 text-xs">
-            {FILTER_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setFilter(option.value)}
-                className={`flex min-h-9 items-center rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
-                  filter === option.value
-                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+        /*
+         * En mobile todo esto vive plegado: con las 4 chips de orden, las 3 de
+         * filtro y los 2 checkboxes siempre desplegados, la primera carátula
+         * caía por debajo del pliegue en una pantalla de 375px. En `sm` la
+         * disclosure es `contents` y se ve exactamente como antes.
+         */
+        <MobileDisclosure
+          label="Ordenar y filtrar"
+          summaryHint={`${SORT_OPTIONS.find((option) => option.value === sort)?.label ?? ""}${
+            filter === "all" ? "" : ` · ${FILTER_OPTIONS.find((o) => o.value === filter)?.label}`
+          }`}
+        >
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-1 text-xs">
+              {SORT_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleSortClick(option.value)}
+                  className={`flex min-h-9 items-center gap-1 rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                    sort === option.value
+                      ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                      : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                  }`}
+                >
+                  {option.label}
+                  {sort === option.value && <span>{direction === "desc" ? "↓" : "↑"}</span>}
+                </button>
+              ))}
+            </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
-              <input
-                type="checkbox"
-                checked={hidePlatinum}
-                onChange={(event) => setHidePlatinum(event.target.checked)}
-                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-              />
-              Ocultar platinados
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1 text-xs">
+                {FILTER_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setFilter(option.value)}
+                    className={`flex min-h-9 items-center rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                      filter === option.value
+                        ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                        : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
 
-            <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
-              <input
-                type="checkbox"
-                checked={hideUnstarted}
-                onChange={(event) => setHideUnstarted(event.target.checked)}
-                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-              />
-              Ocultar en 0%
-            </label>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={hidePlatinum}
+                    onChange={(event) => setHidePlatinum(event.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                  />
+                  Ocultar platinados
+                </label>
+
+                <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={hideUnstarted}
+                    onChange={(event) => setHideUnstarted(event.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                  />
+                  Ocultar en 0%
+                </label>
+              </div>
+            </div>
           </div>
-        </div>
+        </MobileDisclosure>
       )}
 
       {games.length === 0 && (

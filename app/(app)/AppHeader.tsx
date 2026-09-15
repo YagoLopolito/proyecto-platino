@@ -48,7 +48,12 @@ export default function AppHeader() {
           })}
         </nav>
 
-        <form action={logout}>
+        {/*
+         * En mobile el logout vive al final del perfil (que está a un tap en
+         * la barra inferior): acá era el único botón del header y repetía lo
+         * que ya ofrece esa pantalla. En escritorio se queda donde estaba.
+         */}
+        <form action={logout} className="hidden sm:block">
           <button
             type="submit"
             className="min-h-11 whitespace-nowrap rounded border border-zinc-700 px-3 text-sm text-zinc-400 hover:border-red-500 hover:text-red-400 sm:min-h-0 sm:py-1.5"

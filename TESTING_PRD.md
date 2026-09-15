@@ -432,6 +432,9 @@ ninguna API externa.
 | MOB-02 | La barra no tapa contenido | El spacer del layout reserva al menos el alto de la barra `fixed` | P1 |
 | MOB-03 | Una sola nav visible | La nav del header queda oculta en mobile; la visible es la de abajo | P2 |
 | MOB-04 | Biblioteca en grilla de carátulas | Cada juego es un póster con su barra de progreso y link a la ficha | P1 |
+| MOB-05 | Filtros plegados en mobile | En la biblioteca las chips de orden/filtro viven detrás de "Ordenar y filtrar" y se despliegan al tocarlo | P2 |
+| MOB-06 | Una sola acción de cerrar sesión | En mobile el header no la repite: vive al final del perfil | P2 |
+| MOB-07 | Top 5 en una sola fila | La grilla de favoritos declara cinco columnas en mobile | P2 |
 | PWA-01 | Manifest instalable | `display: standalone`, `start_url`, íconos 192/512 y uno `maskable` | P1 |
 | PWA-02 | Service worker sin caché larga | `/sw.js` responde con `max-age=0` (si no, un SW nuevo no llega a los celulares) | P1 |
 | PWA-03 | Build id en vivo | `/api/version` devuelve el build id con `no-store`: es lo que dispara el aviso de actualizar | P1 |

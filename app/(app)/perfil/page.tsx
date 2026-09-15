@@ -215,13 +215,6 @@ export default async function PerfilPage() {
               )}
             </>
           }
-          actions={
-            <form action={logout}>
-              <Button type="submit" variant="secondary">
-                Cerrar sesión
-              </Button>
-            </form>
-          }
         />
 
         <ProfileStatStrip
@@ -304,19 +297,23 @@ export default async function PerfilPage() {
           </div>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Link
-            href="/juegos"
-            className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-medium text-white hover:bg-blue-500"
-          >
-            Mi biblioteca
-          </Link>
-          <Link
-            href="/configuracion/conexiones"
-            className="block w-full rounded border border-zinc-700 px-4 py-2 text-center font-medium text-zinc-50 hover:border-blue-500"
-          >
-            {psnAccount ? `PSN conectada: ${psnAccount.online_id}` : "Conectar cuenta PSN"}
-          </Link>
+        {/*
+         * Acciones de cuenta, al final y sin competir con el contenido: los
+         * links a la biblioteca y a Conexiones que había acá duplicaban la
+         * barra inferior de tabs (Juegos / Ajustes), que está a un pulgar de
+         * distancia. Queda sólo lo que no vive en ningún tab.
+         */}
+        <div className="flex flex-wrap items-center gap-4 border-t border-zinc-800 pt-6 text-sm">
+          {!psnAccount && (
+            <Link href="/configuracion/conexiones" className="text-blue-400 hover:underline">
+              Conectar cuenta PSN
+            </Link>
+          )}
+          <form action={logout} className="ml-auto">
+            <Button type="submit" variant="secondary">
+              Cerrar sesión
+            </Button>
+          </form>
         </div>
       </div>
     </div>

@@ -27,17 +27,23 @@ export function ProfileHeader({
   return (
     <header className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
       <div
-        className="h-20 bg-gradient-to-r from-blue-900/70 via-zinc-800 to-zinc-900 sm:h-24"
+        className="h-14 bg-gradient-to-r from-blue-900/70 via-zinc-800 to-zinc-900 sm:h-24"
         aria-hidden="true"
       />
       <div className="flex flex-wrap items-end justify-between gap-4 px-4 pb-4">
         <div className="-mt-8 flex min-w-0 items-end gap-3 sm:-mt-10 sm:gap-4">
           <div className="rounded-full ring-4 ring-zinc-900">
-            <FriendAvatar url={avatarUrl} name={name} size={72} />
+            <FriendAvatar url={avatarUrl} name={name} size={64} />
           </div>
           <div className="min-w-0 space-y-1 pb-1">
             <h1 className="truncate text-xl font-semibold sm:text-2xl">{name}</h1>
-            {subtitle && <p className="truncate text-xs text-zinc-500 sm:text-sm">{subtitle}</p>}
+            {/* El email no aporta nada en mobile (es el propio usuario el que
+                mira) y se comía la línea del nombre: sólo desde `sm`. */}
+            {subtitle && (
+              <p className="hidden truncate text-xs text-zinc-500 sm:block sm:text-sm">
+                {subtitle}
+              </p>
+            )}
             {badges && <div className="flex flex-wrap items-center gap-1.5 pt-0.5">{badges}</div>}
           </div>
         </div>
