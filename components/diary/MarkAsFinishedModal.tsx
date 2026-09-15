@@ -19,7 +19,7 @@ export default function MarkAsFinishedModal({ defaultOpen = false }: { defaultOp
         type="button"
         variant="secondary"
         onClick={() => setOpen(true)}
-        className="w-full py-2 sm:w-auto sm:py-1.5"
+        className="shrink-0 whitespace-nowrap py-2 sm:py-1.5"
       >
         ✓ Marcar terminado
       </Button>

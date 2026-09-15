@@ -249,6 +249,22 @@ Tres primitivas, y todo lo demás se arma con ellas:
   con acción opcional a la derecha (`SectionAction`, el "VER TODO"). Reemplaza a los `<h2>`
   grandes: con la pantalla llena de carátulas, el título tiene que ordenar sin competir.
 
+La **barra de controles** de una pantalla de listado (biblioteca, lista de trofeos) es el
+otro patrón compartido, en `components/ui/`: `SearchField` (buscador con lupa y ✕),
+`SegmentedControl` (un marco con las opciones adentro, en vez de N píldoras sueltas),
+`ToggleChip` (lo que antes era un checkbox de 16px, ahora un chip de 44px con
+`role="switch"`), `Select` (el `<select>` nativo con la piel de la app: en mobile el selector
+del sistema gana a cualquier dropdown propio) y `MobileDisclosure`, que en mobile pliega todo
+eso detrás de un botón "Filtros" con el globito de cuántos hay puestos y en `sm` pasa a
+`display: contents` para que quede la misma fila de escritorio de siempre. Es `<details>`, no
+estado de React: sin JS, accesible por definición y sin flash en el primer render. **El
+buscador nunca se pliega**: con cientos de juegos es el control principal, no un filtro
+secundario. La búsqueda de la biblioteca vive en `?q=` (misma regla que el resto de los
+filtros, `useUrlFilterState`) y matchea con `lib/library/search.ts` -- módulo puro, sin
+`server-only`, que **no** reusa `normalizeName` de `lib/catalog/`: ese borra los tokens de
+edición ("remastered") y trata los acentos como separadores, que para comparar catálogos está
+bien y para buscar está mal.
+
 Las **tiras de estadísticas** (perfil y ficha de juego) son el otro patrón prestado: número
 grande, etiqueta chica en versalitas, celdas separadas por 1px. En mobile van de 2 o 3 por
 fila.

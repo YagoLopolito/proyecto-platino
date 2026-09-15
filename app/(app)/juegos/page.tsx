@@ -144,7 +144,8 @@ export default async function JuegosPage({
             <h1 className="text-xl font-semibold sm:text-2xl">Mi biblioteca</h1>
             {psnAccount && <SyncStatusBadge status={psnAccount.token_status as SyncTokenStatus} />}
           </div>
-          <p className="text-sm text-zinc-400">
+          {/* Texto de estado: chico en mobile, donde compite con la grilla. */}
+          <p className="text-xs text-zinc-400 sm:text-sm">
             {psnAccount ? (
               <>
                 {psnAccount.last_synced_at

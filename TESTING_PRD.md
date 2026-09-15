@@ -300,6 +300,10 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-06 | Conteo por tipo correcto | Bronce/plata/oro/platino coinciden con el fixture (regresión del PR #47) | P0 |
 | SYNC-07 | Badge de platino | Solo en el juego 100% del fixture (issue #72) | P1 |
 | SYNC-08 | Filtros de biblioteca | "Platinados" y ">50%" filtran bien (issue #73) | P1 |
+| LIB-01 | Buscador de la biblioteca | Tipear un nombre deja sólo los juegos que coinciden; limpiar restaura la grilla | P1 |
+| LIB-02 | La búsqueda vive en la URL | Queda en `?q=` y sobrevive al reload | P2 |
+| LIB-03 | Búsqueda sin resultados | El estado vacío nombra el término buscado | P2 |
+| LIB-04 | Matcher de búsqueda | `matchesSearch` ignora acentos/símbolos y acepta las palabras en cualquier orden (test puro) | P1 |
 | SYNC-09 | Orden por última jugada | Sin recarga de página (PR #49) | P2 |
 | SYNC-10 | Juegos `source='catalog'` no aparecen | Un juego de catálogo del diario no se lista en `/juegos` | P1 |
 | SYNC-11 | `/api/cron/sync` sin `CRON_SECRET` | 401 | **P0 (seguridad)** |
@@ -432,6 +436,9 @@ ninguna API externa.
 | MOB-02 | La barra no tapa contenido | El spacer del layout reserva al menos el alto de la barra `fixed` | P1 |
 | MOB-03 | Una sola nav visible | La nav del header queda oculta en mobile; la visible es la de abajo | P2 |
 | MOB-04 | Biblioteca en grilla de carátulas | Cada juego es un póster con su barra de progreso y link a la ficha | P1 |
+| MOB-05 | Filtros plegados en mobile | En la biblioteca el buscador se ve siempre y el orden/los filtros viven detrás de "Filtros", con el globito de cuántos hay puestos | P2 |
+| MOB-06 | Una sola acción de cerrar sesión | En mobile el header no la repite: vive al final del perfil | P2 |
+| MOB-07 | Top 5 en una sola fila | La grilla de favoritos declara cinco columnas en mobile | P2 |
 | PWA-01 | Manifest instalable | `display: standalone`, `start_url`, íconos 192/512 y uno `maskable` | P1 |
 | PWA-02 | Service worker sin caché larga | `/sw.js` responde con `max-age=0` (si no, un SW nuevo no llega a los celulares) | P1 |
 | PWA-03 | Build id en vivo | `/api/version` devuelve el build id con `no-store`: es lo que dispara el aviso de actualizar | P1 |

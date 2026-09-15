@@ -7,8 +7,14 @@ import { PosterGrid } from "@/components/game/PosterGrid";
 import { formatPlaytime } from "@/lib/playtime";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { MobileDisclosure } from "@/components/ui/MobileDisclosure";
+import { SearchField } from "@/components/ui/SearchField";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { ToggleChip } from "@/components/ui/ToggleChip";
+import { Select } from "@/components/ui/Select";
 import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
-import { boolean, oneOf, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
+import { boolean, oneOf, text, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
+import { matchesSearch } from "@/lib/library/search";
 
 export type LibraryGame = {
   id: string;
@@ -67,6 +73,16 @@ function sortGames(
   return direction === "asc" ? sorted.reverse() : sorted;
 }
 
+/**
+ * Búsqueda por nombre. La lógica vive en `lib/library/search.ts` (módulo puro,
+ * testeado aparte): saca acentos y puntuación de los dos lados y exige todas
+ * las palabras tipeadas, en cualquier orden.
+ */
+function searchGames(games: LibraryGame[], query: string): LibraryGame[] {
+  if (query.trim() === "") return games;
+  return games.filter((game) => matchesSearch(game.name, query));
+}
+
 function filterGames(games: LibraryGame[], filter: FilterOption): LibraryGame[] {
   // Steam no tiene platino: un juego suyo nunca entra acá, y su equivalente
   // (100% de logros) se ve como badge propio en la tarjeta.
@@ -96,9 +112,10 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
   );
   const [hidePlatinum, setHidePlatinum] = useUrlFilterState("sinPlatino", false, boolean);
   const [hideUnstarted, setHideUnstarted] = useUrlFilterState("sinEmpezar", false, boolean);
+  const [query, setQuery] = useUrlFilterState("q", "", text);
 
   const visibleGames = useMemo(() => {
-    const filtered = filterGames(games, filter);
+    const filtered = filterGames(searchGames(games, query), filter);
     // "Platinado" cubre las dos plataformas: el platino de PSN y su
     // equivalente en Steam, el 100% de logros (Steam no tiene platino).
     const withoutPlatinum = hidePlatinum
@@ -112,15 +129,19 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
       ? withoutPlatinum.filter((game) => game.percent > 0)
       : withoutPlatinum;
     return sortGames(withoutUnstarted, sort, direction);
-  }, [games, sort, direction, filter, hidePlatinum, hideUnstarted]);
+  }, [games, query, sort, direction, filter, hidePlatinum, hideUnstarted]);
 
-  function handleSortClick(option: SortOption) {
-    if (option === sort) {
-      setDirection(direction === "desc" ? "asc" : "desc");
-    } else {
-      setSort(option);
-      setDirection("desc");
-    }
+  // Cuántos filtros hay puestos, para el globito del botón "Filtros" en
+  // mobile: sin eso, plegados, no hay forma de saber que la biblioteca está
+  // recortada. El orden no cuenta (siempre hay uno) ni la búsqueda (el campo
+  // se ve siempre, con su texto adentro).
+  const activeFilterCount =
+    (filter === "all" ? 0 : 1) + (hidePlatinum ? 1 : 0) + (hideUnstarted ? 1 : 0);
+
+  function clearFilters() {
+    setFilter("all");
+    setHidePlatinum(false);
+    setHideUnstarted(false);
   }
 
   return (
@@ -138,70 +159,91 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
         }
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/*
+       * Barra de controles: el buscador siempre a la vista (es lo que se usa
+       * con 365 juegos) y, en mobile, el resto detrás de "Filtros" con el
+       * globito de cuántos hay puestos. En `sm` la disclosure es `contents` y
+       * todo queda en una sola fila, como en escritorio.
+       */}
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          label="Buscar juego en tu biblioteca"
+          placeholder="Buscar un juego…"
+          className="min-w-0 flex-1 sm:max-w-xs"
+        />
+
         {games.length > 1 && (
-          <div className="flex flex-wrap items-center gap-1 text-xs">
-            {SORT_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => handleSortClick(option.value)}
-                className={`flex min-h-9 items-center gap-1 rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
-                  sort === option.value
-                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-                }`}
-              >
-                {option.label}
-                {sort === option.value && <span>{direction === "desc" ? "↓" : "↑"}</span>}
-              </button>
-            ))}
-          </div>
+          <MobileDisclosure label="Filtros" activeCount={activeFilterCount}>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+                <Select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as SortOption)}
+                  aria-label="Ordenar por"
+                  className="min-w-0 flex-1 sm:w-48 sm:flex-none"
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+
+                <button
+                  type="button"
+                  onClick={() => setDirection(direction === "desc" ? "asc" : "desc")}
+                  aria-label={
+                    direction === "desc"
+                      ? "Orden descendente, invertir"
+                      : "Orden ascendente, invertir"
+                  }
+                  className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:min-h-9 sm:w-9"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`h-4 w-4 transition-transform ${direction === "asc" ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  >
+                    <path d="M12 5v14M6 13l6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+
+              <SegmentedControl
+                options={FILTER_OPTIONS}
+                value={filter}
+                onChange={setFilter}
+                label="Filtrar biblioteca"
+                className="w-full sm:w-auto"
+              />
+
+              <ToggleChip checked={hidePlatinum} onChange={setHidePlatinum}>
+                Ocultar platinados
+              </ToggleChip>
+              <ToggleChip checked={hideUnstarted} onChange={setHideUnstarted}>
+                Ocultar en 0%
+              </ToggleChip>
+
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="min-h-10 px-1 text-xs font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-200 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:min-h-9"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+          </MobileDisclosure>
         )}
       </div>
-
-      {games.length > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1 text-xs">
-            {FILTER_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setFilter(option.value)}
-                className={`flex min-h-9 items-center rounded-full border px-3 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
-                  filter === option.value
-                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
-              <input
-                type="checkbox"
-                checked={hidePlatinum}
-                onChange={(event) => setHidePlatinum(event.target.checked)}
-                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-              />
-              Ocultar platinados
-            </label>
-
-            <label className="flex min-h-9 items-center gap-2 text-xs text-zinc-400">
-              <input
-                type="checkbox"
-                checked={hideUnstarted}
-                onChange={(event) => setHideUnstarted(event.target.checked)}
-                className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-              />
-              Ocultar en 0%
-            </label>
-          </div>
-        </div>
-      )}
 
       {games.length === 0 && (
         <EmptyState
@@ -218,7 +260,13 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
       )}
 
       {games.length > 0 && visibleGames.length === 0 && (
-        <EmptyState title="Ningún juego coincide con este filtro." />
+        <EmptyState
+          title={
+            query.trim() !== ""
+              ? `Ningún juego de tu biblioteca coincide con “${query.trim()}”.`
+              : "Ningún juego coincide con este filtro."
+          }
+        />
       )}
 
       {/*

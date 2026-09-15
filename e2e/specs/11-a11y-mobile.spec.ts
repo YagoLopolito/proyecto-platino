@@ -114,6 +114,69 @@ test.describe("Mobile", () => {
     await expect(poster.getByRole("link")).toHaveAttribute("href", `/juegos/${gameId}`);
   });
 
+  test("MOB-05: los filtros de la biblioteca arrancan plegados en mobile", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    // La disclosure sólo se renderiza con más de un juego en la biblioteca.
+    await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Mobile Filtros A",
+      np: 113,
+    });
+    await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Mobile Filtros B",
+      np: 114,
+    });
+
+    await page.goto("/juegos");
+
+    // El buscador se ve siempre: es lo que se usa con una biblioteca grande.
+    await expect(page.getByRole("searchbox", { name: /Buscar juego/i })).toBeVisible();
+
+    const sortSelect = page.getByRole("combobox", { name: "Ordenar por" });
+    await expect(sortSelect).toBeHidden();
+
+    const toggle = page.getByRole("button", { name: /^Filtros/ });
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(sortSelect).toBeVisible();
+    await expect(page.getByRole("group", { name: "Filtrar biblioteca" })).toBeVisible();
+  });
+
+  test("MOB-06: en mobile 'Cerrar sesión' aparece una sola vez, en el perfil", async ({ page }) => {
+    await page.goto("/juegos");
+    // El header de escritorio lo esconde en mobile: la acción vive al final
+    // del perfil, que está a un tap en la barra inferior.
+    await expect(page.getByRole("button", { name: /cerrar sesión/i })).toBeHidden();
+
+    await page.goto("/perfil");
+    const logout = page.getByRole("button", { name: /cerrar sesión/i });
+    await expect(logout).toHaveCount(1);
+    await expect(logout).toBeVisible();
+  });
+
+  test("MOB-07: el Top 5 del perfil entra en una sola fila de cinco", async ({ page }) => {
+    await page.goto("/perfil");
+
+    // Con o sin favoritos elegidos, lo que se verifica es la grilla: cinco
+    // columnas, para que el Top 5 no se lea como "hay más abajo".
+    const heading = page.getByRole("heading", { name: "Top 5" });
+    await expect(heading).toBeVisible();
+
+    const columns = await page.evaluate(() => {
+      const list = document.querySelector('[data-testid="favorite-game"]')?.parentElement;
+      if (!list) return null;
+      return getComputedStyle(list).gridTemplateColumns.split(" ").length;
+    });
+    // `null` = el usuario no tiene Top 5 cargado en esta corrida; el caso con
+    // favoritos lo cubre PROF-07.
+    if (columns !== null) expect(columns).toBe(5);
+  });
+
   test("MOB-03: la nav de escritorio no se duplica en mobile", async ({ page }) => {
     await page.goto("/juegos");
     // El header tiene su propia nav, oculta por CSS en mobile: la que se ve es

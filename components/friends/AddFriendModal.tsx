@@ -77,7 +77,7 @@ export default function AddFriendModal() {
         type="button"
         variant="secondary"
         onClick={() => setOpen(true)}
-        className="w-full py-2 sm:w-auto sm:py-1.5"
+        className="whitespace-nowrap py-2 sm:py-1.5"
       >
         + Agregar amigo
       </Button>
