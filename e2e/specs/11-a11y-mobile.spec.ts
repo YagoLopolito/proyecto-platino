@@ -133,15 +133,18 @@ test.describe("Mobile", () => {
 
     await page.goto("/juegos");
 
-    const toggle = page.getByRole("group").filter({ hasText: "Ordenar y filtrar" });
-    // "Nombre" es una chip de orden y nada más de la pantalla se llama así;
-    // el `summary` de la disclosure también es un botón accesible y su nombre
-    // incluye el orden activo, así que no sirve para distinguirla.
-    const sortButton = page.getByRole("button", { name: "Nombre", exact: true });
-    // Plegado: el control existe en el DOM pero no se ve hasta abrirlo.
-    await expect(sortButton).toBeHidden();
-    await toggle.getByText("Ordenar y filtrar").click();
-    await expect(sortButton).toBeVisible();
+    // El buscador se ve siempre: es lo que se usa con una biblioteca grande.
+    await expect(page.getByRole("searchbox", { name: /Buscar juego/i })).toBeVisible();
+
+    const sortSelect = page.getByRole("combobox", { name: "Ordenar por" });
+    await expect(sortSelect).toBeHidden();
+
+    const toggle = page.getByRole("button", { name: /^Filtros/ });
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(sortSelect).toBeVisible();
+    await expect(page.getByRole("group", { name: "Filtrar biblioteca" })).toBeVisible();
   });
 
   test("MOB-06: en mobile 'Cerrar sesión' aparece una sola vez, en el perfil", async ({ page }) => {

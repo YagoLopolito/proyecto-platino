@@ -6,6 +6,8 @@ import { FOCUS_TROPHY_EVENT, type FocusTrophyDetail } from "./focusTrophy";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EmptyState } from "@/components/EmptyState";
 import { MobileDisclosure } from "@/components/ui/MobileDisclosure";
+import { SearchField } from "@/components/ui/SearchField";
+import { Select } from "@/components/ui/Select";
 import { RARITY_LABEL } from "@/components/trophyRarity";
 
 export type TrophyListItem = {
@@ -33,9 +35,6 @@ type SortOption = "default" | "rarest" | "commonest" | "type" | "name";
 
 /** Orden de "valor" del trofeo, para ordenar por tipo de mayor a menor. */
 const TYPE_WEIGHT: Record<string, number> = { platinum: 0, gold: 1, silver: 2, bronze: 3 };
-
-const SELECT_CLASS =
-  "min-h-11 rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-200 focus:border-blue-500 focus:outline-none sm:min-h-0";
 
 /**
  * Toda la lista de trofeos con sus filtros. El dataset es el de un solo juego
@@ -120,55 +119,56 @@ export default function TrophyList({
   const visibleCount = filteredGroups.reduce((acc, g) => acc + g.trophies.length, 0);
   const totalCount = groups.reduce((acc, g) => acc + g.trophies.length, 0);
   const hasFilters = query.trim() !== "" || status !== "all" || type !== "all" || rarity !== "all";
+  // El globito del botón plegado: cuántos filtros recortan la lista. La
+  // búsqueda no cuenta (su campo se ve siempre, con el texto adentro).
+  const activeFilterCount =
+    (status === "all" ? 0 : 1) + (type === "all" ? 0 : 1) + (rarity === "all" ? 0 : 1);
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3">
-        <input
-          type="search"
+      <div className="space-y-2.5 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3">
+        <SearchField
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar trofeo por nombre o descripción..."
-          aria-label="Buscar trofeo"
-          className="min-h-11 w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm sm:min-h-0 text-zinc-100 placeholder:text-zinc-600 focus:border-blue-500 focus:outline-none"
+          onChange={setQuery}
+          label="Buscar trofeo"
+          placeholder="Buscar un trofeo…"
         />
 
         {/* En mobile los cuatro selectores viven plegados: el buscador
             alcanza para el 90% de los casos y así la lista de trofeos
             empieza arriba del pliegue. En `sm` se ven siempre. */}
-        <MobileDisclosure label="Filtrar y ordenar">
-          <div className="flex flex-wrap gap-2">
-            <select
+        <MobileDisclosure label="Filtros y orden" activeCount={activeFilterCount}>
+          {/* Dos columnas en mobile (cuatro selectores apilados a lo largo
+              eran una columna interminable) y en fila desde `sm`. */}
+          <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+            <Select
               value={status}
               onChange={(e) => setStatus(e.target.value as StatusFilter)}
               aria-label="Filtrar por estado"
-              className={SELECT_CLASS}
             >
               <option value="all">Todos los trofeos</option>
               <option value="pending">Ocultar obtenidos</option>
               <option value="obtained">Solo obtenidos</option>
-            </select>
+            </Select>
 
             {hasTrophyTypes && (
-              <select
+              <Select
                 value={type}
                 onChange={(e) => setType(e.target.value as TypeFilter)}
                 aria-label="Filtrar por tipo"
-                className={SELECT_CLASS}
               >
                 <option value="all">Todos los tipos</option>
                 <option value="platinum">Platino</option>
                 <option value="gold">Oro</option>
                 <option value="silver">Plata</option>
                 <option value="bronze">Bronce</option>
-              </select>
+              </Select>
             )}
 
-            <select
+            <Select
               value={rarity}
               onChange={(e) => setRarity(e.target.value)}
               aria-label="Filtrar por rareza"
-              className={SELECT_CLASS}
             >
               <option value="all">Toda rareza</option>
               {Object.entries(RARITY_LABEL).map(([value, label]) => (
@@ -176,20 +176,19 @@ export default function TrophyList({
                   {label}
                 </option>
               ))}
-            </select>
+            </Select>
 
-            <select
+            <Select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortOption)}
               aria-label="Ordenar trofeos"
-              className={SELECT_CLASS}
             >
               <option value="default">Orden original</option>
               <option value="rarest">Más raros primero</option>
               <option value="commonest">Más comunes primero</option>
               <option value="type">Por tipo (platino → bronce)</option>
               <option value="name">Nombre (A-Z)</option>
-            </select>
+            </Select>
 
             {hasFilters && (
               <button
@@ -200,7 +199,7 @@ export default function TrophyList({
                   setType("all");
                   setRarity("all");
                 }}
-                className="min-h-11 rounded border border-zinc-700 px-2 py-1.5 text-sm text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 sm:min-h-0"
+                className="min-h-10 px-1 text-xs font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-200 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:min-h-9"
               >
                 Limpiar filtros
               </button>
