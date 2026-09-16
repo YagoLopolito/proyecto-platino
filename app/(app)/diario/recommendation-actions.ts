@@ -18,9 +18,9 @@ export type RecommendationsActionState = {
 };
 
 /**
- * Genera las recomendaciones del diario a partir de los platinos/100% del
- * usuario. Igual que el advisor de un juego (`ai-actions.ts`): siempre inserta
- * una fila nueva en `ai_recommendations`, así una regeneración fallida no borra
+ * Genera las recomendaciones del diario a partir de lo que el usuario jugó
+ * (platinos, horas, puntajes del diario) en PSN, Steam y catálogo. Igual que
+ * el advisor de un juego (`ai-actions.ts`): siempre inserta una fila nueva en `ai_recommendations`, así una regeneración fallida no borra
  * la última buena, que es lo que sigue mostrando la página.
  */
 export async function generateRecommendations(
@@ -37,7 +37,7 @@ export async function generateRecommendations(
 
   const candidates = await getRecommendationCandidates(supabase, user.id);
 
-  if (candidates.platinums.length === 0 && candidates.library.length === 0) {
+  if (candidates.played.length === 0 && candidates.library.length === 0) {
     return {
       recommendations: null,
       error:
@@ -57,6 +57,14 @@ export async function generateRecommendations(
         name: game.name,
         platform: game.platform ?? "",
         rating: game.rating,
+      })),
+      played: candidates.played.map((game) => ({
+        name: game.name,
+        platform: game.platform ?? "",
+        rating: game.rating,
+        hours: game.hours,
+        percent: game.percent,
+        finished: game.finished,
       })),
       library: candidates.library.map((game) => ({
         id: shortIdByRealId.get(game.id)!,
