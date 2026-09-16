@@ -34,8 +34,9 @@ function EffortBadge({ effort }: { effort: string }) {
 
 /**
  * "Recomendados para vos": qué seguir jugando de la biblioteca propia y qué
- * juegos nuevos probar, inferido por IA a partir de los juegos ya platinados
- * (o al 100% en Steam).
+ * juegos nuevos probar (de cualquier plataforma y época, no solo PSN),
+ * inferido por IA a partir de lo que el usuario jugó en PSN, Steam y su diario:
+ * platinos, horas y puntajes.
  *
  * El listado se renderiza siempre desde las props (lo que trajo el server con
  * la última generación `ok` guardada): la Server Action hace `revalidatePath`,
@@ -73,8 +74,8 @@ export default function RecommendationsSection({
             <span aria-hidden="true">✨</span> Recomendados para vos
           </h2>
           <p className="text-sm text-zinc-400">
-            Qué seguir jugando y qué probar, según los juegos que ya platinaste. Contenido generado
-            por IA: puede tener errores.
+            Qué seguir jugando y qué probar, según lo que jugaste en PSN, Steam y tu diario.
+            Contenido generado por IA: puede tener errores.
           </p>
         </div>
         <form action={formAction}>
@@ -104,7 +105,7 @@ export default function RecommendationsSection({
       {!recommendations ? (
         <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
           Todavía no generaste recomendaciones. Dale a &quot;Recomendame algo&quot; y la IA arma una
-          lista tomando tus platinos como referencia.
+          lista tomando como referencia lo que jugaste, platinaste y puntuaste.
         </p>
       ) : (
         <div className="space-y-5">

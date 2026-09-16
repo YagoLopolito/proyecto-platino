@@ -121,34 +121,53 @@ export type AiRecommendationLibraryInput = {
   total: number;
 };
 
+/**
+ * Un juego que el usuario jugó (de PSN, Steam o su diario), platinado o no:
+ * horas, avance y puntaje son la señal de gusto más allá de los platinos.
+ */
+export type AiRecommendationPlayedInput = {
+  name: string;
+  platform: string;
+  rating: number | null;
+  hours: number | null;
+  /** % de trofeos/logros; null si el juego no tiene ninguno. */
+  percent: number | null;
+  finished: boolean;
+};
+
 export type AiRecommendationsInput = {
   platinums: AiRecommendationPlatinumInput[];
+  /** Todo lo que jugó, ordenado por cuánto dice del gusto (puntaje, terminado, horas). */
+  played: AiRecommendationPlayedInput[];
   library: AiRecommendationLibraryInput[];
   /** Nombres de TODOS los juegos que el usuario ya tiene, para no recomendárselos como nuevos. */
   ownedNames: string[];
 };
 
-export const AI_RECOMMENDATIONS_SYSTEM_PROMPT = `Sos un asistente experto en trofeos de PlayStation y logros de Steam. A partir de los juegos que un usuario ya platinó (o completó al 100%) inferís sus gustos y le recomendás qué jugar, en español rioplatense, tuteando.
+export const AI_RECOMMENDATIONS_SYSTEM_PROMPT = `Sos un asistente experto en videojuegos de todas las plataformas y épocas (PlayStation, PC, Xbox, Nintendo, consolas clásicas, indies) y en trofeos de PlayStation y logros de Steam. A partir de los juegos que un usuario jugó (los que platinó o completó, cuánto jugó cada uno y qué puntaje les puso) inferís sus gustos y le recomendás qué jugar, en español rioplatense, tuteando.
 
 Reglas:
 - Respondé ÚNICAMENTE con un objeto JSON válido, sin texto adicional antes o después, sin markdown ni bloques de código.
 - El JSON debe tener exactamente esta forma:
 {
-  "perfil": "string breve (1-2 oraciones) describiendo el gusto del usuario según lo que platinó",
+  "perfil": "string breve (1-2 oraciones) describiendo el gusto del usuario según lo que jugó y platinó",
   "seguir_jugando": [{ "juego_id": "<id>", "motivo": "string", "esfuerzo": "poco" | "medio" | "mucho" }],
   "nuevos": [{ "nombre": "string", "plataforma": "string", "motivo": "string" }]
 }
 - "seguir_jugando": elegí entre 3 y 6 juegos de la lista "BIBLIOTECA EN CURSO" que te paso, la que más le convenga retomar. Los "juego_id" tienen que ser exactamente los "id" de esa lista, nunca nombres ni ids inventados.
 - Priorizá en "seguir_jugando" los que estén más cerca del platino/100%, los que encajen con el perfil de gusto, y los que tengan fama de platino accesible. Explicá el porqué en "motivo" (mencioná cuántos trofeos le faltan si es relevante).
 - "esfuerzo" es tu estimación de cuánto trabajo le queda para platinar ese juego: "poco", "medio" o "mucho". Nada más que esos tres valores.
-- "nuevos": entre 3 y 6 juegos que el usuario NO tenga. Nunca recomiendes un título que aparezca en "YA LOS TIENE" ni en la biblioteca en curso.
+- Para inferir el gusto usá TODO lo de "LO QUE JUGÓ", no solo los platinos: las horas jugadas y el puntaje del diario pesan tanto como platinar. Un juego con muchas horas o un puntaje alto dice mucho; uno abandonado con pocas horas y puntaje bajo dice qué NO le gusta.
+- "nuevos": entre 4 y 8 juegos que el usuario NO tenga ni haya jugado. Nunca recomiendes un título que aparezca en "LO QUE JUGÓ", en "YA LOS TIENE" ni en la biblioteca en curso, ni remasters/remakes/ediciones de esos mismos títulos.
+- Los "nuevos" salen de TODO el universo de videojuegos, no solo de PlayStation: incluí juegos de PC (Steam, GOG, Epic), clásicos de generaciones anteriores (PS1, PS2, PS3, PSP, Vita, Nintendo, Xbox, arcade) y de otras consolas, además de títulos actuales. Buscá variedad: mezclá títulos actuales, joyas de PC y clásicos, no ocho juegos del mismo tipo.
 - Recomendá solo juegos reales y existentes, con su nombre correcto. Si no estás seguro de que un juego exista, no lo incluyas.
-- "plataforma" de un juego nuevo: en qué plataforma de las que usa el usuario está disponible (PS5, PS4, Steam). Si no estás seguro, poné "".
-- Cada "motivo" es una sola oración corta que conecta la recomendación con algo concreto que el usuario ya platinó ("porque platinaste X").
+- "plataforma" de un juego nuevo: dónde se consigue hoy (por ejemplo "PS5", "PS4", "PC", "PC / PS5", "PS2 (clásico)", "Switch"). Si no estás seguro, poné "".
+- Cada "motivo" es una sola oración corta que conecta la recomendación con algo concreto que el usuario jugó, platinó o puntuó ("porque platinaste X", "porque le pusiste 9 a Y").
 - Si la biblioteca en curso viene vacía, devolvé "seguir_jugando" vacío y concentrate en "nuevos".`;
 
 const MAX_PLATINUMS_IN_PROMPT = 40;
-const MAX_OWNED_NAMES_IN_PROMPT = 120;
+const MAX_PLAYED_IN_PROMPT = 40;
+const MAX_OWNED_NAMES_IN_PROMPT = 250;
 
 /**
  * Arma el prompt de usuario del recomendador. Las listas van recortadas: una
@@ -169,6 +188,29 @@ export function buildAiRecommendationsUserPrompt(input: AiRecommendationsInput):
         .join("\n")
     : "(todavía no platinó ni completó ningún juego)";
 
+  // Los platinados ya van listados aparte: acá se muestra el resto de lo que
+  // jugó para no repetirlos y gastar el cupo en juegos nuevos para el modelo.
+  const platinumNames = new Set(platinums.map((game) => game.name));
+  const played = input.played
+    .filter((game) => !platinumNames.has(game.name))
+    .slice(0, MAX_PLAYED_IN_PROMPT);
+
+  const playedLines = played.length
+    ? played
+        .map((game) => {
+          const details = [
+            game.finished ? "terminado" : null,
+            game.hours !== null && game.hours > 0 ? `${game.hours} h` : null,
+            game.percent !== null ? `${game.percent}% de trofeos` : null,
+            game.rating !== null ? `le puso ${game.rating}/10` : null,
+          ].filter((detail) => detail !== null);
+          return `- ${game.name} (${game.platform || "sin plataforma"})${
+            details.length ? ` — ${details.join(", ")}` : ""
+          }`;
+        })
+        .join("\n")
+    : "(no hay más juegos con horas o avance registrados)";
+
   const libraryLines = input.library.length
     ? input.library
         .map(
@@ -178,10 +220,23 @@ export function buildAiRecommendationsUserPrompt(input: AiRecommendationsInput):
         .join("\n")
     : "(no tiene juegos empezados sin platinar)";
 
-  const ownedLine = input.ownedNames.slice(0, MAX_OWNED_NAMES_IN_PROMPT).join(", ");
+  // Lo que ya se nombró arriba no hace falta repetirlo: el cupo de nombres es
+  // para los juegos que el modelo no vio en las otras listas.
+  const alreadyListed = new Set([
+    ...platinumNames,
+    ...played.map((game) => game.name),
+    ...input.library.map((game) => game.name),
+  ]);
+  const ownedLine = input.ownedNames
+    .filter((name) => !alreadyListed.has(name))
+    .slice(0, MAX_OWNED_NAMES_IN_PROMPT)
+    .join(", ");
 
   return `PLATINADOS / AL 100% (esto define su gusto):
 ${platinumLines}
+
+LO QUE JUGÓ (PSN, Steam y su diario; también define su gusto):
+${playedLines}
 
 BIBLIOTECA EN CURSO (empezados y sin platinar, candidatos a "seguir_jugando"):
 ${libraryLines}
