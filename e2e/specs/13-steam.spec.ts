@@ -179,7 +179,8 @@ test.describe("Steam", () => {
     await expect(page.getByText("[E2E] Steam Game Sin Logros")).toHaveCount(0);
     // Las 2 horas del fixture se muestran en la tarjeta, mismo formato que PSN.
     const card = page.getByRole("listitem").filter({ hasText: "[E2E] Steam Game Con Logros" });
-    await expect(card.getByText("⏱ 2 h")).toBeVisible();
+    await expect(card.getByText("2 h")).toBeVisible();
+    await expect(card.locator('[data-icon="clock"]')).toBeVisible();
   });
 
   test("STEAM-06: un perfil en privado se guarda y explica cómo destrabarlo", async ({

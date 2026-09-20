@@ -18,26 +18,26 @@ export default function GameBreadcrumb({
   return (
     <nav
       aria-label="breadcrumb"
-      className="flex flex-wrap items-center gap-1 text-sm text-zinc-400"
+      className="flex flex-wrap items-center gap-1 type-meta text-ink-muted"
     >
-      <Link href="/juegos" className="hover:text-[var(--color-accent-hover)] hover:underline">
+      <Link href="/juegos" className="transition-colors hover:text-accent-ink hover:underline">
         Biblioteca
       </Link>
       <span aria-hidden="true">/</span>
       {current ? (
         <Link
           href={`/juegos/${gameId}`}
-          className="hover:text-[var(--color-accent-hover)] hover:underline"
+          className="transition-colors hover:text-accent-ink hover:underline"
         >
           {gameName}
         </Link>
       ) : (
-        <span className="text-zinc-100">{gameName}</span>
+        <span className="text-ink">{gameName}</span>
       )}
       {current && (
         <>
           <span aria-hidden="true">/</span>
-          <span className="text-zinc-100">{current}</span>
+          <span className="text-ink">{current}</span>
         </>
       )}
     </nav>

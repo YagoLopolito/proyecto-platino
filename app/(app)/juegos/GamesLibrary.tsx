@@ -12,6 +12,7 @@ import { SearchField } from "@/components/ui/SearchField";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { Select } from "@/components/ui/Select";
+import { Icon } from "@/components/ui/Icon";
 import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { boolean, oneOf, text, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 import { matchesSearch } from "@/lib/library/search";
@@ -151,7 +152,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
           <>
             Juegos{" "}
             {games.length > 0 && (
-              <span className="text-zinc-600">
+              <span className="tabular-nums text-ink-faint">
                 {visibleGames.length}/{games.length}
               </span>
             )}
@@ -199,20 +200,12 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                       ? "Orden descendente, invertir"
                       : "Orden ascendente, invertir"
                   }
-                  className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-300 transition-colors hover:border-zinc-700 hover:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:min-h-9 sm:w-9"
+                  className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-card border border-border-strong bg-surface text-ink-muted transition-colors hover:border-ink-faint hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 sm:min-h-9 sm:w-9"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                  <Icon
+                    name="arrow-down"
                     className={`h-4 w-4 transition-transform ${direction === "asc" ? "rotate-180" : ""}`}
-                    aria-hidden="true"
-                  >
-                    <path d="M12 5v14M6 13l6 6 6-6" />
-                  </svg>
+                  />
                 </button>
               </div>
 
@@ -235,7 +228,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="min-h-10 px-1 text-xs font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-200 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:min-h-9"
+                  className="min-h-10 px-1 type-caption font-medium text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 sm:min-h-9"
                 >
                   Limpiar
                 </button>
@@ -250,7 +243,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
           title={
             <>
               Todavía no hay juegos.{" "}
-              <Link href="/configuracion/conexiones" className="text-blue-400 hover:underline">
+              <Link href="/configuracion/conexiones" className="text-accent-ink hover:underline">
                 Conectá tu cuenta PSN
               </Link>{" "}
               para traerlos automáticamente.
@@ -293,11 +286,18 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                 caption={
                   game.total > 0 ? (
                     <span className="flex flex-wrap items-center gap-x-1.5">
-                      <span>{game.percent}%</span>
-                      {playtime && <span className="text-zinc-600">· ⏱ {playtime}</span>}
+                      <span className="tabular-nums">{game.percent}%</span>
+                      {playtime && (
+                        // El ⏱ que había acá era el último emoji de la
+                        // biblioteca (issue #176 §3.3).
+                        <span className="flex items-center gap-1 text-ink-faint">
+                          <Icon name="clock" className="h-3 w-3" />
+                          <span className="tabular-nums">{playtime}</span>
+                        </span>
+                      )}
                     </span>
                   ) : (
-                    <span className="text-zinc-600">Sin sincronizar</span>
+                    <span className="text-ink-faint">Sin sincronizar</span>
                   )
                 }
               />

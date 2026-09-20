@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { GameArt } from "@/components/game/GameArt";
+import { Icon } from "@/components/ui/Icon";
 import { explainTrophy } from "./actions";
 import { TrophyTypeIcon, type TrophyType } from "@/components/TrophyTypeIcon";
 import { RARITY_CLASS, RARITY_LABEL } from "@/components/trophyRarity";
@@ -86,12 +87,22 @@ export default function TrophyItem({
   }, [open, gameId, trophyId, startTransition]);
 
   return (
+    /*
+     * Fila con hairline, no tarjeta con borde (issue #176 §4): con 50 trofeos
+     * en pantalla, 50 marcos de 1px compiten entre sí y ninguno gana. Lo que
+     * distingue una fila de otra es el color del ícono de tipo, que es
+     * justamente el dato que se busca de un vistazo.
+     *
+     * "Obtenido" tampoco es un fondo verde: es el ícono a plena opacidad más
+     * el chip de `success`. El fondo teñido pintaba de color media lista en
+     * cuanto el juego iba por la mitad.
+     */
     <li
       ref={itemRef}
       id={`trofeo-${trophyId}`}
-      className={`scroll-mt-20 rounded-lg border p-3 sm:p-4 ${
-        isObtained ? "border-green-800/60 bg-green-950/10" : "border-zinc-800 bg-zinc-900"
-      } ${focusToken !== null ? "ring-2 ring-blue-500/70" : ""}`}
+      className={`scroll-mt-20 border-b border-border px-1 py-3 transition-colors last:border-b-0 ${
+        focusToken !== null ? "bg-accent/10 ring-1 ring-accent-ink" : "hover:bg-surface"
+      }`}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -101,7 +112,7 @@ export default function TrophyItem({
               alt=""
               width={40}
               height={40}
-              className={`h-10 w-10 shrink-0 rounded object-cover ${
+              className={`h-10 w-10 shrink-0 rounded-chip object-cover ${
                 isObtained ? "" : "grayscale opacity-60"
               }`}
               // El ícono es decorativo: sin él alcanza con el color del tipo.
@@ -109,7 +120,7 @@ export default function TrophyItem({
             />
           ) : (
             <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded bg-zinc-800 ${
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-chip bg-surface ${
                 isObtained ? "" : "grayscale opacity-60"
               }`}
             >
@@ -117,20 +128,25 @@ export default function TrophyItem({
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate font-medium">
+            <p className="truncate type-subtitle text-ink">
               {name}
-              {hidden && <span className="ml-2 text-xs text-zinc-500">(oculto)</span>}
-              {isObtained && <span className="ml-2 text-xs text-green-500">Obtenido ✓</span>}
+              {hidden && <span className="ml-2 type-caption text-ink-faint">(oculto)</span>}
+              {isObtained && (
+                <span className="ml-2 inline-flex items-center gap-0.5 type-caption font-medium text-success">
+                  <Icon name="check" className="h-3 w-3" />
+                  Obtenido
+                </span>
+              )}
             </p>
-            {description && <p className="truncate text-xs text-zinc-500">{description}</p>}
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-500">
+            {description && <p className="truncate type-meta text-ink-muted">{description}</p>}
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 type-caption text-ink-faint">
               <span className="flex items-center gap-1">
                 <TrophyTypeIcon type={type as TrophyType} className="h-3.5 w-3.5" />
                 {TYPE_LABEL[type] ?? type}
               </span>
               {rarity !== null && rarity in RARITY_LABEL && (
                 <span
-                  className={`rounded-full border px-1.5 py-0.5 text-[11px] font-medium ${RARITY_CLASS[rarity]}`}
+                  className={`rounded-chip border px-1.5 py-0.5 font-medium ${RARITY_CLASS[rarity]}`}
                 >
                   {RARITY_LABEL[rarity]}
                 </span>
@@ -143,17 +159,18 @@ export default function TrophyItem({
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
-          className="w-full shrink-0 rounded border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:border-blue-500 hover:text-blue-300 sm:w-auto sm:py-1"
+          className="flex w-full shrink-0 items-center justify-center gap-1.5 rounded-chip border border-border-strong px-3 py-2 type-caption font-medium text-ink-muted transition-colors hover:border-accent-ink hover:text-accent-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 sm:w-auto sm:py-1.5"
         >
-          {open ? "Ocultar ayuda" : "❓ Cómo desbloquearlo"}
+          {!open && <Icon name="help" className="h-3.5 w-3.5" />}
+          {open ? "Ocultar ayuda" : "Cómo desbloquearlo"}
         </button>
       </div>
 
       {open && (
-        <div className="mt-3 rounded border border-zinc-800 bg-zinc-950 p-3 text-sm">
-          {pending && <p className="text-zinc-500">Generando ayuda...</p>}
-          {!pending && error && <p className="text-red-400">{error}</p>}
-          {!pending && hint && <p className="leading-relaxed text-zinc-300">{hint}</p>}
+        <div className="mt-3 rounded-card border border-border bg-surface p-3 type-body">
+          {pending && <p className="text-ink-muted">Generando ayuda...</p>}
+          {!pending && error && <p className="text-danger">{error}</p>}
+          {!pending && hint && <p className="text-ink">{hint}</p>}
         </div>
       )}
     </li>

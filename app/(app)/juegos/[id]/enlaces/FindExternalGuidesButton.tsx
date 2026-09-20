@@ -28,14 +28,14 @@ export default function FindExternalGuidesButton({
         <button
           type="submit"
           disabled={pending}
-          className="rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-sm text-blue-300 hover:border-blue-500 disabled:opacity-50"
+          className="min-h-11 rounded-chip border border-accent-ink bg-accent/15 px-3 type-meta font-medium text-accent-ink transition-colors hover:bg-accent/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 disabled:opacity-50 sm:min-h-9"
         >
           {pending ? "Buscando..." : "Buscar guías externas"}
         </button>
       </form>
 
       {state.inserted !== null && (
-        <p role="status" className="text-xs text-zinc-500">
+        <p role="status" className="type-caption text-ink-muted">
           {state.inserted > 0
             ? `Se agregaron ${state.inserted} enlaces nuevos.`
             : "No se encontraron enlaces nuevos."}
@@ -43,7 +43,7 @@ export default function FindExternalGuidesButton({
       )}
 
       {state.errors.length > 0 && (
-        <p role="alert" className="text-xs text-red-400">
+        <p role="alert" className="type-caption text-danger">
           {state.errors.join(" ")}
         </p>
       )}

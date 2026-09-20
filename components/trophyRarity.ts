@@ -10,11 +10,16 @@ export const RARITY_LABEL: Record<number, string> = {
   3: "Común",
 };
 
+/**
+ * Los tres primeros salen de los tokens `rarity-*` de `app/globals.css`;
+ * "común" va con `ink-muted`, que es el nivel de "un metadato más": un cuarto
+ * color para decir "nada especial" sería ruido (issue #176).
+ */
 export const RARITY_CLASS: Record<number, string> = {
-  0: "border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-300",
-  1: "border-rose-500/40 bg-rose-500/10 text-rose-300",
-  2: "border-sky-500/40 bg-sky-500/10 text-sky-300",
-  3: "border-zinc-600/60 bg-zinc-700/20 text-zinc-400",
+  0: "border-rarity-ultra/40 bg-rarity-ultra/10 text-rarity-ultra",
+  1: "border-rarity-very/40 bg-rarity-very/10 text-rarity-very",
+  2: "border-rarity-rare/40 bg-rarity-rare/10 text-rarity-rare",
+  3: "border-border bg-surface-hover text-ink-muted",
 };
 
 export function rarityLabel(rarity: number | null): string | null {

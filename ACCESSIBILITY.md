@@ -165,9 +165,68 @@ texto adentro del chip dice el estado con palabras. Los tres estados de
 `SyncStatusBadge` se distinguen por texto además de por color, así que
 tampoco dependen de 1.4.1.
 
+## Biblioteca y ficha de juego (fase 3 del issue #176)
+
+La fase 3 migra `/juegos` y `/juegos/[id]` (lista de trofeos, hero, advisor).
+Trae tres tokens nuevos y unas pocas combinaciones que no estaban medidas.
+
+### Tokens nuevos: la rareza del trofeo
+
+`RARITY_CLASS` pintaba los cuatro escalones con `fuchsia-300` / `rose-300` /
+`sky-300` / `zinc-400` a mano. Son tokens propios y no los de trofeo: la
+rareza es ortogonal al tipo (hay bronces ultra raros y platinos comunes), y
+pintarla con el oro o la plata del tipo haría que las dos escalas se lean como
+una sola. "Común" no lleva token: va con `ink-muted`, que es justamente el
+nivel de "un metadato más".
+
+Se miden ya mezclados sobre su propio fondo `/10`, que es como aparecen:
+
+| Token | Dónde | Peor ratio | Umbral |
+|---|---|---|---|
+| `--rarity-ultra` (`#e879f9`) | chip "Ultra rara" sobre `bg-rarity-ultra/10` | 5.25:1 | 4.5 |
+| `--rarity-very` (`#fb7185`) | chip "Muy rara" sobre `bg-rarity-very/10` | 4.86:1 | 4.5 |
+| `--rarity-rare` (`#60c4f5`) | chip "Rara" sobre `bg-rarity-rare/10` | 6.29:1 | 4.5 |
+| `--ink-muted` | chip "Común" sobre `bg-surface-hover` | 5.79:1 | 4.5 |
+
+`--rarity-very` es el más justo de los tres (4.86:1) y por eso no se oscurece
+más: el rosa es el escalón del medio y tiene que leerse distinto del magenta
+de arriba sin acercarse al rojo de `danger`.
+
+### Combinaciones nuevas
+
+| Combinación | Dónde | Peor ratio | Umbral |
+|---|---|---|---|
+| `text-ink` sobre `bg-accent/10` | fila de trofeo enfocada desde el advisor | 11.64:1 | 4.5 |
+| `ring-accent-ink` sobre superficie | la misma fila, su anillo de 1px | 5.35:1 | 3 (1.4.11) |
+| `text-success` sobre `bg-success/10` | "Siguiente trofeo", chip de obtenido | 6.49:1 | 4.5 |
+| `text-danger` sobre `bg-danger/5` | desafíos de dificultad del advisor | 5.11:1 | 4.5 |
+| `text-warning` sobre `bg-warning/5` y `/10` | perdibles, "no se puede farmear" | 7.38:1 | 4.5 |
+| `border-l-accent` (barra de 4px) | borde izquierdo de una sección del plan | 3.06:1 | 3 (1.4.11) |
+
+La barra lateral de 4px queda justo en el umbral, y **no es lo único que
+distingue una sección de otra**: cada una lleva su título y su ícono del set,
+así que no depende de percibir el color (WCAG 1.4.1). El mismo criterio por el
+que el advisor dejó de tener seis colores de sección: `warning` y `danger` se
+reservan para lo que de verdad cuesta trofeos (perdibles y desafíos de
+dificultad) y el resto es informativo.
+
+### Lo que la fase no rompe
+
+- **Targets táctiles**: la pill de sección de la ficha, el botón "Cómo
+  desbloquearlo" y las opciones del filtro de plataforma conservan sus 44px
+  (`min-h-11`) en mobile, bajando a `min-h-9` recién en `sm`.
+- **`aria-current="page"`** sigue en el filtro de plataforma de la biblioteca,
+  que pasó de tres píldoras sueltas a un marco único sin dejar de ser links.
+- **Los íconos nuevos** (`link`, `book`, `help`, `alert`, `flame`, `bulb`,
+  `list`, `repeat`, `arrow-down`) van todos sin `label`: acompañan a un texto
+  que ya dice lo mismo, así que son decorativos y quedan `aria-hidden`. El
+  botón de invertir el orden es la excepción aparente -- su ícono es
+  decorativo, pero el botón tiene `aria-label` propio, que es donde
+  corresponde ponerlo.
+
 ### Pendiente
 
-- La migración de las pantallas (fases 3-5) tiene que ir reemplazando los
-  `zinc-*` por estos tokens, no sumándolos. Mientras convivan las dos paletas,
-  los ratios de arriba valen para lo migrado y los de la auditoría vieja para
-  lo que falta.
+- La migración de las pantallas restantes (fases 4-5) tiene que ir
+  reemplazando los `zinc-*` por estos tokens, no sumándolos. Mientras convivan
+  las dos paletas, los ratios de arriba valen para lo migrado y los de la
+  auditoría vieja para lo que falta.

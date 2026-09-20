@@ -236,7 +236,7 @@ que definía estaban muertos: 566 `zinc-*` a mano en 79 archivos contra **0** us
 `emerald-*`, `amber-*`…). Todo pasa por un token. Si hace falta un color que no existe, se
 agrega como token **con su rol**, no se hardcodea en el JSX. La regla se vuelve verificable con
 un lint en la fase 6; hasta entonces es convención, y las pantallas todavía sin migrar
-(fases 2-5) siguen con `zinc-*`.
+(fases 4-5) siguen con `zinc-*`.
 
 Los tokens se declaran dos veces a propósito: el valor crudo en `:root` con nombre sin
 prefijo (`--ink`, `--accent`), y el mapeo a la utilidad de Tailwind en `@theme inline`
@@ -257,6 +257,10 @@ sin aviso si Tailwind cambia dónde emite el suyo.
 - **Semánticos**: `success` (100% / logro obtenido), `danger`, `warning`.
 - **Trofeos**: los cuatro de PSN más `trophy-neutral` para el `achievement` de Steam, que es
   "sin desglose" y no un quinto color.
+- **Rareza** (3 + 1): `rarity-ultra` / `rarity-very` / `rarity-rare`, y "común" sin token
+  propio (va con `ink-muted`). Son tokens aparte de los de trofeo porque la rareza es
+  **ortogonal al tipo** -- hay bronces ultra raros y platinos comunes -- y pintarla con el oro
+  o la plata haría que las dos escalas se lean como una sola.
 - **Radios** (3): `rounded-chip` (pills, badges), `rounded-card` (tarjetas, carátulas, inputs)
   y `rounded-full`, que es **sólo para avatares**.
 
@@ -313,6 +317,39 @@ Reglas que salieron de esta pasada:
 - **`border-strong` para todo lo interactivo, `border` sólo para separar.** El hairline `border`
   no llega a los 3:1 de WCAG 1.4.11 y no puede ser el borde de un input ni de un botón.
 
+### Biblioteca y ficha de juego — fase 3 del remake (issue #176)
+
+`/juegos` y `/juegos/[id]` (con `GamesLibrary`, `TrophyList`/`TrophyItem`, `GameDetailHero`,
+`TimeToBeat` y `AiAdvisorPanel`) ya no usan ningún color literal ni ningún emoji. Lo que salió
+de esta pasada:
+
+- **La lista de trofeos son filas con hairline, no tarjetas.** Con 50 trofeos en pantalla, 50
+  marcos de 1px compiten entre sí y no gana ninguno: lo que distingue una fila de la otra es
+  el color del ícono de tipo, que es justamente el dato que se busca de un vistazo. "Obtenido"
+  tampoco es un fondo verde -- teñía media lista en cuanto el juego iba por la mitad -- sino
+  el ícono a plena opacidad más un chip de `success`.
+- **El nombre del juego en `GameDetailHero` es el único texto editorial de la ficha** y va en
+  `type-display` (la serif). Los metadatos de al lado son chrome y van en versalitas. Es el
+  contraste que hace que la ficha no se lea como un dashboard, y `21-design-system.spec.ts`
+  lo verifica por estilo computado (la clase puede estar puesta y la `@utility` no compilar).
+- **El filtro de plataforma de la biblioteca tiene la forma de `SegmentedControl` pero sigue
+  siendo links**, no el componente: el filtro vive en la URL y se aplica en la query de
+  Postgres, así que cada opción **es** una navegación (linkeable, con "atrás" del browser),
+  no un `onChange`. Comparte con el componente el activo en `accent/15` + `accent-ink`.
+- **El bloque de estado de sync se comprimió a una línea** al lado del título: eran tres
+  párrafos y un botón antes de la primera carátula, y en una app de navegar lo primero que se
+  ve tiene que ser el contenido.
+- **El advisor dejó de tener seis colores de sección.** Cada `SectionCard` traía el suyo
+  (azul, ámbar, rojo, índigo, teal, púrpura) y el panel se leía como un semáforo. Ahora son
+  cuatro tonos del sistema, y `warning`/`danger` quedan reservados para lo que de verdad
+  cuesta trofeos: perdibles y desafíos de dificultad. El tono pinta **la barra lateral y el
+  encabezado, no el contenedor** -- puesto en el `div`, el color se filtraba a todo el texto
+  de adentro que no declarara el suyo.
+- **Los estados compartidos** (`EmptyState`, `ErrorState`, `LoadingState`, `GameBreadcrumb`,
+  `SyncButton`) se migraron acá aunque su rediseño completo sea de la fase 5: aparecen dentro
+  de estas pantallas, y la regla del issue es no mergear una fase que deje media pantalla con
+  la piel nueva y media con la vieja.
+
 ### Iconografía: sin emojis
 
 `components/ui/Icon.tsx` es el set propio (viewBox 24×24, `currentColor`, `fill-rule: evenodd`).
@@ -328,6 +365,11 @@ a 14-16px un contorno de 2px se lee mejor que una silueta rellena. La lista `STR
 `Icon.tsx` decide cuál es cuál; antes esos cinco estaban copiados a mano en `Modal`,
 `SearchField`, `Select`, `ToggleChip` y `MobileDisclosure`, con tres grosores de chevron
 distintos.
+
+La fase 3 sumó los que faltaban para vaciar de emojis la biblioteca y la ficha: `link`,
+`book`, `help`, `alert`, `flame`, `bulb`, `list`, `repeat` (contenido) y `arrow-down`
+(chrome, el único de trazo). Van todos sin `label`: acompañan a un texto que ya dice lo
+mismo, así que son decorativos.
 
 Los íconos de trofeo **por tipo** no están en ese set: siguen en `components/TrophyTypeIcon.tsx`,
 porque lo que los distingue es el color canónico de cada tipo y no la forma. Las plataformas van
@@ -823,12 +865,13 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     fuente en la biblioteca, stats por plataforma, cron compartido, diario al 100% y Steam
     OpenID. Ver la sección de Steam más arriba y `PRODUCT_SPEC.md` sección 12.
 11. Remake visual (issue #176): sistema de diseño propio con Letterboxd como referencia, para
-    que la app deje de parecer generada por IA. 🔄 **Fases 1 y 2 completas**: fundaciones
+    que la app deje de parecer generada por IA. 🔄 **Fases 1, 2 y 3 completas**: fundaciones
     (tokens con rol explícito, escala tipográfica `type-*`, la segunda familia serif, el set
-    de íconos y la auditoría de contraste) y primitivas (`Button`, `Input`, `StatCard`,
-    `ProgressBar`, `Modal`, los badges, `components/ui/*` y `GamePoster`, más los emojis
-    🏆/💯/🎮 reemplazados por íconos del set). Faltan las fases 3-6 (biblioteca y ficha,
-    diario, perfil/configuración/chrome, barrido final con el lint que prohíbe los colores
+    de íconos y la auditoría de contraste), primitivas (`Button`, `Input`, `StatCard`,
+    `ProgressBar`, `Modal`, los badges, `components/ui/*` y `GamePoster`) y biblioteca + ficha
+    de juego (`/juegos`, `/juegos/[id]`, `TrophyList`/`TrophyItem`, `GameDetailHero`,
+    `AiAdvisorPanel`, más los tokens de rareza). Faltan las fases 4-6 (diario,
+    perfil/configuración/chrome, barrido final con el lint que prohíbe los colores
     literales). Ver el issue para el detalle por pantalla.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.

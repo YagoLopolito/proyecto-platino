@@ -68,7 +68,13 @@ export default function SyncButton({
 
   return (
     <div className="space-y-2">
-      <Button type="button" onClick={handleClick} disabled={pending} className={className}>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={handleClick}
+        disabled={pending}
+        className={className}
+      >
         {pending ? "Sincronizando..." : "Sincronizar ahora"}
       </Button>
 
@@ -79,7 +85,7 @@ export default function SyncButton({
           <FormError>{message.text}</FormError>
           <a
             href={reconnectHref}
-            className="rounded text-sm text-blue-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900"
+            className="rounded-chip type-meta text-accent-ink hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             {reconnectHref.startsWith("#") ? "Reconectar cuenta PSN ↓" : "Reconectar cuenta PSN"}
           </a>
