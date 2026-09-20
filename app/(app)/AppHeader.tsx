@@ -39,7 +39,7 @@ export default function AppHeader() {
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={`whitespace-nowrap rounded px-3 py-1.5 ${
-                  active ? "bg-accent/10 text-accent" : "text-zinc-400 hover:text-zinc-100"
+                  active ? "bg-accent/10 text-accent-ink" : "text-zinc-400 hover:text-zinc-100"
                 }`}
               >
                 {link.label}

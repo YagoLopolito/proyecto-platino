@@ -226,6 +226,83 @@ Verificación manual: `npx tsc --noEmit` y `eslint` limpios sobre los archivos t
 
 ## Diseño visual: la app de Letterboxd como referencia
 
+### Sistema de diseño (`app/globals.css`) — fase 1 del remake (issue #176)
+
+`app/globals.css` es la **fuente única de verdad** del diseño. Antes de esta fase, los tokens
+que definía estaban muertos: 566 `zinc-*` a mano en 79 archivos contra **0** usos de
+`bg-surface`/`text-muted`. Convivían dos sistemas y ganaba el improvisado.
+
+**Regla permanente: ningún componente usa un color literal de Tailwind** (`zinc-*`, `blue-*`,
+`emerald-*`, `amber-*`…). Todo pasa por un token. Si hace falta un color que no existe, se
+agrega como token **con su rol**, no se hardcodea en el JSX. La regla se vuelve verificable con
+un lint en la fase 6; hasta entonces es convención, y las pantallas todavía sin migrar
+(fases 2-5) siguen con `zinc-*`.
+
+Los tokens se declaran dos veces a propósito: el valor crudo en `:root` con nombre sin
+prefijo (`--ink`, `--accent`), y el mapeo a la utilidad de Tailwind en `@theme inline`
+(`--color-ink: var(--ink)`). **No escribir `--color-x: var(--color-x)`**: eso es una
+autorreferencia que sólo funciona por orden de cascada entre dos bloques `:root`, y se rompe
+sin aviso si Tailwind cambia dónde emite el suyo.
+
+- **Superficies** (3 + fondo): `background` / `surface` / `surface-raised` / `surface-hover`.
+- **Tinta** (3): `ink` (texto principal) / `ink-muted` (metadatos) / `ink-faint` (versalitas y
+  deshabilitado; **nunca** para texto de lectura).
+- **Hairlines** (2): `border` es el separador sutil, `border-strong` el borde de un control
+  interactivo, que sí tiene que verse (WCAG 1.4.11).
+- **Acentos**: `accent` es el azul PSN **como relleno**; `accent-ink` es el mismo azul **como
+  texto o ícono** sobre superficie oscura — son dos tokens porque tienen umbrales de contraste
+  opuestos y confundirlos es el bug de accesibilidad clásico. `accent-hover` va más **oscuro**
+  que `accent`, no más claro: es el hover de un relleno con texto blanco encima. `accent-2`
+  (rosa ○) sólo para display grande y rellenos.
+- **Semánticos**: `success` (100% / logro obtenido), `danger`, `warning`.
+- **Trofeos**: los cuatro de PSN más `trophy-neutral` para el `achievement` de Steam, que es
+  "sin desglose" y no un quinto color.
+- **Radios** (3): `rounded-chip` (pills, badges), `rounded-card` (tarjetas, carátulas, inputs)
+  y `rounded-full`, que es **sólo para avatares**.
+
+Cada token nuevo se audita contra las **cuatro** superficies y se reporta el peor caso, no el
+mejor: ver `ACCESSIBILITY.md`. Un token que sólo pasa AA sobre el fondo más oscuro falla
+apenas se lo usa dentro de una tarjeta en hover, y para entonces ya lo heredó media app.
+
+### Tipografía: dos familias con roles
+
+- **Geist (sans)** para el *chrome*: nav, botones, metadatos, números de stats, versalitas.
+- **Newsreader (serif)** para el contenido editorial: nombre del juego en las fichas y cuerpo
+  de las reseñas del diario. El contraste serif/sans es lo que hace que la app no se lea como
+  un dashboard; es la mitad de la identidad de la referencia.
+
+`body` toma `var(--font-ui)`. Durante mucho tiempo decía `Arial, Helvetica, sans-serif`, así
+que **la app entera se renderizaba en Arial** mientras la Geist que carga `app/layout.tsx` no
+la usaba nadie. Ese tipo de bug no se ve leyendo un diff: por eso `21-design-system.spec.ts`
+verifica el **estilo computado** en un navegador y no las clases del JSX.
+
+La escala vive en `globals.css` como `@utility type-*` (Tailwind v4, así aceptan variantes:
+`sm:type-title`) y se elige **por el rol del texto**, no combinando `text-sm font-semibold
+tracking-wide` de memoria: `type-display` (nombre del juego en un hero, serif),
+`type-title` (h1 de pantalla), `type-subtitle` (título de fila), `type-body`, `type-review`
+(cuerpo de reseña, serif), `type-meta`, `type-caption`, `type-overline` (versalitas de
+`SectionHeader` y de las tiras de stats) y `type-stat` (el número grande, con `tabular-nums`
+para que no baile al actualizarse).
+
+Ojo con un detalle de Tailwind: **una `@utility` que nadie usa no se compila**. Si una clase
+`type-*` está en el HTML pero no aplica nada, lo más probable es un typo en el nombre.
+
+### Iconografía: sin emojis
+
+`components/ui/Icon.tsx` es el set propio (viewBox 24×24, `currentColor`, `fill-rule: evenodd`).
+Un emoji se dibuja distinto en cada sistema operativo, viene con su propio color y no toma el
+del tema: queda como una calcomanía pegada encima del diseño, y es el tell más fuerte de "esto
+lo generó una IA". Sin `label` el ícono es decorativo y va `aria-hidden`; con `label` se
+anuncia como imagen, sólo cuando el ícono **es** la información.
+
+Los íconos de trofeo **por tipo** no están en ese set: siguen en `components/TrophyTypeIcon.tsx`,
+porque lo que los distingue es el color canónico de cada tipo y no la forma. Las plataformas van
+con un gamepad y un monitor genéricos, nunca con los logos de PlayStation o Steam: son marcas
+registradas y no tenemos licencia (mismo criterio que ya aplicaba `TrophyTypeIcon` con el asset
+oficial de Sony).
+
+### Estructura (decidido el 2026-09-05)
+
 Decidido el 2026-09-05: **toda la app mobile sigue el lenguaje visual de la app de
 Letterboxd**, que es coherente con que el diario ya se haya diseñado así desde el principio.
 No se copian sus colores de marca (la paleta sigue siendo la de PRODUCT_SPEC.md §7: negros
@@ -711,6 +788,12 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     `lib/steam/`, `steam_accounts`, Configuración › Conexiones, `/api/steam/sync`, filtro de
     fuente en la biblioteca, stats por plataforma, cron compartido, diario al 100% y Steam
     OpenID. Ver la sección de Steam más arriba y `PRODUCT_SPEC.md` sección 12.
+11. Remake visual (issue #176): sistema de diseño propio con Letterboxd como referencia, para
+    que la app deje de parecer generada por IA. 🔄 **Fase 1 (fundaciones) completa**: tokens
+    con rol explícito, escala tipográfica `type-*`, la segunda familia serif, el set de íconos
+    y la auditoría de contraste de la paleta nueva. Faltan las fases 2-6 (primitivas,
+    biblioteca y ficha, diario, perfil/configuración/chrome, barrido final con el lint que
+    prohíbe los colores literales). Ver el issue para el detalle por pantalla.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

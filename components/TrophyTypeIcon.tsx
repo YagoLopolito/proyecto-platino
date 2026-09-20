@@ -11,7 +11,7 @@ const COLOR: Record<TrophyType, string> = {
   silver: "var(--color-trophy-silver)",
   gold: "var(--color-trophy-gold)",
   platinum: "var(--color-trophy-platinum)",
-  achievement: "var(--color-zinc-400, #a1a1aa)",
+  achievement: "var(--color-trophy-neutral)",
 };
 
 const LABEL: Record<TrophyType, string> = {

@@ -22,12 +22,10 @@ export function SectionHeader({
   return (
     <div className="space-y-1 border-b border-zinc-800 pb-2">
       <div className="flex items-baseline justify-between gap-3">
-        <Heading className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-          {title}
-        </Heading>
-        {action && <div className="shrink-0 text-[11px] uppercase tracking-wide">{action}</div>}
+        <Heading className="type-overline text-zinc-400">{title}</Heading>
+        {action && <div className="type-overline shrink-0">{action}</div>}
       </div>
-      {description && <p className="text-xs text-zinc-500">{description}</p>}
+      {description && <p className="type-caption text-zinc-500">{description}</p>}
     </div>
   );
 }

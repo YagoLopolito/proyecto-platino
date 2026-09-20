@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { PwaRuntime } from "@/components/pwa/PwaRuntime";
 
@@ -11,6 +11,21 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+/*
+ * La serif del contenido editorial: nombre del juego en las fichas y cuerpo de
+ * las reseñas del diario (ver el bloque de tipografía de `globals.css`).
+ *
+ * Newsreader y no una display pura porque tiene que servir para las dos cosas
+ * -- títulos grandes y párrafos de lectura --, y por eso se piden también la
+ * itálica (una reseña la usa) y el rango de pesos variable.
+ */
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -46,7 +61,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang="es"
+      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
+    >
       {/* min-h-dvh y no min-h-full: en mobile la barra de direcciones aparece y
           desaparece, y `100vh` deja un hueco del alto de esa barra. */}
       <body className="flex min-h-dvh flex-col">
