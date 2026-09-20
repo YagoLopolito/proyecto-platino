@@ -5,10 +5,17 @@ import {
   type TextareaHTMLAttributes,
 } from "react";
 
-// border-zinc-500 (no zinc-700) porque zinc-700 no llega a 3:1 contra el
-// fondo del campo, el mínimo WCAG para el borde de un control interactivo.
+/*
+ * `border-strong` y no `border`: el borde de un campo es el borde de un
+ * control interactivo y le corresponden 3:1 contra el fondo adyacente (WCAG
+ * 1.4.11). El hairline `border` es para separar, no para delimitar un control.
+ *
+ * El fondo es `surface-raised` -- un escalón por encima de la tarjeta donde
+ * suele vivir el formulario -- para que el campo se lea como un hueco y no se
+ * funda con el contenedor.
+ */
 const fieldClassName =
-  "w-full min-h-11 rounded border border-zinc-500 bg-zinc-800 px-3 py-2 text-zinc-50 sm:min-h-0 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900";
+  "w-full min-h-11 rounded-card border border-border-strong bg-surface-raised px-3 py-2 type-body text-ink placeholder:text-ink-faint sm:min-h-0 focus:border-accent-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className = "", ...props }, ref) {
@@ -30,5 +37,5 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 );
 
 export function Label({ className = "", ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={`text-sm text-zinc-400 ${className}`} {...props} />;
+  return <label className={`type-meta text-ink-muted ${className}`} {...props} />;
 }

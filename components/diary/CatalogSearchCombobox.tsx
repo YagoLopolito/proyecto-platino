@@ -119,9 +119,7 @@ export default function CatalogSearchCombobox() {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <Label htmlFor="catalog-query" className="text-xs">
-          Buscar juego
-        </Label>
+        <Label htmlFor="catalog-query">Buscar juego</Label>
         <Input
           id="catalog-query"
           type="search"
@@ -129,7 +127,6 @@ export default function CatalogSearchCombobox() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Nombre del juego..."
-          className="text-sm"
         />
         <p className="text-xs text-zinc-500" aria-live="polite">
           {tooShort

@@ -104,37 +104,29 @@ export default function EditDiaryEntryForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label htmlFor={`edit-date-${entry.id}`} className="text-xs">
-            Fecha
-          </Label>
+          <Label htmlFor={`edit-date-${entry.id}`}>Fecha</Label>
           <Input
             id={`edit-date-${entry.id}`}
             name="finishedOn"
             type="date"
             required
             defaultValue={entry.finished_on}
-            className="text-sm"
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor={`edit-rating-${entry.id}`} className="text-xs">
-            Rating
-          </Label>
+          <Label htmlFor={`edit-rating-${entry.id}`}>Rating</Label>
           <StarRatingInput id={`edit-rating-${entry.id}`} defaultValue={entry.rating} />
         </div>
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor={`edit-review-${entry.id}`} className="text-xs">
-          Reseña
-        </Label>
+        <Label htmlFor={`edit-review-${entry.id}`}>Reseña</Label>
         <Textarea
           id={`edit-review-${entry.id}`}
           name="review"
           rows={3}
           maxLength={2000}
           defaultValue={entry.review ?? ""}
-          className="text-sm"
         />
       </div>
 

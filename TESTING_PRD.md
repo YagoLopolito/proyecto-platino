@@ -559,8 +559,10 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-03 | La escala tipográfica compila y jerarquiza | `type-stat` mide más de 1.5× que `type-overline`, el overline va en versalitas espaciadas y el número en `tabular-nums` | P1 |
 | DS-04 | Los íconos reemplazan a los emojis | El "estimado por IA" de la ficha muestra `[data-icon="sparkle"]` y no contiene ✨ | P2 |
 | DS-05 | Íconos decorativos fuera del árbol de a11y | El ícono que acompaña a un texto que ya lo dice va con `aria-hidden="true"` | P2 |
+| DS-06 | Las primitivas pintan con los tokens | El `background-color` computado del botón primario es exactamente el valor de `--accent`, no un `blue-*` parecido | P1 |
+| DS-07 | El badge de platino del póster es un ícono | La tarjeta de un juego platinado muestra `[data-icon="trophy"]`, no contiene 🏆, y el ícono se anuncia como imagen "Platino" | P2 |
 
-**Total: 131 casos** — 52 P0, 55 P1, 24 P2.
+**Total: 133 casos** — 52 P0, 56 P1, 25 P2.
 
 ---
 

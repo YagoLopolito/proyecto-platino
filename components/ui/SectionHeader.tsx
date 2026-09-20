@@ -20,17 +20,21 @@ export function SectionHeader({
   as?: "h1" | "h2" | "h3";
 }) {
   return (
-    <div className="space-y-1 border-b border-zinc-800 pb-2">
+    <div className="space-y-1 border-b border-border pb-2">
       <div className="flex items-baseline justify-between gap-3">
-        <Heading className="type-overline text-zinc-400">{title}</Heading>
+        <Heading className="type-overline text-ink-faint">{title}</Heading>
         {action && <div className="type-overline shrink-0">{action}</div>}
       </div>
-      {description && <p className="type-caption text-zinc-500">{description}</p>}
+      {description && <p className="type-caption text-ink-muted">{description}</p>}
     </div>
   );
 }
 
 /** El link de acción de una `SectionHeader`, con el mismo tratamiento visual. */
 export function SectionAction({ children }: { children: ReactNode }) {
-  return <span className="font-semibold text-zinc-500 hover:text-zinc-200">{children}</span>;
+  return (
+    <span className="font-semibold text-ink-muted transition-colors hover:text-ink">
+      {children}
+    </span>
+  );
 }

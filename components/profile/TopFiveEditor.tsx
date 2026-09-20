@@ -189,9 +189,7 @@ export function TopFiveEditor({
           ))}
 
           <div className="space-y-1">
-            <Label htmlFor="favorite-query" className="text-xs">
-              Buscar en tu biblioteca
-            </Label>
+            <Label htmlFor="favorite-query">Buscar en tu biblioteca</Label>
             <Input
               id="favorite-query"
               type="search"
@@ -199,7 +197,6 @@ export function TopFiveEditor({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Nombre del juego..."
-              className="text-sm"
             />
             <p className="text-xs text-zinc-500" aria-live="polite">
               {selected.length} de {MAX_FAVORITE_GAMES} elegidos

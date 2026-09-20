@@ -32,13 +32,7 @@ const MAX_MB = Math.round(MAX_SCREENSHOT_BYTES / (1024 * 1024));
  * pesa varios MB), y recién después una Server Action indexa los paths en
  * `game_screenshots`. Ver `screenshot-actions.ts`.
  */
-export default function ScreenshotUploader({
-  gameId,
-  userId,
-}: {
-  gameId: string;
-  userId: string;
-}) {
+export default function ScreenshotUploader({ gameId, userId }: { gameId: string; userId: string }) {
   const [pending, setPending] = useState<PendingScreenshot[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -210,7 +204,6 @@ export default function ScreenshotUploader({
                   maxLength={MAX_CAPTION_LENGTH}
                   placeholder="Texto (opcional)"
                   aria-label={`Texto de ${item.file.name}`}
-                  className="text-xs"
                 />
                 <Button
                   type="button"

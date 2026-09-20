@@ -90,9 +90,7 @@ export default function AddFriendModal() {
       >
         <div className="space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="friend-query" className="text-xs">
-              Buscar usuario
-            </Label>
+            <Label htmlFor="friend-query">Buscar usuario</Label>
             <Input
               id="friend-query"
               type="search"
@@ -100,7 +98,6 @@ export default function AddFriendModal() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Nombre de PSN..."
-              className="text-sm"
             />
             <p className="text-xs text-zinc-500" aria-live="polite">
               {isSearching ? "Buscando..." : " "}

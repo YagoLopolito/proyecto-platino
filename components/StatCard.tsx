@@ -14,9 +14,11 @@ export function StatCard({
   className?: string;
 }) {
   return (
-    <div className={`space-y-2 rounded-lg border border-zinc-800 bg-zinc-950 p-4 ${className}`}>
+    <div className={`space-y-2 rounded-card border border-border bg-surface p-4 ${className}`}>
       <div className="flex items-center justify-between">
-        <span className="type-meta text-zinc-400">{label}</span>
+        {/* Versalitas: es la etiqueta de una stat, el patrón de la referencia
+            (ver `SectionHeader`), no un texto de lectura más. */}
+        <span className="type-overline text-ink-faint">{label}</span>
         {icon}
       </div>
       <p className="type-stat">{value}</p>

@@ -33,9 +33,26 @@ export const ICON_NAMES = [
   "clock",
   "gamepad",
   "monitor",
+  "search",
+  "close",
+  "chevron-down",
+  "filters",
+  "check",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
+
+/**
+ * Los íconos de CHROME (lupa, ✕, chevron, tilde) se dibujan con trazo y no con
+ * relleno: son líneas, y a 14-16px un contorno de 2px se lee mucho mejor que
+ * una silueta rellena. Los de CONTENIDO (trofeo, 100%, IA) siguen siendo
+ * sólidos, que es lo que los hace legibles como marca sobre una carátula.
+ *
+ * Estaban duplicados a mano en `Modal`, `SearchField`, `Select`, `ToggleChip`
+ * y `MobileDisclosure` -- cinco copias del mismo chevron con tres grosores
+ * distintos. Acá hay una sola.
+ */
+const STROKE_ICONS = new Set<IconName>(["search", "close", "chevron-down", "filters", "check"]);
 
 const PATHS: Record<IconName, ReactNode> = {
   /** Copa estilizada. Misma forma que `TrophyTypeIcon`, para que el set sea uno solo. */
@@ -69,6 +86,23 @@ const PATHS: Record<IconName, ReactNode> = {
   monitor: (
     <path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-8v2h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v9h16V6H4Z" />
   ),
+
+  /* --- Chrome (trazo, ver STROKE_ICONS) --------------------------------- */
+  /** Buscador. */
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </>
+  ),
+  /** Cerrar un modal, limpiar un campo. Reemplaza al carácter ✕ suelto. */
+  close: <path d="M6 6l12 12M18 6 6 18" />,
+  /** Desplegable: `<select>`, disclosure de filtros. */
+  "chevron-down": <path d="m6 9 6 6 6-6" />,
+  /** Abre los filtros plegados en mobile. */
+  filters: <path d="M4 6h16M7 12h10M10 18h4" />,
+  /** Opción activada de un `ToggleChip`. */
+  check: <path d="m5 13 4 4L19 7" />,
 };
 
 /**
@@ -90,13 +124,18 @@ export function Icon({
   label?: string;
 }) {
   const decorative = label === undefined;
+  const stroke = STROKE_ICONS.has(name);
 
   return (
     <svg
       viewBox="0 0 24 24"
       className={className}
-      fill="currentColor"
-      fillRule="evenodd"
+      fill={stroke ? "none" : "currentColor"}
+      fillRule={stroke ? undefined : "evenodd"}
+      stroke={stroke ? "currentColor" : undefined}
+      strokeWidth={stroke ? 2 : undefined}
+      strokeLinecap={stroke ? "round" : undefined}
+      strokeLinejoin={stroke ? "round" : undefined}
       data-icon={name}
       role={decorative ? undefined : "img"}
       aria-hidden={decorative || undefined}
