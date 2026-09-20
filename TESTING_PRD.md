@@ -544,7 +544,23 @@ llama a IGDB.
 | TIME-07 | No se pudo consultar IGDB | El juego **no** queda marcado como consultado, para que se reintente cuando el problema se arregle | P0 |
 | TIME-08 | Nombres del catálogo contra IGDB | "Skyrim", "…- Multiplayer" y los que traen ®/™ matchean contra el título real; una entrega distinta de la saga no | P0 |
 
-**Total: 126 casos** — 52 P0, 52 P1, 22 P2.
+### 6.18 Sistema de diseño (`21-design-system.spec.ts`)
+
+Fase 1 del remake visual (issue #176). Lo que se verifica no es "cómo se ve" sino que las
+piezas del sistema **se apliquen de verdad**: los dos bugs que motivaron la fase eran de ese
+tipo y ninguno se veía leyendo el diff (la fuente cargada no la usaba nadie porque `body` la
+pisaba con Arial; los tokens de `globals.css` estaban definidos y con 0 usos). Un test que
+mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| DS-01 | La app no cae a la fuente del navegador | El `font-family` computado de `body` resuelve a Geist y no empieza en Arial | P1 |
+| DS-02 | Tokens definidos y con valor | Los 21 tokens del sistema resuelven a un valor no vacío; las dos familias, a Geist y Newsreader y no a su genérica de fallback | P1 |
+| DS-03 | La escala tipográfica compila y jerarquiza | `type-stat` mide más de 1.5× que `type-overline`, el overline va en versalitas espaciadas y el número en `tabular-nums` | P1 |
+| DS-04 | Los íconos reemplazan a los emojis | El "estimado por IA" de la ficha muestra `[data-icon="sparkle"]` y no contiene ✨ | P2 |
+| DS-05 | Íconos decorativos fuera del árbol de a11y | El ícono que acompaña a un texto que ya lo dice va con `aria-hidden="true"` | P2 |
+
+**Total: 131 casos** — 52 P0, 55 P1, 24 P2.
 
 ---
 
@@ -631,6 +647,11 @@ test.describe("Enlaces externos", () => {
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo
 usa, nunca por adelantado "por las dudas".
+
+**`data-icon` no es un `data-testid`.** `components/ui/Icon.tsx` lo emite siempre, para
+cualquier ícono del set: es parte de la API del componente (identifica *qué* ícono se
+renderizó) y existiría igual sin tests. Los specs pueden usarlo como selector, pero no se
+agregan `data-icon` sueltos a mano en otros componentes.
 
 ---
 

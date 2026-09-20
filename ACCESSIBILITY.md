@@ -67,3 +67,80 @@ identificable en su estado default — pero igual quedaron con ratios ≥3:1.
   estos mismos componentes; donde no (ej. clases `text-zinc-500` sueltas en
   JSX de página), aplica el mismo criterio: mínimo `zinc-400` para texto
   informativo sobre fondos `zinc-900`/`zinc-950`.
+
+---
+
+## Tokens del sistema de diseño (fase 1 del issue #176)
+
+Auditoría de la paleta nueva de `app/globals.css`, hecha **antes** de migrar
+las pantallas: si un token no pasa AA, lo hereda cada componente que lo use
+después, y corregirlo más tarde es recolorear la app entera de nuevo.
+
+Umbrales: **4.5:1** texto normal, **3:1** texto grande (≥18.66px, o ≥14px
+bold) y bordes de controles interactivos (WCAG 1.4.11). Cada token se midió
+contra las **cuatro** superficies del tema y se reporta el **peor** caso
+(`--surface-hover`, la más clara): un token que sólo pasa sobre el fondo más
+oscuro falla apenas se lo usa dentro de una tarjeta en hover.
+
+### Corregido durante la auditoría
+
+| Token | Valor inicial | Peor ratio | Valor final | Peor ratio |
+|---|---|---|---|---|
+| `--ink-faint` | `#6b7490` | 3.27:1 (falla) | `#858ea6` | 4.63:1 |
+| `--border-strong` | `#3a4459` | 1.55:1 (falla 1.4.11) | `#687694` | 3.33:1 |
+| `--accent-hover` | `#2e8cef` | blanco encima 3.43:1 (falla) | `#005cab` | blanco encima 6.73:1 |
+
+Las tres son la misma clase de error y vale dejarla anotada:
+
+1. **`--ink-faint`**: se pensó como "el gris más apagado que se banque". Pero
+   su uso principal son las versalitas de `type-overline`, que son de 11px —
+   texto chico, umbral 4.5:1, no 3:1.
+2. **`--border-strong`**: un borde decorativo puede ser sutil; el borde que
+   *delimita un input* es lo que hace que el control se vea, y WCAG le pide
+   3:1.
+3. **`--accent-hover`**: el hover de un relleno primario tiene que ir más
+   **oscuro**, no más claro. Aclarándolo, el texto blanco encima cae a 3.43:1.
+   Es exactamente el bug que ya se había corregido una vez (ver `Button`
+   primary hover, más arriba) y que la paleta nueva estaba por reintroducir.
+
+### El azul PSN necesita dos tokens
+
+`--accent` (`#0070d1`) sirve como **relleno** (blanco encima: 4.95:1 AA) y
+como gráfico no-texto (3.06:1 ≥ 3), pero **como texto no llega**: 3.06:1
+contra la superficie más clara. Por eso existe `--accent-ink` (`#4c9df2`,
+5.35:1), que es el acento cuando es texto o ícono sobre superficie oscura.
+
+Los dos usos vivos de `text-accent` (la tab activa de `MobileTabBar`, el link
+activo del header) eran texto chico en `#0070d1`, o sea que ya estaban
+fallando: se pasaron a `text-accent-ink` en esta fase.
+
+`--accent-2` (`#e6007a`, 3.35:1) queda restringido a **display grande y
+rellenos**. Su único uso hoy es el "oob" del logo del header, que califica.
+
+### Verificado, sin cambios
+
+| Token | Peor ratio | Umbral |
+|---|---|---|
+| `--ink` | 12.68:1 | 4.5 |
+| `--ink-muted` | 5.79:1 | 4.5 |
+| `--success` | 7.88:1 | 4.5 |
+| `--danger` | 5.48:1 | 4.5 |
+| `--warning` | 9.08:1 | 4.5 |
+| `--trophy-bronze` | 4.82:1 | 4.5 |
+| `--trophy-silver` | 8.33:1 | 4.5 |
+| `--trophy-gold` | 10.80:1 | 4.5 |
+| `--trophy-platinum` | 11.02:1 | 4.5 |
+| `--trophy-neutral` | 5.79:1 | 4.5 |
+| `--border` (separador, no-texto) | 1.07:1 | — decorativo a propósito |
+
+`--border` es deliberadamente sutil: es un hairline que separa, no un borde
+que delimite un control. Lo que tiene que verse es `--border-strong`.
+
+### Pendiente
+
+- La migración de las pantallas (fases 2-5) tiene que ir reemplazando los
+  `zinc-*` por estos tokens, no sumándolos. Mientras convivan las dos paletas,
+  los ratios de arriba valen para lo migrado y los de la auditoría vieja para
+  lo que falta.
+- `PlatinumBadge` sigue con el hex hardcodeado `#B9D3E8` en vez de
+  `--trophy-platinum`; se unifica cuando le toque su fase.

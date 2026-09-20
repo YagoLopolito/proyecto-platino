@@ -1,49 +1,260 @@
 @import "tailwindcss";
 
 /*
+ * SISTEMA DE DISEÑO — fuente única de verdad.
+ *
  * Tema único: dark mode PlayStation, sin modo claro ni dependencia de
  * prefers-color-scheme (ver PRODUCT_SPEC.md sección 7 "Diseño visual").
- * Negros/grises con tinte azulado, acento PSN, y los 4 colores de trofeo
- * bien diferenciados.
+ *
+ * La estructura está copiada de Letterboxd (issue #176): pocos escalones y con
+ * un rol explícito cada uno, en vez de los doce grises de Tailwind elegidos a
+ * ojo pantalla por pantalla. Los colores son los de la marca, no los de
+ * Letterboxd: negros azulados, acento PSN, oro de trofeo.
+ *
+ * Regla: NINGÚN componente usa un color literal de Tailwind (`zinc-*`,
+ * `blue-*`, `emerald-*`). Todo pasa por un token de acá. Si hace falta un
+ * color que no existe, se agrega como token con su rol, no se hardcodea.
  */
 :root {
+  /* --- Superficies: tres niveles, todas con el mismo tinte azulado. ------ */
+  /* Fondo de la página. Nada va más oscuro que esto. */
   --background: #0a0e17;
+  /* Tarjetas, filas, cualquier cosa que se separe del fondo. */
   --surface: #10151f;
-  --surface-hover: #171d2b;
+  /* Un escalón más arriba: modales, popovers, lo que flota sobre una tarjeta. */
+  --surface-raised: #161d2a;
+  /* Estado hover/activo de una superficie interactiva. */
+  --surface-hover: #1e2636;
+
+  /* --- Tinta: tres niveles, no seis. ------------------------------------ */
+  /* Texto principal: títulos y cuerpo. */
+  --ink: #e7ebf3;
+  /* Metadatos, texto secundario, descripciones. */
+  --ink-muted: #98a0b4;
+  /*
+   * Versalitas, etiquetas de stat, deshabilitado. Nunca para texto de lectura.
+   * Es el nivel más bajo que sigue pasando AA (4.63:1) sobre la superficie más
+   * clara del tema: las versalitas son de 11px, o sea texto chico, y el umbral
+   * que les corresponde es 4.5:1 y no el 3:1 de texto grande.
+   */
+  --ink-faint: #858ea6;
+
+  /* --- Hairlines: dos. -------------------------------------------------- */
+  /* Separadores y bordes de tarjeta: se intuye, no se lee. */
   --border: #232b3d;
-  --foreground: #e7ebf3;
-  --muted: #8b93a7;
+  /*
+   * Bordes de controles interactivos (input, botón), que sí tienen que verse.
+   * WCAG 1.4.11 (non-text contrast) les pide 3:1 contra el fondo adyacente:
+   * queda en 3.33:1 sobre la superficie más clara.
+   */
+  --border-strong: #687694;
 
-  --color-accent: #0070d1;
-  --color-accent-hover: #2e8cef;
-  /* Rosa del botón ○ (Circle) de PlayStation, para distinguir "noob" de "Platino". */
-  --color-accent-2: #e6007a;
+  /* --- Acentos ---------------------------------------------------------- */
+  /*
+   * El azul PSN tiene DOS tokens porque tiene dos trabajos con umbrales de
+   * contraste opuestos, y confundirlos es el bug de accesibilidad clásico:
+   *
+   * - `--accent` es un RELLENO (botón primario, barra de progreso, chip
+   *   activo). Lo que tiene que contrastar es el texto blanco que va encima
+   *   (4.95:1 AA), no el token contra el fondo.
+   * - `--accent-ink` es el acento como TEXTO o ícono sobre una superficie
+   *   oscura (link, tab activa). Ahí el umbral es 4.5:1 contra la superficie,
+   *   y `--accent` solo llega a 3.06:1: no alcanza.
+   */
+  --accent: #0070d1;
+  /*
+   * El hover del relleno va más OSCURO, no más claro: aclarándolo, el blanco
+   * encima cae a 3.43:1 y falla. Es exactamente el bug que ya se había
+   * corregido una vez (ver ACCESSIBILITY.md, `Button` primary hover).
+   */
+  --accent-hover: #005cab;
+  /* El acento como texto/ícono sobre superficie oscura: 5.35:1 AA. */
+  --accent-ink: #4c9df2;
+  /*
+   * Rosa del botón ○ (Circle) de PlayStation, para distinguir "noob" de
+   * "Platino". Sólo para display grande y rellenos: como texto chico no llega
+   * a AA (3.35:1), y ese es su único uso hoy (el logo del header).
+   */
+  --accent-2: #e6007a;
 
-  --color-trophy-bronze: #cd7f32;
-  --color-trophy-silver: #c0c0c0;
-  --color-trophy-gold: #ffd700;
-  --color-trophy-platinum: #b9e1ff;
+  /* --- Semánticos ------------------------------------------------------- */
+  /* Logro obtenido, 100% de completitud, conexión sana. */
+  --success: #34d399;
+  /* Error, destructivo, token vencido. */
+  --danger: #f87171;
+  /* Requiere atención, pero no está roto. */
+  --warning: #fbbf24;
+
+  /* --- Trofeos ---------------------------------------------------------- */
+  --trophy-bronze: #cd7f32;
+  --trophy-silver: #c0c0c0;
+  --trophy-gold: #ffd700;
+  --trophy-platinum: #b9e1ff;
+  /*
+   * Steam no tiene tipos de logro (ver CLAUDE.md, sección de Steam): el valor
+   * `achievement` es "sin desglose", y va en un gris neutro a propósito, para
+   * que nadie lo lea como un quinto color de trofeo.
+   */
+  --trophy-neutral: #98a0b4;
+
+  /* --- Tipografía ------------------------------------------------------- */
+  /*
+   * Dos familias con roles distintos, que es la mitad de la identidad visual
+   * de la referencia:
+   *
+   * - Sans (Geist) para el CHROME: nav, botones, metadatos, números de stats,
+   *   versalitas. Todo lo que es interfaz.
+   * - Serif (Newsreader) para el CONTENIDO EDITORIAL: nombre del juego en la
+   *   ficha y cuerpo de las reseñas del diario. Es lo que hace que la app no
+   *   se lea como un dashboard.
+   *
+   * Newsreader y no una display pura (Instrument Serif) porque tiene que
+   * servir para las dos cosas: títulos grandes Y párrafos de reseña, con
+   * itálica y pesos reales. Una sola familia = una sola descarga. Cambiarla
+   * es una línea en `app/layout.tsx` más esta.
+   */
+  --font-ui: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-editorial: var(--font-newsreader), ui-serif, Georgia, serif;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-surface-hover: var(--surface-hover);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+
   --color-border: var(--border);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
+  --color-border-strong: var(--border-strong);
 
-  --color-accent: var(--color-accent);
-  --color-accent-hover: var(--color-accent-hover);
-  --color-accent-2: var(--color-accent-2);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-2: var(--accent-2);
 
-  --color-trophy-bronze: var(--color-trophy-bronze);
-  --color-trophy-silver: var(--color-trophy-silver);
-  --color-trophy-gold: var(--color-trophy-gold);
-  --color-trophy-platinum: var(--color-trophy-platinum);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
 
-  --font-sans: var(--font-geist-sans);
+  --color-trophy-bronze: var(--trophy-bronze);
+  --color-trophy-silver: var(--trophy-silver);
+  --color-trophy-gold: var(--trophy-gold);
+  --color-trophy-platinum: var(--trophy-platinum);
+  --color-trophy-neutral: var(--trophy-neutral);
+
+  /*
+   * Radios: tres, con un nombre que dice para qué sirven. Van como tokens
+   * nuevos (`rounded-chip` / `rounded-card`) y no pisando la escala de
+   * Tailwind, para que la migración pantalla por pantalla (fases 2-5 del
+   * issue #176) sea explícita y no un cambio invisible en 79 archivos.
+   *
+   * - chip: pills, badges, botones chicos.
+   * - card: tarjetas, carátulas, modales, inputs.
+   * - rounded-full: avatares y sólo avatares.
+   */
+  --radius-chip: 6px;
+  --radius-card: 10px;
+
+  --font-sans: var(--font-ui);
+  --font-serif: var(--font-editorial);
   --font-mono: var(--font-geist-mono);
+}
+
+/*
+ * Escala tipográfica con nombre semántico.
+ *
+ * El problema que resuelve: hoy hay 142 `text-sm` y 106 `text-xs` contra 3
+ * `text-3xl` -- o sea, no hay jerarquía, todo tiene la misma importancia. Cada
+ * nivel de acá tiene un uso, y se elige el nivel por el rol del texto, no
+ * combinando `text-sm font-semibold tracking-wide` de memoria en cada archivo.
+ *
+ * Van como `@utility` (Tailwind v4) y no como clases sueltas para que acepten
+ * variantes: `sm:type-title` funciona igual que cualquier otra utilidad.
+ */
+
+/** Nombre del juego en un hero. Serif, uno por pantalla. */
+@utility type-display {
+  font-family: var(--font-editorial);
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+
+/** Título de pantalla (`h1` de un listado) y títulos de tarjeta grandes. */
+@utility type-title {
+  font-family: var(--font-ui);
+  font-size: 1.375rem;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+/** Título de una fila, de un trofeo, de una entrada de diario. */
+@utility type-subtitle {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  font-weight: 600;
+}
+
+/** Cuerpo de interfaz: descripciones, ayudas, párrafos que no son reseña. */
+@utility type-body {
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+/** Cuerpo de una reseña del diario. Serif de lectura, medida cómoda. */
+@utility type-review {
+  font-family: var(--font-editorial);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+/** Metadatos de una fila: fecha, plataforma, horas, rareza. */
+@utility type-meta {
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+/** Pie de foto, nota al pie, el "puede tener errores" de la IA. */
+@utility type-caption {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/**
+ * Versalitas chicas y espaciadas: títulos de sección (`SectionHeader`),
+ * etiquetas de las tiras de stats, chips de plataforma. Es el patrón que
+ * ordena la pantalla sin competir con las carátulas.
+ */
+@utility type-overline {
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/**
+ * El número grande de una tira de stats. `tabular-nums` para que los dígitos
+ * no bailen cuando el valor cambia (ej. el contador de trofeos durante un sync).
+ */
+@utility type-stat {
+  font-family: var(--font-ui);
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /*
@@ -62,8 +273,16 @@ html {
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  /*
+   * Geist, que `app/layout.tsx` viene cargando desde siempre.
+   *
+   * Acá decía `Arial, Helvetica, sans-serif`, así que la app ENTERA se
+   * renderizaba en Arial mientras la fuente cargada no la usaba nadie: el
+   * tell más grande de "esto lo generó una IA" y el cambio de una línea con
+   * más impacto visual de todo el rediseño (issue #176 §2).
+   */
+  font-family: var(--font-ui);
   /*
    * `overflow-x: clip` (no `hidden`): recorta el desborde horizontal --
    * el backdrop de `GameHero` usa el truco de `w-screen` + `left-1/2`, que en

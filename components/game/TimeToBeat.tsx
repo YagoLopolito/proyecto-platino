@@ -1,4 +1,5 @@
 import { formatPlaytime } from "@/lib/playtime";
+import { Icon } from "@/components/ui/Icon";
 import type { GameCardData } from "@/lib/catalog/details";
 
 /**
@@ -41,7 +42,7 @@ export function TimeToBeat({
         {beat && <Estimate label="Pasarlo" value={beat} />}
         {complete && <Estimate label={hasPlatinum ? "Platino" : "Al 100%"} value={complete} />}
       </dl>
-      <p className="text-[10px] text-zinc-500">{sourceLabel(source)}</p>
+      <p className="flex items-center gap-1 text-[10px] text-zinc-500">{sourceLabel(source)}</p>
     </div>
   );
 }
@@ -60,8 +61,15 @@ function Estimate({ label, value }: { label: string; value: string }) {
  * (IGDB) y la estimación de un modelo no valen lo mismo, y el usuario tiene
  * que poder distinguirlas de un vistazo.
  */
-function sourceLabel(source: string | null): string {
-  if (source === "ai") return "✨ Tiempo estimado por IA: puede tener errores.";
+function sourceLabel(source: string | null) {
+  if (source === "ai") {
+    return (
+      <>
+        <Icon name="sparkle" className="h-3 w-3 shrink-0" />
+        Tiempo estimado por IA: puede tener errores.
+      </>
+    );
+  }
   return "Tiempo estimado por la comunidad (IGDB).";
 }
 

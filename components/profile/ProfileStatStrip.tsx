@@ -21,10 +21,8 @@ export function ProfileStatStrip({ stats }: { stats: ProfileStat[] }) {
     >
       {stats.map((stat) => (
         <div key={stat.label} className="bg-zinc-950 px-3 py-3">
-          <dd className="text-2xl font-semibold leading-none">{stat.value}</dd>
-          <dt className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-500">
-            {stat.label}
-          </dt>
+          <dd className="type-stat">{stat.value}</dd>
+          <dt className="type-overline mt-1 text-zinc-500">{stat.label}</dt>
           {stat.progressPercent != null && (
             <ProgressBar percent={stat.progressPercent} className="mt-2 h-1" />
           )}

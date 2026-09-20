@@ -16,10 +16,10 @@ export function StatCard({
   return (
     <div className={`space-y-2 rounded-lg border border-zinc-800 bg-zinc-950 p-4 ${className}`}>
       <div className="flex items-center justify-between">
-        <span className="text-sm text-zinc-400">{label}</span>
+        <span className="type-meta text-zinc-400">{label}</span>
         {icon}
       </div>
-      <p className="text-2xl font-semibold">{value}</p>
+      <p className="type-stat">{value}</p>
       {children}
     </div>
   );

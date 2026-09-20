@@ -48,7 +48,7 @@ export default function MobileTabBar() {
                 aria-current={active ? "page" : undefined}
                 // min-h-14: por debajo de ~44px un target táctil se falla seguido.
                 className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] ${
-                  active ? "text-accent" : "text-zinc-400"
+                  active ? "text-accent-ink" : "text-zinc-400"
                 }`}
               >
                 <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
