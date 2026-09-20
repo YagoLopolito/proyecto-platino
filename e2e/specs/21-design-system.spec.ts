@@ -3,7 +3,7 @@ import { seedGameWithTrophies } from "../helpers/seed";
 
 /**
  * Sistema de diseño: tokens, escala tipográfica y set de íconos.
- * Casos DS-01..DS-05 de TESTING_PRD.md §6.18 (fase 1 del issue #176).
+ * Casos DS-01..DS-07 de TESTING_PRD.md §6.18 (fases 1 y 2 del issue #176).
  *
  * Por qué se testea algo "visual": lo que se verifica acá no es cómo se ve,
  * sino que las piezas del sistema **existan y se apliquen de verdad**. Los dos
@@ -173,5 +173,71 @@ test.describe("Sistema de diseño", () => {
     // lee en voz alta ("destellos") en medio de la frase.
     const icon = page.getByTestId("time-to-beat").locator('[data-icon="sparkle"]');
     await expect(icon).toHaveAttribute("aria-hidden", "true");
+  });
+
+  test("DS-06: las primitivas pintan con los tokens y no con un color literal", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+
+    // Lo que este test agarra es el modo de falla de la fase 2: los tokens
+    // existen (DS-02 lo verifica) pero el componente los ignora y sigue con
+    // `bg-blue-600`. Desde el diff se ven las dos cosas igual de bien; desde
+    // el estilo computado, no.
+    const submit = page.getByRole("button", { name: /ingresar/i });
+    await expect(submit).toBeVisible();
+
+    const colors = await submit.evaluate((el) => {
+      const root = getComputedStyle(document.documentElement);
+      // `color-mix`/hex del token vs. rgb() del computado: se normaliza
+      // pintando el token en un elemento suelto y leyendo lo que resuelve.
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = root.getPropertyValue("--accent").trim();
+      document.body.appendChild(probe);
+      const accent = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return { button: getComputedStyle(el).backgroundColor, accent };
+    });
+
+    expect(colors.button).toBe(colors.accent);
+  });
+
+  test("DS-07: el badge de platino del póster es un ícono del set, no un emoji", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId, trophyIds } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 4,
+      nameSuffix: "Diseno Poster Platino",
+      np: 2103,
+    });
+
+    // Los 4 trofeos, incluido el platino (el seed cicla bronce/plata/oro/
+    // platino, así que el índice 3 es el platino).
+    await supabase.from("user_trophies").upsert(
+      trophyIds.map((trophyId) => ({
+        user_id: users.userA.id,
+        trophy_id: trophyId,
+        unlocked_at: new Date().toISOString(),
+      })),
+      { onConflict: "user_id,trophy_id" },
+    );
+
+    await page.goto(`/juegos?q=Diseno Poster Platino`);
+
+    const card = page
+      .getByTestId("game-card")
+      .filter({ has: page.locator(`a[href$="${gameId}"]`) });
+    await expect(card).toHaveCount(1);
+
+    // El 🏆 que había acá se dibujaba distinto en cada sistema operativo y
+    // traía su propio color, así que no seguía al tema (issue #176 §3.3).
+    await expect(card.locator('[data-icon="trophy"]')).toBeVisible();
+    await expect(card).not.toContainText("🏆");
+
+    // El ícono ES la información -- no hay texto al lado que diga "Platino" --
+    // así que acá sí se anuncia, al revés que el caso DS-05.
+    await expect(card.getByRole("img", { name: "Platino" })).toBeVisible();
   });
 });

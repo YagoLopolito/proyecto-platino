@@ -27,7 +27,7 @@ export function SegmentedControl<T extends string>({
     <div
       role="group"
       aria-label={label}
-      className={`inline-flex items-center rounded-lg border border-zinc-800 bg-zinc-950 p-0.5 ${className}`}
+      className={`inline-flex items-center rounded-card border border-border-strong bg-surface p-0.5 ${className}`}
     >
       {options.map((option) => {
         const active = option.value === value;
@@ -37,10 +37,13 @@ export function SegmentedControl<T extends string>({
             type="button"
             onClick={() => onChange(option.value)}
             aria-pressed={active}
-            className={`flex min-h-10 flex-1 items-center justify-center whitespace-nowrap rounded-md px-3 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:min-h-9 ${
+            className={`flex min-h-10 flex-1 items-center justify-center whitespace-nowrap rounded-chip px-3 type-caption font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 sm:min-h-9 ${
               active
-                ? "bg-accent/15 text-accent shadow-[inset_0_0_0_1px_var(--color-accent)]"
-                : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
+                ? // El marco interno del activo va con `accent-ink`: es un
+                  // borde de control y le toca 3:1 (WCAG 1.4.11), que el
+                  // acento de relleno no alcanza sobre superficie oscura.
+                  "bg-accent/15 text-accent-ink shadow-[inset_0_0_0_1px_var(--color-accent-ink)]"
+                : "text-ink-muted hover:bg-surface-hover hover:text-ink"
             }`}
           >
             {option.label}

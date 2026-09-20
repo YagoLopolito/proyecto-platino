@@ -1,12 +1,21 @@
 export type SyncTokenStatus = "valid" | "expired" | "invalid";
 
+/**
+ * Estado de la conexión con una plataforma, como chip de color semántico.
+ *
+ * Los tres estados usan los tokens semánticos y no un verde/ámbar/rojo suelto:
+ * "expirado" es `warning` porque el usuario lo arregla reconectando, y "falló"
+ * es `danger` porque no hay dato. La diferencia no se apoya sólo en el color
+ * -- cada chip lleva su texto al lado -- para no depender de distinguir
+ * matices (WCAG 1.4.1).
+ */
 const STATUS_CONFIG: Record<SyncTokenStatus, { label: string; className: string }> = {
-  valid: { label: "Sincronizado", className: "border-green-600 bg-green-500/10 text-green-400" },
+  valid: { label: "Sincronizado", className: "border-success/60 bg-success/10 text-success" },
   expired: {
     label: "Token expirado",
-    className: "border-amber-600 bg-amber-500/10 text-amber-400",
+    className: "border-warning/60 bg-warning/10 text-warning",
   },
-  invalid: { label: "Falló la sync", className: "border-red-600 bg-red-500/10 text-red-400" },
+  invalid: { label: "Falló la sync", className: "border-danger/60 bg-danger/10 text-danger" },
 };
 
 export function SyncStatusBadge({
@@ -19,7 +28,7 @@ export function SyncStatusBadge({
   const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.invalid;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${config.className} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-chip border px-2 py-0.5 type-caption font-medium ${config.className} ${className}`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
       {config.label}

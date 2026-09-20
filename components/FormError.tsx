@@ -7,7 +7,7 @@ export function FormError({
 }) {
   if (!children) return null;
   return (
-    <p role="alert" className={`text-sm text-red-400 ${className}`}>
+    <p role="alert" className={`type-meta text-danger ${className}`}>
       {children}
     </p>
   );
@@ -22,7 +22,7 @@ export function FormSuccess({
 }) {
   if (!children) return null;
   return (
-    <p role="status" className={`text-sm text-green-400 ${className}`}>
+    <p role="status" className={`type-meta text-success ${className}`}>
       {children}
     </p>
   );

@@ -136,11 +136,38 @@ rellenos**. Su único uso hoy es el "oob" del logo del header, que califica.
 `--border` es deliberadamente sutil: es un hairline que separa, no un borde
 que delimite un control. Lo que tiene que verse es `--border-strong`.
 
+## Primitivas migradas (fase 2 del issue #176)
+
+La fase 1 auditó cada token contra las cuatro superficies. La fase 2 introduce
+**combinaciones** nuevas -- texto de un token sobre un fondo del mismo token
+en baja opacidad -- que hay que medir aparte: el `/10` aclara la superficie y
+baja el ratio respecto del que figura arriba. Peor caso sobre las cuatro
+superficies:
+
+| Combinación | Dónde | Peor ratio | Umbral |
+|---|---|---|---|
+| `text-success` sobre `bg-success/10` | `CompletionBadge`, `SyncStatusBadge` (válido) | 6.49:1 | 4.5 |
+| `text-warning` sobre `bg-warning/10` | `SyncStatusBadge` (expirado) | 7.38:1 | 4.5 |
+| `text-danger` sobre `bg-danger/10` | `SyncStatusBadge` (falló) | 4.74:1 | 4.5 |
+| `text-trophy-platinum` sobre `bg-trophy-platinum/10` | `PlatinumBadge` | 8.49:1 | 4.5 |
+| `text-accent-ink` sobre `bg-accent/15` | activo de `ToggleChip` y `SegmentedControl` | 4.67:1 | 4.5 |
+| `border-accent-ink` sobre superficie | borde del activo, marco interno del segmentado | 5.35:1 | 3 (1.4.11) |
+| `border-border-strong` sobre superficie | `Input`, `Select`, `SearchField`, `Button` secundario | 3.33:1 | 3 (1.4.11) |
+
+El `/15` del relleno activo está en el límite y **no se sube**: a `/20` el
+texto cae a 4.41:1 y falla. Si algún día hay que hacerlo más visible, el
+camino es el borde, no el relleno.
+
+Los bordes `/60` de los badges quedan entre 2.81:1 (`danger`) y 4.92:1
+(`trophy-platinum`), o sea por debajo de 3:1 en un caso. **No es un fallo de
+1.4.11**: un badge no es un control, el borde no delimita nada operable y el
+texto adentro del chip dice el estado con palabras. Los tres estados de
+`SyncStatusBadge` se distinguen por texto además de por color, así que
+tampoco dependen de 1.4.1.
+
 ### Pendiente
 
-- La migración de las pantallas (fases 2-5) tiene que ir reemplazando los
+- La migración de las pantallas (fases 3-5) tiene que ir reemplazando los
   `zinc-*` por estos tokens, no sumándolos. Mientras convivan las dos paletas,
   los ratios de arriba valen para lo migrado y los de la auditoría vieja para
   lo que falta.
-- `PlatinumBadge` sigue con el hex hardcodeado `#B9D3E8` en vez de
-  `--trophy-platinum`; se unifica cuando le toque su fase.

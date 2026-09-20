@@ -2,6 +2,8 @@
 
 import { useId } from "react";
 
+import { Icon } from "@/components/ui/Icon";
+
 /**
  * Campo de búsqueda de la app: lupa adentro, botón de limpiar cuando hay
  * texto, y el mismo alto de toque (44px) que el resto de los controles.
@@ -30,18 +32,10 @@ export function SearchField({
 
   return (
     <div className={`relative ${className}`}>
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
-        aria-hidden="true"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" />
-      </svg>
+      <Icon
+        name="search"
+        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
+      />
 
       <input
         id={id}
@@ -52,7 +46,7 @@ export function SearchField({
         aria-label={label}
         // `[&::-webkit-search-cancel-button]:hidden`: Safari/Chrome dibujan su
         // propia ✕ encima de la nuestra, con otro estilo y sin área de toque.
-        className="min-h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 pl-9 pr-9 text-sm text-zinc-100 transition-colors placeholder:text-zinc-600 hover:border-zinc-700 focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 [&::-webkit-search-cancel-button]:hidden"
+        className="min-h-11 w-full rounded-card border border-border-strong bg-surface pl-9 pr-9 type-meta text-ink transition-colors placeholder:text-ink-faint hover:border-ink-faint focus:border-accent-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 [&::-webkit-search-cancel-button]:hidden"
       />
 
       {value !== "" && (
@@ -60,19 +54,9 @@ export function SearchField({
           type="button"
           onClick={() => onChange("")}
           aria-label="Limpiar búsqueda"
-          className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-surface-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            className="h-4 w-4"
-            aria-hidden="true"
-          >
-            <path d="M6 6l12 12M18 6 6 18" />
-          </svg>
+          <Icon name="close" className="h-4 w-4" />
         </button>
       )}
     </div>

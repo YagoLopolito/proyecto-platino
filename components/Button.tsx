@@ -2,15 +2,25 @@ import type { ButtonHTMLAttributes } from "react";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
+/*
+ * Todo color sale de un token de `app/globals.css` (issue #176 §3.1): no hay
+ * `blue-600` ni `zinc-500` acá. Los nombres de token ya llevan el rol, así que
+ * las razones de accesibilidad que antes estaban en cada clase viven ahora en
+ * la definición del token:
+ *
+ * - `accent` es el relleno y `accent-hover` va más OSCURO, no más claro, para
+ *   que el texto blanco de encima no caiga por debajo de 4.5:1.
+ * - `border-strong` (y no `border`) porque el borde de un control interactivo
+ *   tiene que llegar a 3:1 contra el fondo (WCAG 1.4.11); `border` es el
+ *   hairline de separación, que se intuye y no se lee.
+ * - el anillo de foco usa `accent-ink`, que es el acento pensado para verse
+ *   sobre superficie oscura.
+ */
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  // hover:bg-blue-700 (no blue-500) porque blue-500 con texto blanco encima
-  // no llega a 4.5:1 de contraste (WCAG AA para texto normal).
-  primary: "bg-blue-600 text-white hover:bg-blue-700",
-  // border-zinc-500 (no zinc-700) porque zinc-700 no llega a 3:1 contra el
-  // fondo, el mínimo WCAG para el borde de un control interactivo.
-  secondary: "border border-zinc-500 text-zinc-400 hover:border-zinc-400 hover:text-zinc-200",
-  danger: "border border-zinc-500 text-zinc-400 hover:border-red-500 hover:text-red-400",
-  ghost: "text-zinc-400 hover:text-blue-400",
+  primary: "bg-accent text-white hover:bg-accent-hover",
+  secondary: "border border-border-strong text-ink-muted hover:border-ink-muted hover:text-ink",
+  danger: "border border-border-strong text-ink-muted hover:border-danger hover:text-danger",
+  ghost: "text-ink-muted hover:text-accent-ink",
 };
 
 export function Button({
@@ -22,7 +32,7 @@ export function Button({
   return (
     <button
       disabled={disabled}
-      className={`inline-flex min-h-11 items-center justify-center rounded px-3 py-1.5 text-sm font-medium transition-colors sm:min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-chip px-3 py-1.5 type-meta font-medium transition-colors sm:min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${className}`}
       {...props}
     />
   );

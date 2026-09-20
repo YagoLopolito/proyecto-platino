@@ -169,7 +169,6 @@ export default function ScreenshotGallery({
                   maxLength={MAX_CAPTION_LENGTH}
                   placeholder="Texto (opcional)"
                   aria-label="Texto de la captura"
-                  className="text-sm"
                 />
                 <div className="flex gap-2">
                   <Button type="button" onClick={saveCaption} disabled={busy} className="flex-1">

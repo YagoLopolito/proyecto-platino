@@ -34,9 +34,7 @@ export default function AddDiaryEntryForm({ gameId }: { gameId: string }) {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label htmlFor="finishedOn" className="text-xs">
-            Fecha
-          </Label>
+          <Label htmlFor="finishedOn">Fecha</Label>
           <Input
             id="finishedOn"
             name="finishedOn"
@@ -44,22 +42,17 @@ export default function AddDiaryEntryForm({ gameId }: { gameId: string }) {
             required
             defaultValue={todayLocalDate()}
             max={todayLocalDate()}
-            className="text-sm"
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="rating" className="text-xs">
-            Rating (opcional)
-          </Label>
+          <Label htmlFor="rating">Rating (opcional)</Label>
           <StarRatingInput key={state.success ?? ""} id="rating" />
         </div>
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor="review" className="text-xs">
-          Reseña (opcional)
-        </Label>
-        <Textarea id="review" name="review" rows={3} className="text-sm" maxLength={2000} />
+        <Label htmlFor="review">Reseña (opcional)</Label>
+        <Textarea id="review" name="review" rows={3} maxLength={2000} />
       </div>
 
       <FormError>{state.error}</FormError>

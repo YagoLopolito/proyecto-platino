@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GameArt } from "@/components/game/GameArt";
+import { Icon } from "@/components/ui/Icon";
 import type { ReactNode } from "react";
 
 export type PosterProgress = {
@@ -54,7 +55,7 @@ export function GamePoster({
 
   return (
     <Link href={href} className="group block" title={name}>
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md border border-zinc-800 bg-zinc-900 transition group-hover:border-zinc-500 group-focus-visible:border-blue-500">
+      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-card border border-border bg-surface transition group-hover:border-border-strong group-focus-visible:border-accent-ink">
         {imageUrl ? (
           <GameArt
             src={imageUrl}
@@ -69,12 +70,21 @@ export function GamePoster({
         )}
 
         {(isPlatinum || isCompleted) && (
+          // El 🏆/💯 que había acá era el ejemplo de manual del problema del
+          // emoji (issue #176 §3.3): se dibujaba distinto en cada sistema
+          // operativo, traía su propio color y quedaba como una calcomanía
+          // pegada sobre la carátula. Ahora es un ícono del set, con el color
+          // canónico de cada cosa: el celeste del trofeo platino, el verde de
+          // `success` para el 100%.
           <span
-            className="absolute right-1 top-1 rounded-full bg-zinc-950/80 px-1.5 py-0.5 text-[10px] leading-none backdrop-blur-sm"
+            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm"
             title={isPlatinum ? "Platino" : "100% de logros"}
           >
-            <span aria-hidden="true">{isPlatinum ? "🏆" : "💯"}</span>
-            <span className="sr-only">{isPlatinum ? "Platino" : "100% de logros"}</span>
+            <Icon
+              name={isPlatinum ? "trophy" : "completed"}
+              className={`h-3 w-3 ${isPlatinum ? "text-trophy-platinum" : "text-success"}`}
+              label={isPlatinum ? "Platino" : "100% de logros"}
+            />
           </span>
         )}
 
@@ -82,22 +92,20 @@ export function GamePoster({
 
         {hasProgress && (
           <div
-            className="absolute inset-x-0 bottom-0 h-[3px] bg-zinc-950/70"
+            className="absolute inset-x-0 bottom-0 h-[3px] bg-background/70"
             role="img"
             aria-label={`${progress.percent}% completado, ${progress.obtained} de ${progress.total}`}
           >
             <div
-              className={`h-full ${isPlatinum || isCompleted ? "bg-[var(--color-trophy-gold)]" : "bg-accent"}`}
+              className={`h-full ${isPlatinum || isCompleted ? "bg-trophy-gold" : "bg-accent"}`}
               style={{ width: `${Math.min(100, Math.max(0, progress.percent))}%` }}
             />
           </div>
         )}
       </div>
 
-      {showName && (
-        <p className="mt-1.5 line-clamp-2 text-[11px] leading-tight text-zinc-300">{name}</p>
-      )}
-      {caption && <div className="mt-1 text-[11px] text-zinc-500">{caption}</div>}
+      {showName && <p className="mt-1.5 line-clamp-2 type-caption text-ink">{name}</p>}
+      {caption && <div className="mt-1 type-caption text-ink-muted">{caption}</div>}
     </Link>
   );
 }
@@ -112,14 +120,11 @@ function PosterPlaceholder({ name, showName }: { name: string; showName: boolean
   // el nombre hace de portada: en una grilla de pósters es lo único que la
   // distingue.
   return showName ? (
-    <span
-      className="flex h-full w-full items-center justify-center text-2xl text-zinc-700"
-      aria-hidden="true"
-    >
-      🎮
+    <span className="flex h-full w-full items-center justify-center text-border-strong">
+      <Icon name="gamepad" className="h-8 w-8" />
     </span>
   ) : (
-    <span className="flex h-full w-full items-center justify-center p-2 text-center text-[11px] leading-tight text-zinc-500">
+    <span className="flex h-full w-full items-center justify-center p-2 text-center type-caption text-ink-muted">
       {name}
     </span>
   );

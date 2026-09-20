@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
+import { Icon } from "@/components/ui/Icon";
+
 /**
  * Modal simple con overlay: cierra con Escape, con la ✕ o clickeando el fondo,
  * y bloquea el scroll del body mientras está abierto. El que lo usa maneja el
@@ -75,23 +77,25 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 my-auto w-full max-w-lg rounded-lg border border-zinc-800 bg-zinc-950 p-4 sm:p-6"
+        // `surface-raised`: el modal flota sobre la tarjeta desde la que se
+        // abrió y tiene que leerse un escalón más arriba, no al mismo nivel.
+        className="relative z-10 my-auto w-full max-w-lg rounded-card border border-border bg-surface-raised p-4 sm:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h2 id={titleId} className="text-lg font-semibold text-zinc-50">
+            <h2 id={titleId} className="type-title">
               {title}
             </h2>
-            {description && <p className="text-sm text-zinc-400">{description}</p>}
+            {description && <p className="type-body text-ink-muted">{description}</p>}
           </div>
           <button
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="shrink-0 rounded px-2 py-1 text-sm text-zinc-400 hover:text-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-chip text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink sm:h-9 sm:w-9"
           >
-            ✕
+            <Icon name="close" className="h-4 w-4" />
           </button>
         </div>
 

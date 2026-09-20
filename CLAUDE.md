@@ -287,6 +287,32 @@ para que no baile al actualizarse).
 Ojo con un detalle de Tailwind: **una `@utility` que nadie usa no se compila**. Si una clase
 `type-*` está en el HTML pero no aplica nada, lo más probable es un typo en el nombre.
 
+### Primitivas migradas — fase 2 del remake (issue #176)
+
+Las piezas compartidas (`components/Button.tsx`, `Input.tsx`, `StatCard.tsx`,
+`ProgressBar.tsx`, `Modal.tsx`, los tres badges, `components/ui/*` y
+`components/game/GamePoster.tsx`) ya no usan ningún color literal: son la referencia de cómo
+se ve un componente migrado. Las pantallas que todavía no pasaron (fases 3-5) siguen con
+`zinc-*` y se migran en su fase.
+
+Reglas que salieron de esta pasada:
+
+- **Los tamaños de texto también son un token.** Cada primitiva declara su nivel `type-*` y
+  quien la usa **no lo pisa** con un `text-sm`/`text-xs` en el `className`. Esos overrides
+  existían sólo porque las primitivas no tenían escala propia, y se borraron de los seis
+  llamadores que los tenían. No es cosmético: `text-sm` y `type-body` son dos utilidades que
+  fijan `font-size`, y cuál gana depende del orden en que Tailwind las emite, no del orden en
+  que están escritas en el string.
+- **`accent` vs `accent-ink` en los estados activos.** El activo de `SegmentedControl` y de
+  `ToggleChip` lleva relleno `accent/15` pero texto y borde `accent-ink`: el acento de relleno
+  sólo llega a 3.06:1 sobre superficie oscura, y ahí es tinta y borde de control, no relleno.
+  Es el mismo error que ya se había corregido una vez en `Button`.
+- **`surface` es el fondo de un campo o control, `surface-raised` el de lo que flota.** `Modal`
+  va en `surface-raised` (está por encima de la tarjeta desde la que se abrió); `SearchField`,
+  `Select` y `SegmentedControl` van en `surface`.
+- **`border-strong` para todo lo interactivo, `border` sólo para separar.** El hairline `border`
+  no llega a los 3:1 de WCAG 1.4.11 y no puede ser el borde de un input ni de un botón.
+
 ### Iconografía: sin emojis
 
 `components/ui/Icon.tsx` es el set propio (viewBox 24×24, `currentColor`, `fill-rule: evenodd`).
@@ -294,6 +320,14 @@ Un emoji se dibuja distinto en cada sistema operativo, viene con su propio color
 del tema: queda como una calcomanía pegada encima del diseño, y es el tell más fuerte de "esto
 lo generó una IA". Sin `label` el ícono es decorativo y va `aria-hidden`; con `label` se
 anuncia como imagen, sólo cuando el ícono **es** la información.
+
+El set tiene dos mitades con convenciones distintas: los íconos de **contenido** (trofeo, 100%,
+IA, objetivo, reloj, plataformas) son sólidos, que es lo que los hace legibles como marca
+sobre una carátula; los de **chrome** (lupa, ✕, chevron, filtros, tilde) son de trazo, porque
+a 14-16px un contorno de 2px se lee mejor que una silueta rellena. La lista `STROKE_ICONS` de
+`Icon.tsx` decide cuál es cuál; antes esos cinco estaban copiados a mano en `Modal`,
+`SearchField`, `Select`, `ToggleChip` y `MobileDisclosure`, con tres grosores de chevron
+distintos.
 
 Los íconos de trofeo **por tipo** no están en ese set: siguen en `components/TrophyTypeIcon.tsx`,
 porque lo que los distingue es el color canónico de cada tipo y no la forma. Las plataformas van
@@ -789,11 +823,13 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     fuente en la biblioteca, stats por plataforma, cron compartido, diario al 100% y Steam
     OpenID. Ver la sección de Steam más arriba y `PRODUCT_SPEC.md` sección 12.
 11. Remake visual (issue #176): sistema de diseño propio con Letterboxd como referencia, para
-    que la app deje de parecer generada por IA. 🔄 **Fase 1 (fundaciones) completa**: tokens
-    con rol explícito, escala tipográfica `type-*`, la segunda familia serif, el set de íconos
-    y la auditoría de contraste de la paleta nueva. Faltan las fases 2-6 (primitivas,
-    biblioteca y ficha, diario, perfil/configuración/chrome, barrido final con el lint que
-    prohíbe los colores literales). Ver el issue para el detalle por pantalla.
+    que la app deje de parecer generada por IA. 🔄 **Fases 1 y 2 completas**: fundaciones
+    (tokens con rol explícito, escala tipográfica `type-*`, la segunda familia serif, el set
+    de íconos y la auditoría de contraste) y primitivas (`Button`, `Input`, `StatCard`,
+    `ProgressBar`, `Modal`, los badges, `components/ui/*` y `GamePoster`, más los emojis
+    🏆/💯/🎮 reemplazados por íconos del set). Faltan las fases 3-6 (biblioteca y ficha,
+    diario, perfil/configuración/chrome, barrido final con el lint que prohíbe los colores
+    literales). Ver el issue para el detalle por pantalla.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

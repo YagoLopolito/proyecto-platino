@@ -2,6 +2,8 @@
 
 import { useId, useState, type ReactNode } from "react";
 
+import { Icon } from "@/components/ui/Icon";
+
 /**
  * Controles que en mobile viven plegados detrás de un botón y en escritorio se
  * muestran siempre.
@@ -45,41 +47,23 @@ export function MobileDisclosure({
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls={bodyId}
-        className={`flex min-h-11 items-center gap-2 rounded-lg border bg-zinc-950 px-3 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:hidden ${
-          open ? "w-full border-zinc-700" : "border-zinc-800"
+        className={`flex min-h-11 items-center gap-2 rounded-card border bg-surface px-3 type-caption font-medium text-ink transition-colors hover:border-ink-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 sm:hidden ${
+          open ? "w-full border-ink-faint" : "border-border-strong"
         }`}
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          className="h-4 w-4 text-zinc-400"
-          aria-hidden="true"
-        >
-          <path d="M4 6h16M7 12h10M10 18h4" />
-        </svg>
+        <Icon name="filters" className="h-4 w-4 text-ink-muted" />
         {label}
         {activeCount > 0 && (
           <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-white">
             {activeCount}
           </span>
         )}
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`ml-auto h-3.5 w-3.5 text-zinc-500 transition-transform ${
+        <Icon
+          name="chevron-down"
+          className={`ml-auto h-3.5 w-3.5 text-ink-faint transition-transform ${
             open ? "rotate-180" : ""
           }`}
-          aria-hidden="true"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        />
       </button>
 
       <div
