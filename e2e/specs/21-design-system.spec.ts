@@ -345,7 +345,13 @@ test.describe("Sistema de diseño", () => {
 
     await page.goto(`/juegos/${gameId}`);
 
-    const chip = page.getByText("Ultra rara").first();
+    // Acotado a la fila del trofeo: suelto, `getByText("Ultra rara")` pegaba
+    // primero en el `<option>` del filtro de rareza, que está en el DOM pero
+    // oculto dentro del `<select>` cerrado.
+    const chip = page
+      .getByRole("listitem")
+      .filter({ hasText: "Diseno Rareza - Trofeo 1" })
+      .getByText("Ultra rara");
     await expect(chip).toBeVisible();
 
     const colors = await chip.evaluate((el) => {
