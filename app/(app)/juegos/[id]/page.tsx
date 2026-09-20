@@ -17,6 +17,7 @@ import { getGameCardData, GAME_CARD_COLUMNS } from "@/lib/catalog/details";
 import { GameDetailHero } from "@/components/game/GameDetailHero";
 import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
 import { formatPlaytime } from "@/lib/playtime";
+import { Icon } from "@/components/ui/Icon";
 
 /**
  * El botón "Generar plan" invoca generateAiPlan (ai-actions.ts), que llama a
@@ -26,6 +27,14 @@ import { formatPlaytime } from "@/lib/playtime";
  * https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#maxduration).
  */
 export const maxDuration = 60;
+
+/** Pill de sección de la barra pegajosa de la ficha. */
+const SECTION_LINK =
+  "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-chip border border-border-strong px-3 type-meta font-medium text-ink-muted transition-colors hover:border-ink-faint hover:text-ink sm:min-h-9";
+
+/** La misma pill, en acento: sólo para la acción destacada de la pantalla. */
+const SECTION_LINK_ACCENT =
+  "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-chip border border-accent-ink bg-accent/15 px-3 type-meta font-medium text-accent-ink transition-colors hover:bg-accent/25 sm:min-h-9";
 
 export default async function GameDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: gameId } = await params;
@@ -157,39 +166,37 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
   }));
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 text-zinc-50">
-      <div className="sticky top-0 z-20 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
+    <div className="flex flex-1 flex-col bg-background text-ink">
+      <div className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         {/*
          * Igual que el header de la app: en mobile el nombre del juego va en su
          * propia fila y la nav de secciones queda a lo ancho, scrolleable
          * horizontalmente (las pills no entran en 375px sin desbordar la página).
          */}
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-1.5 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <p className="truncate text-sm text-zinc-400">{card.name}</p>
-          <nav className="-mx-4 flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 text-sm sm:mx-0 sm:overflow-visible sm:px-0">
-            <a
-              href="#trofeos"
-              className="inline-flex min-h-11 items-center whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500 sm:min-h-0"
-            >
-              🏆 Trofeos
+          <p className="truncate type-meta text-ink-muted">{card.name}</p>
+          {/* Las cuatro secciones de la ficha. Los emojis que las
+              encabezaban (🏆 ✨ 🔗 📔) eran el caso de manual del issue
+              #176 §3.3: cada sistema operativo los dibujaba distinto y
+              ninguno tomaba el color del tema. Ahora son íconos del set, y
+              la única pill de acento es la del advisor, que es la acción
+              destacada de la pantalla. */}
+          <nav className="-mx-4 flex shrink-0 items-center gap-1.5 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+            <a href="#trofeos" className={SECTION_LINK}>
+              <Icon name="trophy" className="h-3.5 w-3.5" />
+              {isSteam ? "Logros" : "Trofeos"}
             </a>
-            <a
-              href="#advisor"
-              className="inline-flex min-h-11 items-center whitespace-nowrap rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-blue-300 hover:border-blue-500 sm:min-h-0"
-            >
-              ✨ Advisor IA
+            <a href="#advisor" className={SECTION_LINK_ACCENT}>
+              <Icon name="sparkle" className="h-3.5 w-3.5" />
+              Advisor IA
             </a>
-            <Link
-              href={`/juegos/${gameId}/enlaces`}
-              className="inline-flex min-h-11 items-center whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500 sm:min-h-0"
-            >
-              🔗 Enlaces
+            <Link href={`/juegos/${gameId}/enlaces`} className={SECTION_LINK}>
+              <Icon name="link" className="h-3.5 w-3.5" />
+              Enlaces
             </Link>
-            <a
-              href="#diario"
-              className="inline-flex min-h-11 items-center whitespace-nowrap rounded border border-zinc-700 px-3 py-1.5 text-zinc-300 hover:border-zinc-500 sm:min-h-0"
-            >
-              📔 Diario
+            <a href="#diario" className={SECTION_LINK}>
+              <Icon name="book" className="h-3.5 w-3.5" />
+              Diario
             </a>
           </nav>
         </div>
@@ -230,7 +237,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
             title={
               <>
                 {isSteam ? "Logros" : "Trofeos"}{" "}
-                {total > 0 && <span className="text-zinc-600">{total}</span>}
+                {total > 0 && <span className="text-ink-faint">{total}</span>}
               </>
             }
           />

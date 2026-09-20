@@ -97,6 +97,21 @@
    */
   --trophy-neutral: #98a0b4;
 
+  /* --- Rareza de trofeo ------------------------------------------------- */
+  /*
+   * Los cuatro escalones que devuelve psn-api (0=ultra rara .. 3=común). Son
+   * tokens propios y no los de trofeo: la rareza es ortogonal al tipo (hay
+   * bronces ultra raros y platinos comunes), y pintarla con el oro/plata del
+   * tipo haría que las dos escalas se lean como una sola.
+   *
+   * "Común" no tiene token: va con `ink-muted`, que es justamente el nivel de
+   * "esto es un metadato más". Un cuarto color para decir "nada especial"
+   * sería ruido.
+   */
+  --rarity-ultra: #e879f9;
+  --rarity-very: #fb7185;
+  --rarity-rare: #60c4f5;
+
   /* --- Tipografía ------------------------------------------------------- */
   /*
    * Dos familias con roles distintos, que es la mitad de la identidad visual
@@ -144,6 +159,10 @@
   --color-trophy-gold: var(--trophy-gold);
   --color-trophy-platinum: var(--trophy-platinum);
   --color-trophy-neutral: var(--trophy-neutral);
+
+  --color-rarity-ultra: var(--rarity-ultra);
+  --color-rarity-very: var(--rarity-very);
+  --color-rarity-rare: var(--rarity-rare);
 
   /*
    * Radios: tres, con un nombre que dice para qué sirven. Van como tokens

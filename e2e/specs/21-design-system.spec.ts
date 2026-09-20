@@ -3,7 +3,7 @@ import { seedGameWithTrophies } from "../helpers/seed";
 
 /**
  * Sistema de diseño: tokens, escala tipográfica y set de íconos.
- * Casos DS-01..DS-07 de TESTING_PRD.md §6.18 (fases 1 y 2 del issue #176).
+ * Casos DS-01..DS-11 de TESTING_PRD.md §6.18 (fases 1 a 3 del issue #176).
  *
  * Por qué se testea algo "visual": lo que se verifica acá no es cómo se ve,
  * sino que las piezas del sistema **existan y se apliquen de verdad**. Los dos
@@ -239,5 +239,133 @@ test.describe("Sistema de diseño", () => {
     // El ícono ES la información -- no hay texto al lado que diga "Platino" --
     // así que acá sí se anuncia, al revés que el caso DS-05.
     await expect(card.getByRole("img", { name: "Platino" })).toBeVisible();
+  });
+
+  test("DS-08: el nombre del juego en la ficha se renderiza en la serif editorial", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Diseno Serif Hero",
+      np: 2104,
+    });
+
+    await page.goto(`/juegos/${gameId}`);
+
+    // El contraste serif/sans es la mitad de la identidad de la referencia
+    // (issue #176 §3.2), y el nombre del juego es el único texto editorial de
+    // esta pantalla. Con las clases del JSX esto no se ve: `type-display`
+    // puede estar puesta y no compilar, y el título cae a la sans heredada.
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toBeVisible();
+
+    const fonts = await heading.evaluate((el) => ({
+      name: getComputedStyle(el.querySelector("span")!).fontFamily,
+      meta: getComputedStyle(document.body).fontFamily,
+    }));
+    expect(fonts.name).toMatch(SERIF);
+    // Y el resto de la app sigue en la sans: si las dos resolvieran a lo
+    // mismo, el contraste que justifica cargar dos familias no existe.
+    expect(fonts.meta).toMatch(SANS);
+  });
+
+  test("DS-09: la nav de secciones de la ficha usa íconos del set, no emojis", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Diseno Nav Ficha",
+      np: 2105,
+    });
+
+    await page.goto(`/juegos/${gameId}`);
+
+    const nav = page.getByRole("link", { name: /Enlaces/ }).locator("xpath=..");
+    for (const icon of ["trophy", "sparkle", "link", "book"]) {
+      await expect(nav.locator(`[data-icon="${icon}"]`)).toBeVisible();
+    }
+    // Los cuatro emojis que encabezaban las secciones (issue #176 §3.3).
+    for (const emoji of ["🏆", "✨", "🔗", "📔"]) {
+      await expect(nav).not.toContainText(emoji);
+    }
+  });
+
+  test("DS-10: la lista de trofeos son filas con hairline, no tarjetas", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 3,
+      nameSuffix: "Diseno Filas Trofeo",
+      np: 2106,
+    });
+
+    await page.goto(`/juegos/${gameId}`);
+
+    const row = page.getByRole("listitem").filter({ hasText: "Trofeo 1" }).first();
+    await expect(row).toBeVisible();
+
+    const box = await row.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return {
+        background: s.backgroundColor,
+        borderBottom: parseFloat(s.borderBottomWidth),
+        borderTop: parseFloat(s.borderTopWidth),
+        radius: parseFloat(s.borderTopLeftRadius),
+      };
+    });
+
+    // Con 50 trofeos en pantalla, 50 marcos de 1px compiten entre sí y ninguno
+    // gana (issue #176 §4): la fila no tiene fondo propio ni esquinas
+    // redondeadas, sólo el hairline que la separa de la de abajo.
+    expect(box.background).toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+    expect(box.borderBottom).toBeCloseTo(1, 1);
+    expect(box.borderTop).toBe(0);
+    expect(box.radius).toBe(0);
+  });
+
+  test("DS-11: la rareza de un trofeo pinta con los tokens de rareza", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId, trophyIds } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Diseno Rareza",
+      np: 2107,
+    });
+
+    // Rareza 0 = ultra rara, el escalón que tiene token propio.
+    await supabase.from("trophies").update({ rarity: 0 }).eq("id", trophyIds[0]);
+
+    await page.goto(`/juegos/${gameId}`);
+
+    // Acotado a la fila del trofeo: suelto, `getByText("Ultra rara")` pegaba
+    // primero en el `<option>` del filtro de rareza, que está en el DOM pero
+    // oculto dentro del `<select>` cerrado.
+    const chip = page
+      .getByRole("listitem")
+      .filter({ hasText: "Diseno Rareza - Trofeo 1" })
+      .getByText("Ultra rara");
+    await expect(chip).toBeVisible();
+
+    const colors = await chip.evaluate((el) => {
+      const root = getComputedStyle(document.documentElement);
+      const probe = document.createElement("div");
+      probe.style.color = root.getPropertyValue("--rarity-ultra").trim();
+      document.body.appendChild(probe);
+      const token = getComputedStyle(probe).color;
+      probe.remove();
+      return { chip: getComputedStyle(el).color, token };
+    });
+
+    // Antes era `text-fuchsia-300` a mano: el mismo modo de falla que DS-06,
+    // un color parecido que no sale de ningún token.
+    expect(colors.chip).toBe(colors.token);
   });
 });

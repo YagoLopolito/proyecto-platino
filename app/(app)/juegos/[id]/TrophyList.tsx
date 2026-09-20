@@ -126,7 +126,7 @@ export default function TrophyList({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2.5 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3">
+      <div className="space-y-2.5 rounded-card border border-border bg-surface p-3">
         <SearchField
           value={query}
           onChange={setQuery}
@@ -199,7 +199,7 @@ export default function TrophyList({
                   setType("all");
                   setRarity("all");
                 }}
-                className="min-h-10 px-1 text-xs font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-200 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:min-h-9"
+                className="min-h-10 px-1 type-caption font-medium text-ink-muted underline-offset-4 transition-colors hover:text-ink hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 sm:min-h-9"
               >
                 Limpiar filtros
               </button>
@@ -207,7 +207,7 @@ export default function TrophyList({
           </div>
         </MobileDisclosure>
 
-        <p className="text-xs text-zinc-500">
+        <p className="type-caption text-ink-faint">
           Mostrando {visibleCount} de {totalCount} trofeos
         </p>
       </div>
@@ -220,8 +220,8 @@ export default function TrophyList({
           .map((group) => (
             <div key={group.groupId} className="space-y-2">
               <div className="flex items-center justify-between gap-2 pt-2">
-                <h3 className="text-sm font-medium text-zinc-300">{group.name}</h3>
-                <span className="text-xs text-zinc-500">
+                <h3 className="type-overline text-ink-faint">{group.name}</h3>
+                <span className="type-caption tabular-nums text-ink-faint">
                   {group.obtainedCount}/{group.visibleTotal} visibles
                 </span>
               </div>
@@ -233,7 +233,7 @@ export default function TrophyList({
                 }
                 className="h-1.5"
               />
-              <ul className="space-y-2">
+              <ul className="border-t border-border">
                 {group.trophies.map((trophy) => (
                   <TrophyRow key={trophy.id} gameId={gameId} trophy={trophy} focus={focus} />
                 ))}
@@ -241,7 +241,7 @@ export default function TrophyList({
             </div>
           ))
       ) : (
-        <ul className="space-y-2">
+        <ul className="border-t border-border">
           {filteredGroups.flatMap((group) =>
             group.trophies.map((trophy) => (
               <TrophyRow key={trophy.id} gameId={gameId} trophy={trophy} focus={focus} />

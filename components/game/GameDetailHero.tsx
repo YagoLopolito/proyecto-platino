@@ -58,13 +58,13 @@ export function GameDetailHero({
             // Sin wallpaper el hero simplemente no lleva fondo.
             fallback={null}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/70 via-zinc-950/40 to-zinc-950" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background" />
         </div>
       )}
 
       <div className={`relative z-10 space-y-4 ${backgroundImage ? "pt-20 sm:pt-48" : ""}`}>
         <div className="flex items-end gap-3 sm:gap-5">
-          <div className="relative aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800 shadow-lg min-[420px]:w-28 sm:w-40">
+          <div className="relative aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-card border border-border-strong bg-surface shadow-lg min-[420px]:w-28 sm:w-40">
             {game.coverUrl ? (
               <GameArt
                 src={game.coverUrl}
@@ -80,13 +80,15 @@ export function GameDetailHero({
           </div>
 
           <div className="min-w-0 flex-1 space-y-1 pb-1">
-            <h1 className="flex flex-wrap items-center gap-2 text-lg font-semibold break-words sm:text-3xl">
-              {game.name}
+            {/* El nombre del juego es el único texto editorial de esta
+                pantalla: va en la serif (`type-display`), que es la mitad de
+                lo que separa una ficha de un dashboard. Los metadatos, en
+                cambio, son chrome y van en versalitas. */}
+            <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-2 break-words">
+              <span className="type-display text-ink">{game.name}</span>
               {badges}
             </h1>
-            {meta.length > 0 && (
-              <p className="text-xs text-zinc-400 sm:text-sm">{meta.join(" · ")}</p>
-            )}
+            {meta.length > 0 && <p className="type-overline text-ink-faint">{meta.join(" · ")}</p>}
           </div>
         </div>
 
@@ -98,15 +100,11 @@ export function GameDetailHero({
          * Tira de números, como la de una ficha de Letterbox: número grande,
          * etiqueta chica en versalitas. En mobile van dos por fila.
          */}
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-zinc-800 bg-zinc-800 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-4">
           {stats.map((stat) => (
-            <div key={stat.label} className="bg-zinc-950 px-3 py-2.5">
-              <dd className="text-lg font-semibold leading-tight text-zinc-50 sm:text-xl">
-                {stat.value ?? "—"}
-              </dd>
-              <dt className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">
-                {stat.label}
-              </dt>
+            <div key={stat.label} className="space-y-0.5 bg-background px-3 py-2.5">
+              <dd className="type-stat text-ink">{stat.value ?? "—"}</dd>
+              <dt className="type-overline text-ink-faint">{stat.label}</dt>
             </div>
           ))}
         </dl>
@@ -118,7 +116,7 @@ export function GameDetailHero({
 /** Marco sin carátula: el juego no tiene imagen, o la que tenía no cargó. */
 function CoverPlaceholder() {
   return (
-    <span className="flex h-full w-full items-center justify-center p-2 text-center text-xs text-zinc-500">
+    <span className="flex h-full w-full items-center justify-center p-2 text-center type-caption text-ink-muted">
       Sin carátula
     </span>
   );

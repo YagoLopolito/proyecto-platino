@@ -42,16 +42,16 @@ export function TimeToBeat({
         {beat && <Estimate label="Pasarlo" value={beat} />}
         {complete && <Estimate label={hasPlatinum ? "Platino" : "Al 100%"} value={complete} />}
       </dl>
-      <p className="flex items-center gap-1 text-[10px] text-zinc-500">{sourceLabel(source)}</p>
+      <p className="flex items-center gap-1 type-caption text-ink-faint">{sourceLabel(source)}</p>
     </div>
   );
 }
 
 function Estimate({ label, value }: { label: string; value: string }) {
   return (
-    <div className="inline-flex items-baseline gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-1">
-      <dt className="text-[10px] uppercase tracking-[0.12em] text-zinc-500">{label}</dt>
-      <dd className="text-sm font-semibold tabular-nums text-zinc-100">{value}</dd>
+    <div className="inline-flex items-baseline gap-1.5 rounded-chip border border-border bg-surface px-2.5 py-1">
+      <dt className="type-overline text-ink-faint">{label}</dt>
+      <dd className="type-meta font-semibold tabular-nums text-ink">{value}</dd>
     </div>
   );
 }

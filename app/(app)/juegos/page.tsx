@@ -137,15 +137,24 @@ export default async function JuegosPage({
   return (
     // max-w-5xl (antes 2xl): la biblioteca es una grilla de carátulas, y a
     // 672px de ancho entraban tres columnas con mucho aire muerto a los lados.
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
+    <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-6">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold sm:text-2xl">Mi biblioteca</h1>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="type-title text-ink">Mi biblioteca</h1>
             {psnAccount && <SyncStatusBadge status={psnAccount.token_status as SyncTokenStatus} />}
+            {/*
+             * Estado de sync: antes eran tres párrafos y un botón antes de la
+             * primera carátula. Ahora es una sola línea al lado del título
+             * (issue #176 §4): en una app de navegar, lo primero que se ve
+             * tiene que ser el contenido.
+             */}
+            {psnAccount?.token_status === "valid" && (
+              <SyncButton reconnectHref="/configuracion/conexiones#reconectar-psn" />
+            )}
           </div>
-          {/* Texto de estado: chico en mobile, donde compite con la grilla. */}
-          <p className="text-xs text-zinc-400 sm:text-sm">
+
+          <p className="type-caption text-ink-muted">
             {psnAccount ? (
               <>
                 {psnAccount.last_synced_at
@@ -156,7 +165,7 @@ export default async function JuegosPage({
                     Reconectá tu cuenta para seguir sincronizando.{" "}
                     <Link
                       href="/configuracion/conexiones#reconectar-psn"
-                      className="text-blue-400 hover:underline"
+                      className="text-accent-ink hover:underline"
                     >
                       Reconectar cuenta PSN
                     </Link>
@@ -167,7 +176,7 @@ export default async function JuegosPage({
             ) : (
               <>
                 Tus juegos y trofeos se traen automáticamente desde tu cuenta PSN.{" "}
-                <Link href="/configuracion/conexiones" className="text-blue-400 hover:underline">
+                <Link href="/configuracion/conexiones" className="text-accent-ink hover:underline">
                   Conectar cuenta
                 </Link>
                 .
@@ -175,36 +184,39 @@ export default async function JuegosPage({
             )}
           </p>
 
-          {psnAccount?.token_status === "valid" && (
-            // Sincronizar desde la propia biblioteca: antes esto era un link
-            // que te mandaba a /psn solo para apretar el botón.
-            <SyncButton reconnectHref="/configuracion/conexiones#reconectar-psn" />
+          {/* El selector solo tiene sentido con las dos plataformas conectadas:
+              con una sola, dos de los tres botones dan vacío siempre.
+
+              Es un marco único con las opciones adentro -- la forma de
+              `SegmentedControl` -- y no tres píldoras sueltas, pero se queda
+              como links y no como el componente: el filtro vive en la URL y se
+              aplica en la query de Postgres, así que cada opción ES una
+              navegación (linkeable, con "atrás" del browser), no un onChange. */}
+          {psnAccount && steamAccount && (
+            <nav
+              aria-label="Filtrar por plataforma"
+              className="inline-flex items-center rounded-card border border-border-strong bg-surface p-0.5"
+            >
+              {(["todos", ...SOURCE_FILTERS] as SourceFilter[]).map((value) => (
+                <Link
+                  key={value}
+                  href={value === "todos" ? "/juegos" : `/juegos?fuente=${value}`}
+                  aria-current={fuente === value ? "page" : undefined}
+                  className={`flex min-h-10 items-center justify-center whitespace-nowrap rounded-chip px-3 type-caption font-medium transition-colors sm:min-h-9 ${
+                    fuente === value
+                      ? // Igual que el activo del `SegmentedControl`: el marco
+                        // interno va en `accent-ink` porque es un borde de
+                        // control y le toca 3:1 (WCAG 1.4.11).
+                        "bg-accent/15 text-accent-ink shadow-[inset_0_0_0_1px_var(--color-accent-ink)]"
+                      : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                  }`}
+                >
+                  {SOURCE_LABEL[value]}
+                </Link>
+              ))}
+            </nav>
           )}
         </div>
-
-        {/* El selector solo tiene sentido con las dos plataformas conectadas:
-            con una sola, dos de los tres botones dan vacío siempre. */}
-        {psnAccount && steamAccount && (
-          <nav
-            aria-label="Filtrar por plataforma"
-            className="flex flex-wrap items-center gap-1 text-xs"
-          >
-            {(["todos", ...SOURCE_FILTERS] as SourceFilter[]).map((value) => (
-              <Link
-                key={value}
-                href={value === "todos" ? "/juegos" : `/juegos?fuente=${value}`}
-                aria-current={fuente === value ? "page" : undefined}
-                className={`rounded-full border px-3 py-1 ${
-                  fuente === value
-                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-                }`}
-              >
-                {SOURCE_LABEL[value]}
-              </Link>
-            ))}
-          </nav>
-        )}
 
         {error && <ErrorState message={`No se pudo cargar la biblioteca: ${error.message}`} />}
 
@@ -212,7 +224,7 @@ export default async function JuegosPage({
           <EmptyState
             title={`No tenés juegos de ${SOURCE_LABEL[fuente]} sincronizados. Sincronizá esa cuenta desde Configuración › Conexiones.`}
             action={
-              <Link href="/juegos" className="text-blue-400 hover:underline">
+              <Link href="/juegos" className="text-accent-ink hover:underline">
                 Ver todos los juegos
               </Link>
             }

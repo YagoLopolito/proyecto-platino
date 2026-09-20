@@ -4,6 +4,7 @@ import { useActionState, type ReactNode } from "react";
 import { generateAiPlan, type AiPlanActionState } from "./ai-actions";
 import { TrophyTypeIcon, type TrophyType, trophyTypeLabel } from "@/components/TrophyTypeIcon";
 import { focusTrophy } from "./focusTrophy";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import type { AiGamePlan } from "@/lib/ai";
 
 const initialAiPlanState: AiPlanActionState = { plan: null, error: null };
@@ -27,7 +28,7 @@ function findTrophy(trophies: AdvisorTrophy[], trophyId: string) {
 function TrophyChip({ trophies, trophyId }: { trophies: AdvisorTrophy[]; trophyId: string }) {
   const trophy = findTrophy(trophies, trophyId);
   if (!trophy) {
-    return <span className="text-zinc-400">{trophyId}</span>;
+    return <span className="type-caption text-ink-muted">{trophyId}</span>;
   }
 
   return (
@@ -37,16 +38,16 @@ function TrophyChip({ trophies, trophyId }: { trophies: AdvisorTrophy[]; trophyI
       title={`${trophy.description ?? "Sin descripción cargada."}
 
 Clic para ver cómo desbloquearlo.`}
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-left hover:border-blue-500 hover:text-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+      className={`inline-flex items-center gap-1 rounded-chip border px-1.5 py-0.5 text-left type-caption transition-colors hover:border-accent-ink hover:text-accent-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 ${
         trophy.obtained
-          ? "border-green-800 bg-green-950/30 text-green-500 line-through decoration-green-700"
-          : "border-zinc-700 bg-zinc-950 text-zinc-200"
+          ? "border-success/40 bg-success/10 text-success line-through decoration-success/60"
+          : "border-border-strong bg-background text-ink"
       }`}
     >
       <TrophyTypeIcon type={trophy.type} className="h-3 w-3 shrink-0" />
       {trophy.name}
-      <span className="text-[10px] text-zinc-500">({trophyTypeLabel(trophy.type)})</span>
-      {trophy.obtained && <span className="text-green-500">✓</span>}
+      <span className="text-ink-faint">({trophyTypeLabel(trophy.type)})</span>
+      {trophy.obtained && <Icon name="check" className="h-3 w-3 shrink-0" />}
     </button>
   );
 }
@@ -103,60 +104,83 @@ function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: Adviso
 
   if (!next) {
     return (
-      <div className="rounded-lg border border-green-800/60 bg-green-950/20 p-3 text-sm text-green-300">
-        🎉 No te queda ningún trofeo pendiente en este juego.
+      <div className="flex items-center gap-2 rounded-card border border-success/40 bg-success/10 p-3 type-body text-success">
+        <Icon name="completed" className="h-4 w-4 shrink-0" />
+        No te queda ningún trofeo pendiente en este juego.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-emerald-700/60 bg-emerald-950/20 p-3">
-      <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-300">
-        <span aria-hidden="true">🎯</span>
+    <div className="rounded-card border border-success/40 bg-success/10 p-3">
+      <h4 className="mb-2 flex items-center gap-1.5 type-overline text-success">
+        <Icon name="trophy" className="h-3.5 w-3.5" />
         Siguiente trofeo
       </h4>
       <button
         type="button"
         onClick={() => focusTrophy(next.trophy.id)}
-        className="flex w-full items-center gap-2 rounded border border-emerald-800/60 bg-zinc-950 p-2 text-left hover:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        className="flex w-full items-center gap-2 rounded-chip border border-success/40 bg-background p-2 text-left transition-colors hover:border-success focus:outline-none focus-visible:ring-2 focus-visible:ring-success/40"
       >
         <TrophyTypeIcon type={next.trophy.type} className="h-5 w-5 shrink-0" />
         <span className="min-w-0">
-          <span className="block font-medium text-zinc-100">{next.trophy.name}</span>
-          <span className="block text-xs text-zinc-400">
+          <span className="block type-subtitle text-ink">{next.trophy.name}</span>
+          <span className="block type-caption text-ink-muted">
             {next.trophy.description ?? "Sin descripción cargada."}
           </span>
         </span>
       </button>
-      {next.porQue && <p className="mt-2 text-xs text-emerald-300">{next.porQue}</p>}
+      {next.porQue && <p className="mt-2 type-caption text-success">{next.porQue}</p>}
       {next.pasos.length > 0 ? (
-        <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs text-zinc-300">
+        <ol className="mt-2 list-decimal space-y-1 pl-5 type-caption text-ink">
           {next.pasos.map((paso, i) => (
             <li key={i}>{paso}</li>
           ))}
         </ol>
       ) : (
-        <p className="mt-2 text-xs text-zinc-500">Clickeá el trofeo para ver cómo desbloquearlo.</p>
+        <p className="mt-2 type-caption text-ink-faint">
+          Clickeá el trofeo para ver cómo desbloquearlo.
+        </p>
       )}
     </div>
   );
 }
 
+/**
+ * Tono de una sección del plan. El sistema tiene una paleta corta a propósito
+ * (issue #176 §3.1): antes cada sección traía su propio color de Tailwind
+ * (azul, ámbar, rojo, índigo, teal, púrpura) y el panel se leía como un
+ * semáforo. Ahora `warning` y `danger` se reservan para lo que de verdad
+ * cuesta trofeos -- perdibles y desafíos de dificultad -- y el resto es
+ * informativo.
+ */
+const SECTION_TONE = {
+  accent: { bar: "border-l-accent", ink: "text-accent-ink" },
+  warning: { bar: "border-l-warning", ink: "text-warning" },
+  danger: { bar: "border-l-danger", ink: "text-danger" },
+  neutral: { bar: "border-l-border-strong", ink: "text-ink-faint" },
+} as const;
+
 function SectionCard({
   icon,
   title,
-  accent,
+  tone,
   children,
 }: {
-  icon: string;
+  icon: IconName;
   title: string;
-  accent: string;
+  tone: keyof typeof SECTION_TONE;
   children: ReactNode;
 }) {
+  // El tono pinta la barra lateral y el encabezado, no el contenedor: puesto
+  // en el `div`, el color se filtraba a todo el texto de adentro que no
+  // declarara el suyo.
+  const { bar, ink } = SECTION_TONE[tone];
+
   return (
-    <div className={`rounded-lg border border-zinc-800 border-l-4 ${accent} bg-zinc-950 p-3`}>
-      <h4 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        <span aria-hidden="true">{icon}</span>
+    <div className={`rounded-card border border-border border-l-4 bg-background p-3 ${bar}`}>
+      <h4 className={`mb-2 flex items-center gap-1.5 type-overline ${ink}`}>
+        <Icon name={icon} className="h-3.5 w-3.5" />
         {title}
       </h4>
       {children}
@@ -168,37 +192,40 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
   const pendingCount = trophies.filter((t) => !t.obtained).length;
 
   return (
-    <div className="space-y-4 text-sm text-zinc-200">
-      <p className="leading-relaxed text-zinc-300">{plan.resumen}</p>
+    <div className="space-y-4">
+      <p className="type-body text-ink">{plan.resumen}</p>
 
       <NextTrophyCard plan={plan} trophies={trophies} />
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-blue-800/50 bg-blue-950/20 p-3">
-        <span className="text-xl">{plan.puede_platinar_en_una_run ? "🏆" : "🔁"}</span>
+      <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface p-3">
+        <Icon
+          name={plan.puede_platinar_en_una_run ? "trophy" : "repeat"}
+          className="h-5 w-5 shrink-0 text-accent-ink"
+        />
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-zinc-100">
+          <p className="type-subtitle text-ink">
             {plan.puede_platinar_en_una_run
               ? "Se puede platinar en una sola partida"
               : "Necesita más de una partida"}
           </p>
           {plan.notas_run_unica && (
-            <p className="mt-0.5 text-xs text-zinc-400">{plan.notas_run_unica}</p>
+            <p className="mt-0.5 type-caption text-ink-muted">{plan.notas_run_unica}</p>
           )}
         </div>
         {pendingCount > 0 && (
-          <span className="shrink-0 rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+          <span className="shrink-0 rounded-chip border border-border-strong px-2 py-0.5 type-caption text-ink-muted">
             Te faltan {pendingCount}
           </span>
         )}
       </div>
 
       {plan.grupos_de_partidas.length > 0 && (
-        <SectionCard icon="🕹️" title="Grupos de partidas" accent="border-l-blue-600">
+        <SectionCard icon="gamepad" title="Grupos de partidas" tone="accent">
           <ul className="space-y-2">
             {plan.grupos_de_partidas.map((grupo) => (
-              <li key={grupo.run} className="rounded border border-zinc-800 bg-zinc-900 p-2.5">
-                <p className="font-medium text-zinc-100">Run {grupo.run}</p>
-                <p className="text-xs text-zinc-400">{grupo.objetivo}</p>
+              <li key={grupo.run} className="rounded-chip border border-border bg-surface p-2.5">
+                <p className="type-subtitle text-ink">Run {grupo.run}</p>
+                <p className="type-caption text-ink-muted">{grupo.objetivo}</p>
                 {grupo.trofeos_relacionados.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {grupo.trofeos_relacionados.map((id) => (
@@ -213,19 +240,19 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
       )}
 
       {plan.missables.length > 0 && (
-        <SectionCard icon="⚠️" title="Trofeos perdibles (missables)" accent="border-l-amber-600">
+        <SectionCard icon="alert" title="Trofeos perdibles (missables)" tone="warning">
           <ul className="space-y-2">
             {plan.missables.map((m, i) => (
               <li
                 key={`${m.trofeo_id}-${i}`}
-                className="rounded border border-amber-900/50 bg-amber-950/20 p-2.5"
+                className="rounded-chip border border-warning/30 bg-warning/5 p-2.5"
               >
                 <div className="mb-1">
                   <TrophyChip trophies={trophies} trophyId={m.trofeo_id} />
                 </div>
-                <p className="text-xs text-zinc-400">{m.motivo}</p>
+                <p className="type-caption text-ink-muted">{m.motivo}</p>
                 {m.momento_limite && (
-                  <p className="mt-1 text-xs text-amber-400">Límite: {m.momento_limite}</p>
+                  <p className="mt-1 type-caption text-warning">Límite: {m.momento_limite}</p>
                 )}
               </li>
             ))}
@@ -234,21 +261,21 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
       )}
 
       {(plan.desafios_de_dificultad ?? []).length > 0 && (
-        <SectionCard icon="🔥" title="Trofeos de dificultad" accent="border-l-red-600">
+        <SectionCard icon="flame" title="Trofeos de dificultad" tone="danger">
           <ul className="space-y-2">
             {(plan.desafios_de_dificultad ?? []).map((d, i) => (
               <li
                 key={`${d.trofeo_id}-${i}`}
-                className="rounded border border-red-900/50 bg-red-950/20 p-2.5"
+                className="rounded-chip border border-danger/30 bg-danger/5 p-2.5"
               >
                 <div className="mb-1 flex flex-wrap items-center gap-1.5">
                   <TrophyChip trophies={trophies} trophyId={d.trofeo_id} />
-                  <span className="rounded-full border border-red-800 bg-red-950/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-red-300">
+                  <span className="rounded-chip border border-danger/40 bg-danger/10 px-2 py-0.5 type-overline text-danger">
                     {CHALLENGE_LABELS[d.categoria] ?? d.categoria}
                   </span>
                 </div>
-                <p className="text-xs text-zinc-400">{d.motivo}</p>
-                {d.consejo && <p className="mt-1 text-xs text-red-300">{d.consejo}</p>}
+                <p className="type-caption text-ink-muted">{d.motivo}</p>
+                {d.consejo && <p className="mt-1 type-caption text-danger">{d.consejo}</p>}
               </li>
             ))}
           </ul>
@@ -256,8 +283,8 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
       )}
 
       {(plan.acumulables ?? []).length > 0 && (
-        <SectionCard icon="🎯" title="Contadores a tener en cuenta" accent="border-l-indigo-600">
-          <p className="mb-2 text-xs text-zinc-500">
+        <SectionCard icon="target" title="Contadores a tener en cuenta" tone="accent">
+          <p className="mb-2 type-caption text-ink-faint">
             Trofeos que piden acumular una cantidad. Conviene saberlos antes de empezar la historia:
             no son difíciles, pero se llega al final con el contador a medias.
           </p>
@@ -265,21 +292,21 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
             {(plan.acumulables ?? []).map((a, i) => (
               <li
                 key={`${a.trofeo_id}-${i}`}
-                className="rounded border border-indigo-900/50 bg-indigo-950/20 p-2.5"
+                className="rounded-chip border border-border bg-surface p-2.5"
               >
                 <div className="mb-1 flex flex-wrap items-center gap-1.5">
                   <TrophyChip trophies={trophies} trophyId={a.trofeo_id} />
-                  <span className="rounded-full border border-indigo-800 bg-indigo-950/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-indigo-300">
+                  <span className="rounded-chip border border-accent-ink/40 bg-accent/15 px-2 py-0.5 type-overline text-accent-ink">
                     {COUNTER_LABELS[a.categoria] ?? a.categoria}
                   </span>
                   {a.se_puede_farmear === false && (
-                    <span className="rounded-full border border-amber-800 bg-amber-950/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-amber-300">
+                    <span className="rounded-chip border border-warning/40 bg-warning/10 px-2 py-0.5 type-overline text-warning">
                       No se puede farmear después
                     </span>
                   )}
                 </div>
-                <p className="text-xs font-medium text-indigo-200">{a.objetivo}</p>
-                {a.consejo && <p className="mt-1 text-xs text-zinc-400">{a.consejo}</p>}
+                <p className="type-caption font-medium text-ink">{a.objetivo}</p>
+                {a.consejo && <p className="mt-1 type-caption text-ink-muted">{a.consejo}</p>}
               </li>
             ))}
           </ul>
@@ -287,14 +314,14 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
       )}
 
       {(plan.modos ?? []).length > 0 && (
-        <SectionCard icon="🎮" title="Modos de juego" accent="border-l-teal-600">
+        <SectionCard icon="monitor" title="Modos de juego" tone="accent">
           <ul className="space-y-2">
             {(plan.modos ?? []).map((grupo, i) => (
               <li
                 key={`${grupo.modo}-${i}`}
-                className="rounded border border-zinc-800 bg-zinc-900 p-2.5"
+                className="rounded-chip border border-border bg-surface p-2.5"
               >
-                <p className="font-medium text-teal-300">{grupo.modo}</p>
+                <p className="type-subtitle text-ink">{grupo.modo}</p>
                 {grupo.trofeos_relacionados.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {grupo.trofeos_relacionados.map((id) => (
@@ -309,11 +336,13 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
       )}
 
       {plan.orden_sugerido.length > 0 && (
-        <SectionCard icon="📋" title="Orden sugerido" accent="border-l-zinc-500">
+        <SectionCard icon="list" title="Orden sugerido" tone="neutral">
           <ol className="space-y-1.5">
             {plan.orden_sugerido.map((id, i) => (
               <li key={id} className="flex items-center gap-2">
-                <span className="w-4 shrink-0 text-right text-xs text-zinc-500">{i + 1}.</span>
+                <span className="w-4 shrink-0 text-right type-caption tabular-nums text-ink-faint">
+                  {i + 1}.
+                </span>
                 <TrophyChip trophies={trophies} trophyId={id} />
               </li>
             ))}
@@ -322,8 +351,8 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
       )}
 
       {plan.tips_generales.length > 0 && (
-        <SectionCard icon="💡" title="Tips generales" accent="border-l-purple-600">
-          <ul className="list-disc space-y-1 pl-4 text-xs text-zinc-300">
+        <SectionCard icon="bulb" title="Tips generales" tone="neutral">
+          <ul className="list-disc space-y-1 pl-4 type-caption text-ink">
             {plan.tips_generales.map((tip, i) => (
               <li key={i}>{tip}</li>
             ))}
@@ -354,14 +383,15 @@ export default function AiAdvisorPanel({
   return (
     <section
       id="advisor"
-      className="scroll-mt-20 space-y-3 rounded-lg border border-blue-900/40 bg-gradient-to-b from-blue-950/20 to-zinc-900 p-4"
+      className="scroll-mt-20 space-y-3 rounded-card border border-border bg-gradient-to-b from-accent/10 to-surface p-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="flex items-center gap-1.5 text-lg font-semibold">
-            <span aria-hidden="true">✨</span> Advisor con IA
+          <h2 className="flex items-center gap-1.5 type-title text-ink">
+            <Icon name="sparkle" className="h-4 w-4 text-accent-ink" />
+            Advisor con IA
           </h2>
-          <p className="text-xs text-zinc-500">
+          <p className="type-caption text-ink-muted">
             Contenido generado por IA: puede tener errores, verificá contra la guía oficial si el
             trofeo es importante. Clickeá un trofeo para ir a él en la lista y ver cómo
             desbloquearlo.
@@ -372,7 +402,7 @@ export default function AiAdvisorPanel({
           <button
             type="submit"
             disabled={pending}
-            className="shrink-0 rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-sm text-blue-300 hover:border-blue-500 disabled:opacity-50"
+            className="min-h-11 shrink-0 rounded-chip border border-accent-ink bg-accent/15 px-3 type-meta font-medium text-accent-ink transition-colors hover:bg-accent/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 disabled:opacity-50 sm:min-h-9"
           >
             {pending ? "Generando..." : hasPlan ? "Regenerar plan" : "Generar plan"}
           </button>
@@ -380,13 +410,13 @@ export default function AiAdvisorPanel({
       </div>
 
       {state.error && (
-        <p role="alert" className="text-sm text-red-400">
+        <p role="alert" className="type-body text-danger">
           {state.error}
         </p>
       )}
 
       {!hasPlan && !state.error && !pending && (
-        <p className="rounded border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
+        <p className="rounded-card border border-dashed border-border p-6 text-center type-body text-ink-muted">
           Todavía no se generó un plan para este juego.
         </p>
       )}

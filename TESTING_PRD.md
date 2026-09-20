@@ -546,7 +546,7 @@ llama a IGDB.
 
 ### 6.18 Sistema de diseño (`21-design-system.spec.ts`)
 
-Fase 1 del remake visual (issue #176). Lo que se verifica no es "cómo se ve" sino que las
+Fases 1 a 3 del remake visual (issue #176). Lo que se verifica no es "cómo se ve" sino que las
 piezas del sistema **se apliquen de verdad**: los dos bugs que motivaron la fase eran de ese
 tipo y ninguno se veía leyendo el diff (la fuente cargada no la usaba nadie porque `body` la
 pisaba con Arial; los tokens de `globals.css` estaban definidos y con 0 usos). Un test que
@@ -561,8 +561,12 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-05 | Íconos decorativos fuera del árbol de a11y | El ícono que acompaña a un texto que ya lo dice va con `aria-hidden="true"` | P2 |
 | DS-06 | Las primitivas pintan con los tokens | El `background-color` computado del botón primario es exactamente el valor de `--accent`, no un `blue-*` parecido | P1 |
 | DS-07 | El badge de platino del póster es un ícono | La tarjeta de un juego platinado muestra `[data-icon="trophy"]`, no contiene 🏆, y el ícono se anuncia como imagen "Platino" | P2 |
+| DS-08 | El nombre del juego va en la serif editorial | El `font-family` computado del título de la ficha resuelve a Newsreader mientras el resto de la app sigue en Geist | P1 |
+| DS-09 | La nav de la ficha usa íconos, no emojis | Las cuatro secciones muestran `[data-icon]` (trophy/sparkle/link/book) y ninguna contiene 🏆 ✨ 🔗 📔 | P2 |
+| DS-10 | La lista de trofeos son filas con hairline | Una fila de trofeo no tiene fondo propio ni radio, y separa con un borde inferior de 1px | P2 |
+| DS-11 | La rareza pinta con los tokens de rareza | El `color` computado del chip "Ultra rara" es exactamente `--rarity-ultra`, no un fucsia parecido | P2 |
 
-**Total: 133 casos** — 52 P0, 56 P1, 25 P2.
+**Total: 137 casos** — 52 P0, 57 P1, 28 P2.
 
 ---
 

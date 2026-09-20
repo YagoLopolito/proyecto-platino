@@ -73,13 +73,13 @@ export default async function GameExternalLinksPage({
   ];
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
+    <div className="flex flex-1 flex-col bg-background px-4 py-8 text-ink sm:py-16">
+      <div className="mx-auto w-full max-w-5xl space-y-8">
         <GameBreadcrumb gameId={gameId} gameName={game.name} current="Enlaces externos" />
 
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Enlaces externos de {game.name}</h1>
-          <p className="text-sm text-zinc-400">
+          <h1 className="type-title text-ink">Enlaces externos de {game.name}</h1>
+          <p className="type-body text-ink-muted">
             Guías de fuentes externas (Steam Community, PowerPyx, PSNProfiles, TrueTrophies). Cada
             enlace cita su fuente y abre en el sitio original.
           </p>
@@ -89,13 +89,13 @@ export default async function GameExternalLinksPage({
 
         <section className="space-y-3">
           {linksError && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="type-body text-danger">
               No se pudieron cargar los enlaces: {linksError.message}
             </p>
           )}
 
           {!linksError && links.length === 0 && (
-            <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
+            <p className="rounded-card border border-dashed border-border p-8 text-center type-body text-ink-muted">
               Todavía no hay enlaces externos para este juego. Probá &ldquo;Buscar guías
               externas&rdquo; arriba.
             </p>
@@ -107,17 +107,17 @@ export default async function GameExternalLinksPage({
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block space-y-1 rounded-lg border border-zinc-800 bg-zinc-900 p-4 hover:border-blue-500"
+              className="block space-y-1 rounded-card border border-border bg-surface p-4 transition-colors hover:border-accent-ink"
             >
-              <h2 className="font-semibold text-zinc-100">{link.title}</h2>
-              {link.source && <p className="text-xs text-zinc-500">Fuente: {link.source}</p>}
-              <p className="truncate text-xs text-blue-400">{link.url}</p>
+              <h2 className="type-subtitle text-ink">{link.title}</h2>
+              {link.source && <p className="type-caption text-ink-faint">Fuente: {link.source}</p>}
+              <p className="truncate type-caption text-accent-ink">{link.url}</p>
             </a>
           ))}
         </section>
 
         <div className="flex items-center justify-end">
-          <Link href={`/juegos/${gameId}`} className="text-sm text-blue-400 hover:underline">
+          <Link href={`/juegos/${gameId}`} className="type-meta text-accent-ink hover:underline">
             Ver juego →
           </Link>
         </div>

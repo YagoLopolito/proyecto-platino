@@ -199,10 +199,13 @@ test.describe("Sync y biblioteca", () => {
 
     await page.goto("/juegos");
     const card = page.getByRole("listitem").filter({ hasText: "[E2E] PSN Game Uno" });
-    await expect(card.getByText("⏱ 13 h")).toBeVisible();
+    // El ⏱ que acompañaba a las horas pasó a ser un ícono del set (fase 3 del
+    // issue #176), así que lo que se busca es el número y el ícono, no el emoji.
+    await expect(card.getByText("13 h")).toBeVisible();
+    await expect(card.locator('[data-icon="clock"]')).toBeVisible();
     // Sin horas reportadas no se muestra nada, ni un "0 h".
     const cardSinHoras = page.getByRole("listitem").filter({ hasText: "[E2E] PSN Game Dos" });
-    await expect(cardSinHoras.getByText(/⏱/)).toHaveCount(0);
+    await expect(cardSinHoras.locator('[data-icon="clock"]')).toHaveCount(0);
 
     await page.goto(`/juegos/${gameId}/diario`);
     await expect(page.getByText("13 h jugadas")).toBeVisible();
