@@ -1,5 +1,15 @@
 # Accesibilidad: contraste y foco de teclado
 
+> **Nota (fase 6 del issue #176):** las dos primeras secciones ("Foco de teclado" y
+> "Contraste") son la auditoría original del issue #69 sobre la piel anterior, con
+> `zinc-*`/`blue-*` a mano. Esos colores **ya no existen en el código** (ESLint los rechaza
+> en `app/` y `components/`): las tablas quedan como historia de qué problemas tenía cada
+> componente y por qué los umbrales de los tokens son los que son. Lo vigente es de "Tokens
+> del sistema de diseño" para abajo: ahí cada token está auditado contra las cuatro
+> superficies. Los targets táctiles de 44px, `aria-current` en las navs y `role="switch"` en
+> los toggles se conservaron en el remake y los verifican `21-design-system.spec.ts` y los
+> tests de cada pantalla.
+
 Auditoría del issue #69 ("Revisión de contraste y foco de teclado con la paleta
 nueva"), sobre los componentes compartidos de `components/` y la paleta
 `zinc`/`blue`/tokens custom de `app/globals.css`.
