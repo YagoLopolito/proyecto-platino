@@ -10,6 +10,7 @@ import { Input, Textarea, Label } from "@/components/Input";
 import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
 import { StarRatingInput, StarRatingDisplay } from "@/components/diary/StarRating";
+import { Icon } from "@/components/ui/Icon";
 
 const initialState: DiaryActionState = { error: null, success: null };
 
@@ -42,30 +43,32 @@ export default function EditDiaryEntryForm({
 
   if (!editing) {
     return (
-      <div className="flex flex-col gap-3 rounded border border-zinc-800 bg-zinc-950 p-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="flex flex-col gap-3 border-t border-border py-3 first:border-t-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 space-y-1">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-200">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-ink-muted">
             <span>
               Partida #{entry.playthrough_number} · {entry.finished_on}
             </span>
             <StarRatingDisplay rating={entry.rating} />
             {entry.platinum_earned_at && (
-              <span className="rounded-full border border-zinc-600/60 bg-zinc-700/20 px-1.5 py-0.5 text-[11px] text-zinc-300">
-                🏆 Platinado
+              <span className="inline-flex items-center gap-1 rounded-chip border border-trophy-platinum/50 bg-trophy-platinum/10 px-1.5 py-0.5 type-caption text-trophy-platinum">
+                <Icon name="trophy" className="h-3 w-3" />
+                Platinado
               </span>
             )}
             {entry.completed_at && (
-              <span className="rounded-full border border-emerald-500/60 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] text-emerald-300">
+              <span className="inline-flex items-center gap-1 rounded-chip border border-success/50 bg-success/10 px-1.5 py-0.5 type-caption text-success">
+                <Icon name="completed" className="h-3 w-3" />
                 100% completado
               </span>
             )}
           </p>
           {entry.review && (
-            <p className="whitespace-pre-line break-words text-xs text-zinc-500">{entry.review}</p>
+            <p className="whitespace-pre-line break-words type-review text-ink">{entry.review}</p>
           )}
           {(entry.source === "platinum_sync" || entry.source === "completion_sync") &&
             entry.rating === null && (
-              <p className="text-xs text-zinc-500">
+              <p className="type-caption text-ink-faint">
                 Creada automáticamente al detectar el platino en PSN. Editala para puntuarla y
                 reseñarla.
               </p>
@@ -78,19 +81,16 @@ export default function EditDiaryEntryForm({
             type="button"
             variant="secondary"
             onClick={() => setEditing(true)}
-            className="flex-1 py-2 text-xs sm:flex-none sm:py-1.5"
+            className="flex-1 sm:flex-none"
           >
             Editar
           </Button>
           <form action={deleteDiaryEntry} className="flex-1 sm:flex-none">
             <input type="hidden" name="entryId" value={entry.id} />
             <input type="hidden" name="gameId" value={gameId} />
-            <button
-              type="submit"
-              className="w-full rounded border border-zinc-700 px-2 py-2 text-xs text-zinc-400 hover:border-red-500 hover:text-red-400 sm:py-1.5"
-            >
+            <Button type="submit" variant="danger" className="w-full">
               Borrar
-            </button>
+            </Button>
           </form>
         </div>
       </div>
@@ -98,7 +98,10 @@ export default function EditDiaryEntryForm({
   }
 
   return (
-    <form action={formAction} className="space-y-3 rounded border border-zinc-700 bg-zinc-950 p-3">
+    <form
+      action={formAction}
+      className="space-y-3 rounded-card border border-border-strong bg-surface p-3"
+    >
       <input type="hidden" name="entryId" value={entry.id} />
       <input type="hidden" name="gameId" value={gameId} />
 
@@ -133,18 +136,14 @@ export default function EditDiaryEntryForm({
       <FormError>{state.error}</FormError>
 
       <div className="flex gap-2">
-        <Button
-          type="submit"
-          disabled={pending}
-          className="flex-1 py-2 text-xs sm:flex-none sm:py-1.5"
-        >
+        <Button type="submit" disabled={pending} className="flex-1 sm:flex-none">
           {pending ? "Guardando..." : "Guardar"}
         </Button>
         <Button
           type="button"
           variant="secondary"
           onClick={() => setEditing(false)}
-          className="flex-1 py-2 text-xs sm:flex-none sm:py-1.5"
+          className="flex-1 sm:flex-none"
         >
           Cancelar
         </Button>

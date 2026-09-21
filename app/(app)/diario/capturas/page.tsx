@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackToDiaryLink } from "@/components/diary/BackToDiaryLink";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ScreenshotImporter from "@/components/diary/ScreenshotImporter";
@@ -40,22 +40,17 @@ export default async function ImportScreenshotsPage() {
     }));
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
+    <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold sm:text-2xl">Importar capturas</h1>
-            <p className="text-sm text-zinc-400">
+            <h1 className="type-title text-ink">Importar capturas</h1>
+            <p className="type-body text-ink-muted">
               Soltá acá la carpeta de capturas que exportaste de la PlayStation: cada foto se asigna
               sola al juego que dice su carpeta o su nombre de archivo.
             </p>
           </div>
-          <Link
-            href="/diario"
-            className="block rounded border border-zinc-700 px-3 py-2 text-center text-sm text-zinc-300 hover:border-zinc-500 sm:py-1.5"
-          >
-            ← Volver al diario
-          </Link>
+          <BackToDiaryLink />
         </div>
 
         {error ? (

@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { importPlatinumsToDiary, type BackfillState } from "@/app/(app)/diario/actions";
 import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
+import { Icon } from "@/components/ui/Icon";
 
 const initialState: BackfillState = { error: null, message: null };
 
@@ -17,12 +18,13 @@ export default function ImportPlatinumsButton() {
         type="submit"
         variant="secondary"
         disabled={pending}
-        className="whitespace-nowrap py-2 text-sm sm:py-1.5"
+        className="gap-1.5 whitespace-nowrap"
       >
-        {pending ? "Importando..." : "🏆 Importar mis platinos y 100%"}
+        <Icon name="trophy" className="h-4 w-4" />
+        {pending ? "Importando..." : "Importar mis platinos y 100%"}
       </Button>
       <FormError>{state.error}</FormError>
-      {state.message && <p className="text-xs text-zinc-400">{state.message}</p>}
+      {state.message && <p className="type-caption text-ink-muted">{state.message}</p>}
     </form>
   );
 }

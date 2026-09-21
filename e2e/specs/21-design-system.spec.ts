@@ -1,9 +1,10 @@
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Sistema de diseño: tokens, escala tipográfica y set de íconos.
- * Casos DS-01..DS-11 de TESTING_PRD.md §6.18 (fases 1 a 3 del issue #176).
+ * Casos DS-01..DS-15 de TESTING_PRD.md §6.18 (fases 1 a 4 del issue #176).
  *
  * Por qué se testea algo "visual": lo que se verifica acá no es cómo se ve,
  * sino que las piezas del sistema **existan y se apliquen de verdad**. Los dos
@@ -367,5 +368,109 @@ test.describe("Sistema de diseño", () => {
     // Antes era `text-fuchsia-300` a mano: el mismo modo de falla que DS-06,
     // un color parecido que no sale de ningún token.
     expect(colors.chip).toBe(colors.token);
+  });
+
+  /**
+   * Una entrada de diario con reseña, que es lo que hace falta para los casos
+   * de la fase 4: el diario es la pantalla donde la serif de lectura tiene que
+   * aparecer y donde el rating se dibuja con estrellas.
+   */
+  async function seedDiaryEntry(
+    supabase: SupabaseClient,
+    userId: string,
+    gameId: string,
+    review: string,
+  ) {
+    await supabase.from("game_diary_entries").upsert(
+      {
+        user_id: userId,
+        game_id: gameId,
+        playthrough_number: 1,
+        rating: 9,
+        review,
+        finished_on: "2026-05-04",
+      },
+      { onConflict: "user_id,game_id,playthrough_number" },
+    );
+  }
+
+  test("DS-12: la reseña del diario se renderiza en la serif de lectura", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Diseno Resena Serif",
+      np: 2108,
+    });
+    const review = "[E2E] Resena en serif de lectura";
+    await seedDiaryEntry(supabase, users.userA.id, gameId, review);
+
+    await page.goto(`/juegos/${gameId}/diario`);
+
+    // La reseña es el otro texto editorial de la app, junto con el nombre del
+    // juego (issue #176 §3.2): si cae a la sans, el contraste que justifica
+    // cargar dos familias desaparece justo en la pantalla que más lo necesita.
+    const text = page.getByText(review).first();
+    await expect(text).toBeVisible();
+    expect(await text.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(SERIF);
+  });
+
+  test("DS-13: el rating del diario son íconos del set, no los glifos ★/☆", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Diseno Estrellas",
+      np: 2109,
+    });
+    await seedDiaryEntry(supabase, users.userA.id, gameId, "[E2E] Resena con rating");
+
+    await page.goto(`/juegos/${gameId}/diario`);
+
+    // ★ y ☆ son dingbats: cada sistema los dibuja con su propia forma y su
+    // propio ancho, así que las cinco estrellas no alineaban entre
+    // dispositivos y el oro no salía del token.
+    const rating = page.getByLabel("9/10").first();
+    await expect(rating).toBeVisible();
+    await expect(rating.locator('[data-icon="star"]')).toHaveCount(10);
+    await expect(rating).not.toContainText("★");
+    await expect(rating).not.toContainText("☆");
+  });
+
+  test("DS-14: las acciones del diario usan íconos del set, no emojis", async ({ page }) => {
+    await page.goto("/diario");
+
+    const actions = page.getByRole("link", { name: /Resumen del año/ }).locator("xpath=..");
+    // Los cuatro emojis que encabezaban las acciones de la pantalla.
+    for (const icon of ["chart", "camera", "trophy", "check"]) {
+      await expect(actions.locator(`[data-icon="${icon}"]`).first()).toBeVisible();
+    }
+    for (const emoji of ["📊", "📷", "🏆", "✓"]) {
+      await expect(actions).not.toContainText(emoji);
+    }
+  });
+
+  test("DS-15: el nombre del juego en la ficha de diario va en la serif", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Diseno Hero Diario",
+      np: 2110,
+    });
+
+    await page.goto(`/juegos/${gameId}/diario`);
+
+    // `GameHero` es primo de `GameDetailHero` (DS-08) y tiene que leerse
+    // igual: el nombre del juego es el texto editorial de la pantalla.
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toBeVisible();
+    expect(await heading.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(SERIF);
   });
 });

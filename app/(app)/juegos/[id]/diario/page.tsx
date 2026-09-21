@@ -11,6 +11,8 @@ import { getGameScreenshots } from "@/lib/diary/screenshots";
 import ScreenshotUploader from "@/components/diary/ScreenshotUploader";
 import ScreenshotGallery from "@/components/diary/ScreenshotGallery";
 import { ErrorState } from "@/components/ErrorState";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Icon } from "@/components/ui/Icon";
 
 export default async function GameDiaryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: gameId } = await params;
@@ -75,7 +77,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
   const otherEntries = (entries ?? []).filter((entry) => entry.user_id !== user.id);
 
   return (
-    <div className="flex flex-1 flex-col overflow-x-clip bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
+    <div className="flex flex-1 flex-col overflow-x-clip bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         <div className="relative z-10">
           <GameBreadcrumb gameId={gameId} gameName={card.name} current="Diario" />
@@ -97,7 +99,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
         )}
 
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-zinc-300">Capturas</h2>
+          <SectionHeader title="Capturas" />
           <ScreenshotUploader gameId={gameId} userId={user.id} />
           {screenshotsOutcome.status === "error" ? (
             <ErrorState
@@ -112,14 +114,14 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
 
         <section className="space-y-4">
           {entriesError && (
-            <p role="alert" className="text-sm text-red-400">
+            <p role="alert" className="type-body text-danger">
               No se pudieron cargar las entradas: {entriesError.message}
             </p>
           )}
 
           {!entriesError && ownEntries.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-sm font-semibold text-zinc-300">Tus entradas</h2>
+              <SectionHeader title="Tus entradas" />
               {ownEntries.map((entry) => (
                 <EditDiaryEntryForm key={entry.id} gameId={gameId} entry={entry} />
               ))}
@@ -128,22 +130,33 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
 
           {!entriesError && otherEntries.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-sm font-semibold text-zinc-300">Otros usuarios</h2>
+              <SectionHeader title="Otros usuarios" />
               {otherEntries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="rounded border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300"
-                >
-                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <div key={entry.id} className="border-t border-border py-3 first:border-t-0">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-ink-muted">
                     <span>
                       Partida #{entry.playthrough_number} · {entry.finished_on}
                     </span>
                     <StarRatingDisplay rating={entry.rating} />
-                    {entry.platinum_earned_at && <span title="Platinado">🏆</span>}
-                    {entry.completed_at && <span title="Completado al 100%">💯</span>}
+                    {entry.platinum_earned_at && (
+                      <Icon
+                        name="trophy"
+                        className="h-4 w-4 text-trophy-platinum"
+                        label="Platinado"
+                      />
+                    )}
+                    {entry.completed_at && (
+                      <Icon
+                        name="completed"
+                        className="h-4 w-4 text-success"
+                        label="Completado al 100%"
+                      />
+                    )}
                   </span>
+                  {/* La reseña es contenido editorial: serif de lectura, igual
+                      que la descripción del juego en el hero. */}
                   {entry.review && (
-                    <p className="mt-1 whitespace-pre-line break-words text-xs text-zinc-500">
+                    <p className="mt-1.5 whitespace-pre-line break-words type-review text-ink">
                       {entry.review}
                     </p>
                   )}
@@ -153,7 +166,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
           )}
 
           {!entriesError && (entries ?? []).length === 0 && (
-            <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
+            <p className="rounded-card border border-dashed border-border p-8 text-center type-body text-ink-muted">
               Todavía nadie marcó este juego como terminado. Sé el primero.
             </p>
           )}

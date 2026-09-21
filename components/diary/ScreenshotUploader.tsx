@@ -146,17 +146,17 @@ export default function ScreenshotUploader({ gameId, userId }: { gameId: string;
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+    <div className="space-y-3 rounded-card border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-zinc-200">Subir capturas</h3>
-        <p className="text-xs text-zinc-500">
+        <h3 className="type-subtitle text-ink">Subir capturas</h3>
+        <p className="type-caption text-ink-faint">
           JPG, PNG, WebP o AVIF · hasta {MAX_MB} MB · {MAX_SCREENSHOTS_PER_UPLOAD} por vez
         </p>
       </div>
 
-      <p className="text-xs text-zinc-500">
+      <p className="type-caption text-ink-faint">
         ¿Exportaste la carpeta de capturas de la consola?{" "}
-        <Link href="/diario/capturas" className="text-blue-400 hover:underline">
+        <Link href="/diario/capturas" className="text-accent-ink hover:underline">
           Importalas todas juntas
         </Link>{" "}
         y se reparten solas por juego.
@@ -187,9 +187,9 @@ export default function ScreenshotUploader({ gameId, userId }: { gameId: string;
             {pending.map((item, index) => (
               <li
                 key={item.previewUrl}
-                className="space-y-2 rounded border border-zinc-800 bg-zinc-950 p-2"
+                className="space-y-2 rounded-card border border-border bg-background p-2"
               >
-                <div className="relative aspect-video overflow-hidden rounded bg-zinc-900">
+                <div className="relative aspect-video overflow-hidden rounded-chip bg-surface">
                   {/* Preview local (blob:), no pasa por el optimizador de Next. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img

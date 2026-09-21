@@ -4,6 +4,7 @@ import { useState } from "react";
 import CatalogSearchCombobox from "@/components/diary/CatalogSearchCombobox";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
+import { Icon } from "@/components/ui/Icon";
 
 /**
  * "Marcar como terminado" vive dentro de /diario como modal (antes era la
@@ -19,9 +20,10 @@ export default function MarkAsFinishedModal({ defaultOpen = false }: { defaultOp
         type="button"
         variant="secondary"
         onClick={() => setOpen(true)}
-        className="shrink-0 whitespace-nowrap py-2 sm:py-1.5"
+        className="shrink-0 gap-1.5 whitespace-nowrap"
       >
-        ✓ Marcar terminado
+        <Icon name="check" className="h-4 w-4" />
+        Marcar terminado
       </Button>
 
       <Modal

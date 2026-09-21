@@ -27,10 +27,10 @@ export default function AddDiaryEntryForm({ gameId }: { gameId: string }) {
     <form
       ref={formRef}
       action={formAction}
-      className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4"
+      className="space-y-3 rounded-card border border-border bg-surface p-4"
     >
       <input type="hidden" name="gameId" value={gameId} />
-      <h3 className="text-sm font-semibold text-zinc-200">Marcar como terminado</h3>
+      <h3 className="type-subtitle text-ink">Marcar como terminado</h3>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">

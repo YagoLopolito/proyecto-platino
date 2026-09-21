@@ -8,6 +8,8 @@ import { GamePoster } from "@/components/game/GamePoster";
 import { PosterGrid } from "@/components/game/PosterGrid";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { Select } from "@/components/ui/Select";
+import { Icon } from "@/components/ui/Icon";
 import { text, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
 const MONTH_NAMES = [
@@ -116,7 +118,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
       <EmptyState
         title="Todavía no marcaste ningún juego como terminado."
         action={
-          <Link href="/diario?nuevo=1" className="text-blue-400 hover:underline">
+          <Link href="/diario?nuevo=1" className="text-accent-ink hover:underline">
             Marcar uno ahora
           </Link>
         }
@@ -127,8 +129,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
   // En mobile los tres filtros van uno por fila y a ancho completo: con
   // `flex-1` en una fila de 375px quedaban de ~100px y el texto de la opción
   // elegida se cortaba.
-  const selectClass =
-    "w-full min-w-0 rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 sm:w-auto sm:flex-1 md:flex-none";
+  const selectClass = "w-full min-w-0 sm:w-auto sm:flex-1 md:flex-none";
 
   return (
     <div className="space-y-6">
@@ -136,7 +137,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
         <label className="sr-only" htmlFor="diary-filter-year">
           Filtrar por año
         </label>
-        <select
+        <Select
           id="diary-filter-year"
           value={activeYear}
           onChange={(e) => setYear(e.target.value)}
@@ -148,12 +149,12 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
               {y}
             </option>
           ))}
-        </select>
+        </Select>
 
         <label className="sr-only" htmlFor="diary-filter-platform">
           Filtrar por plataforma
         </label>
-        <select
+        <Select
           id="diary-filter-platform"
           value={activePlatform}
           onChange={(e) => setPlatform(e.target.value)}
@@ -165,31 +166,31 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
               {p}
             </option>
           ))}
-        </select>
+        </Select>
 
         <label className="sr-only" htmlFor="diary-filter-rating">
           Filtrar por rating
         </label>
-        <select
+        <Select
           id="diary-filter-rating"
           value={minRating}
           onChange={(e) => setMinRating(e.target.value)}
           className={selectClass}
         >
           <option value={ANY}>Cualquier rating</option>
-          <option value="8">4★ o más</option>
-          <option value="6">3★ o más</option>
-          <option value="4">2★ o más</option>
+          <option value="8">4 estrellas o más</option>
+          <option value="6">3 estrellas o más</option>
+          <option value="4">2 estrellas o más</option>
           <option value="none">Sin rating</option>
-        </select>
+        </Select>
 
-        <span className="text-sm text-zinc-500">
+        <span className="type-meta text-ink-faint">
           {filtered.length} de {entries.length}
         </span>
       </div>
 
       {filtered.length === 0 && (
-        <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
+        <p className="rounded-card border border-dashed border-border p-8 text-center type-body text-ink-muted">
           Ninguna entrada coincide con los filtros.
         </p>
       )}
@@ -218,7 +219,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                     overlay={
                       entry.playthroughNumber > 1 ? (
                         <span
-                          className="absolute left-1 top-1 rounded bg-zinc-950/80 px-1 py-0.5 text-[10px] leading-none text-zinc-300 backdrop-blur-sm"
+                          className="absolute left-1 top-1 rounded-chip bg-background/80 px-1 py-0.5 type-caption leading-none text-ink-muted backdrop-blur-sm"
                           title={`Rejugada #${entry.playthroughNumber}`}
                         >
                           #{entry.playthroughNumber}
@@ -228,8 +229,10 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                     caption={
                       <span className="flex flex-wrap items-center justify-between gap-x-1.5">
                         <StarRatingDisplay rating={entry.rating} />
-                        <span className="flex items-center gap-1 text-zinc-600">
-                          {entry.review && <span title="Tiene reseña">📝</span>}
+                        <span className="flex items-center gap-1 text-ink-faint">
+                          {entry.review && (
+                            <Icon name="note" className="h-3 w-3" label="Tiene reseña" />
+                          )}
                           {day}
                         </span>
                       </span>

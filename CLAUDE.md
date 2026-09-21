@@ -236,7 +236,7 @@ que definía estaban muertos: 566 `zinc-*` a mano en 79 archivos contra **0** us
 `emerald-*`, `amber-*`…). Todo pasa por un token. Si hace falta un color que no existe, se
 agrega como token **con su rol**, no se hardcodea en el JSX. La regla se vuelve verificable con
 un lint en la fase 6; hasta entonces es convención, y las pantallas todavía sin migrar
-(fases 4-5) siguen con `zinc-*`.
+(fase 5) siguen con `zinc-*`.
 
 Los tokens se declaran dos veces a propósito: el valor crudo en `:root` con nombre sin
 prefijo (`--ink`, `--accent`), y el mapeo a la utilidad de Tailwind en `@theme inline`
@@ -296,7 +296,7 @@ Ojo con un detalle de Tailwind: **una `@utility` que nadie usa no se compila**. 
 Las piezas compartidas (`components/Button.tsx`, `Input.tsx`, `StatCard.tsx`,
 `ProgressBar.tsx`, `Modal.tsx`, los tres badges, `components/ui/*` y
 `components/game/GamePoster.tsx`) ya no usan ningún color literal: son la referencia de cómo
-se ve un componente migrado. Las pantallas que todavía no pasaron (fases 3-5) siguen con
+se ve un componente migrado. Las pantallas que todavía no pasaron (fase 5) siguen con
 `zinc-*` y se migran en su fase.
 
 Reglas que salieron de esta pasada:
@@ -349,6 +349,39 @@ de esta pasada:
   `SyncButton`) se migraron acá aunque su rediseño completo sea de la fase 5: aparecen dentro
   de estas pantallas, y la regla del issue es no mergear una fase que deje media pantalla con
   la piel nueva y media con la vieja.
+
+### Diario — fase 4 del remake (issue #176)
+
+`/diario`, `/diario/amigos`, `/diario/resumen`, `/diario/capturas` y
+`/juegos/[id]/diario` (con `GameHero`, `DiaryTimeline`, `GameDiarySection`,
+`EditDiaryEntryForm`, `RecommendationsSection`, `StarRating` y las tres piezas de capturas) ya
+no usan ningún color literal ni ningún emoji. Lo que salió de esta pasada:
+
+- **Es la pantalla donde la serif se gana el lugar.** La reseña del diario va en `type-review`
+  y el nombre del juego de `GameHero` en `type-display`, igual que su primo `GameDetailHero`.
+  Una reseña es lo único de la app que se lee como un texto y no como un dato, así que una
+  reseña en la sans de 12px era la mitad del rediseño sin aplicar. Como en la fase 3, se
+  verifica por **estilo computado** (DS-12/DS-15): la clase puede estar puesta y la `@utility`
+  no compilar.
+- **Las estrellas del rating son un ícono, no el glifo ★.** ★ y ☆ son dingbats: cada sistema
+  los dibuja con su forma y su ancho, así que las cinco estrellas no alineaban entre
+  dispositivos y el oro venía del carácter, no del token. `StarRating` dibuja el ícono `star`
+  del set y la **media estrella es el mismo ícono recortado al 50%** — nunca un segundo ícono
+  de "media estrella", que sería otra forma y se notaría al lado de una entera.
+- **Las entradas de diario dejaron de ser tarjetas.** Misma regla que la lista de trofeos de la
+  fase 3: filas separadas por un hairline. Un historial de rejugadas o de "otros usuarios" son
+  N marcos de 1px apilados, y lo que interesa distinguir es la reseña, no el marco.
+- **Un solo "Volver al diario"** (`components/diary/BackToDiaryLink.tsx`): estaba copiado en
+  las tres subpantallas con el carácter ← suelto adelante.
+- **El esfuerzo de las recomendaciones sale de los tokens semánticos** (`success` / `warning` /
+  `danger`) y no de un verde, un ámbar y un rojo elegidos a ojo: "poco esfuerzo" es el mismo
+  verde que un logro obtenido.
+- Los `<select>` del timeline y del importador de capturas pasan a `components/ui/Select`, y el
+  selector de año del resumen toma el activo de `SegmentedControl` (`accent/15` + `accent-ink`),
+  aunque siga siendo links porque el año vive en la URL (misma razón que el filtro de fuente de
+  la biblioteca).
+- Íconos nuevos en el set: `star`, `camera`, `chart`, `note` (contenido) y `arrow-left` /
+  `arrow-right` (chrome, de trazo).
 
 ### Iconografía: sin emojis
 
@@ -865,14 +898,15 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     fuente en la biblioteca, stats por plataforma, cron compartido, diario al 100% y Steam
     OpenID. Ver la sección de Steam más arriba y `PRODUCT_SPEC.md` sección 12.
 11. Remake visual (issue #176): sistema de diseño propio con Letterboxd como referencia, para
-    que la app deje de parecer generada por IA. 🔄 **Fases 1, 2 y 3 completas**: fundaciones
+    que la app deje de parecer generada por IA. 🔄 **Fases 1 a 4 completas**: fundaciones
     (tokens con rol explícito, escala tipográfica `type-*`, la segunda familia serif, el set
     de íconos y la auditoría de contraste), primitivas (`Button`, `Input`, `StatCard`,
     `ProgressBar`, `Modal`, los badges, `components/ui/*` y `GamePoster`) y biblioteca + ficha
     de juego (`/juegos`, `/juegos/[id]`, `TrophyList`/`TrophyItem`, `GameDetailHero`,
-    `AiAdvisorPanel`, más los tokens de rareza). Faltan las fases 4-6 (diario,
-    perfil/configuración/chrome, barrido final con el lint que prohíbe los colores
-    literales). Ver el issue para el detalle por pantalla.
+    `AiAdvisorPanel`, más los tokens de rareza) y el diario completo (`/diario` y sus
+    subpantallas, `/juegos/[id]/diario`, `GameHero`, `StarRating`, con las reseñas en la
+    serif de lectura). Faltan las fases 5-6 (perfil/configuración/chrome, barrido final con
+    el lint que prohíbe los colores literales). Ver el issue para el detalle por pantalla.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

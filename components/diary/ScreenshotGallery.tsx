@@ -8,6 +8,7 @@ import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { FormError } from "@/components/FormError";
+import { Icon } from "@/components/ui/Icon";
 import { MAX_CAPTION_LENGTH } from "@/lib/diary/screenshot-constants";
 import {
   deleteScreenshot,
@@ -42,7 +43,7 @@ export default function ScreenshotGallery({
 
   if (screenshots.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
+      <p className="rounded-card border border-dashed border-border p-8 text-center type-body text-ink-muted">
         Todavía no hay capturas de este juego. Subí las tuyas y armá la galería.
       </p>
     );
@@ -101,7 +102,7 @@ export default function ScreenshotGallery({
             <button
               type="button"
               onClick={() => open(index)}
-              className="group relative block aspect-video w-full overflow-hidden rounded border border-zinc-800 bg-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="group relative block aspect-video w-full overflow-hidden rounded-card border border-border bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
               aria-label={screenshot.caption ?? `Captura de ${screenshot.authorLabel}`}
             >
               <GameArt
@@ -110,13 +111,13 @@ export default function ScreenshotGallery({
                 sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                 className="object-cover transition-transform group-hover:scale-105"
                 fallback={
-                  <span className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] text-zinc-500">
+                  <span className="flex h-full w-full items-center justify-center px-2 text-center type-caption text-ink-muted">
                     No se pudo cargar la captura
                   </span>
                 }
               />
               {screenshot.caption && (
-                <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-2 pb-1 pt-4 text-left text-[11px] text-zinc-200">
+                <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-background to-transparent px-2 pb-1 pt-4 text-left type-caption text-ink">
                   {screenshot.caption}
                 </span>
               )}
@@ -133,14 +134,14 @@ export default function ScreenshotGallery({
           description={new Date(current.createdAt).toLocaleDateString("es-AR")}
         >
           <div className="space-y-3">
-            <div className="relative aspect-video w-full overflow-hidden rounded bg-black">
+            <div className="relative aspect-video w-full overflow-hidden rounded-card bg-background">
               <GameArt
                 src={current.url}
                 alt={current.caption ?? `Captura subida por ${current.authorLabel}`}
                 sizes="(min-width: 640px) 32rem, 100vw"
                 className="object-contain"
                 fallback={
-                  <span className="flex h-full w-full items-center justify-center px-4 text-center text-sm text-zinc-500">
+                  <span className="flex h-full w-full items-center justify-center px-4 text-center type-body text-ink-muted">
                     No se pudo cargar la captura
                   </span>
                 }
@@ -149,20 +150,32 @@ export default function ScreenshotGallery({
 
             {screenshots.length > 1 && (
               <div className="flex items-center justify-between gap-2">
-                <Button type="button" variant="secondary" onClick={() => move(-1)}>
-                  ← Anterior
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="gap-1.5"
+                  onClick={() => move(-1)}
+                >
+                  <Icon name="arrow-left" className="h-4 w-4" />
+                  Anterior
                 </Button>
-                <span className="text-xs text-zinc-500 tabular-nums">
+                <span className="type-caption tabular-nums text-ink-faint">
                   {(openIndex ?? 0) + 1} / {screenshots.length}
                 </span>
-                <Button type="button" variant="secondary" onClick={() => move(1)}>
-                  Siguiente →
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="gap-1.5"
+                  onClick={() => move(1)}
+                >
+                  Siguiente
+                  <Icon name="arrow-right" className="h-4 w-4" />
                 </Button>
               </div>
             )}
 
             {current.isOwn ? (
-              <div className="space-y-2 border-t border-zinc-800 pt-3">
+              <div className="space-y-2 border-t border-border pt-3">
                 <Input
                   value={caption}
                   onChange={(event) => setCaption(event.target.value)}
@@ -181,7 +194,7 @@ export default function ScreenshotGallery({
               </div>
             ) : (
               current.caption && (
-                <p className="whitespace-pre-line break-words border-t border-zinc-800 pt-3 text-sm text-zinc-300">
+                <p className="whitespace-pre-line break-words border-t border-border pt-3 type-body text-ink-muted">
                   {current.caption}
                 </p>
               )
