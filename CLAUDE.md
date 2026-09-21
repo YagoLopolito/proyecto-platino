@@ -234,9 +234,14 @@ que definía estaban muertos: 566 `zinc-*` a mano en 79 archivos contra **0** us
 
 **Regla permanente: ningún componente usa un color literal de Tailwind** (`zinc-*`, `blue-*`,
 `emerald-*`, `amber-*`…). Todo pasa por un token. Si hace falta un color que no existe, se
-agrega como token **con su rol**, no se hardcodea en el JSX. La regla se vuelve verificable con
-un lint en la fase 6; hasta entonces es convención. Desde la fase 5 **no queda ningún color
-literal en `app/` ni en `components/`** (`grep -ro "zinc-[0-9]*" app components` da 0).
+agrega como token **con su rol**, no se hardcodea en el JSX. **La regla la hace cumplir ESLint**
+(`eslint-rules/no-tailwind-literal-colors.mjs`, activada sólo sobre `app/**` y `components/**`
+en `eslint.config.mjs`): un `zinc-800`, `blue-500/20` o `emerald-400` en cualquier string de
+esos archivos es un error de lint, y el job "Lint + tipos" de `.github/workflows/e2e.yml` lo
+corre en cada PR. `white`, `black`, `transparent` y `current` no cuentan como paleta y siguen
+permitidos (texto blanco sobre un relleno de acento, `bg-black/70` de un backdrop). La regla
+tiene su propio test con el `RuleTester` de ESLint (`npm run lint:rules`, incluido en
+`npm run lint`), sin Playwright ni Supabase: es una regla, no comportamiento de la app.
 
 Los tokens se declaran dos veces a propósito: el valor crudo en `:root` con nombre sin
 prefijo (`--ink`, `--accent`), y el mapeo a la utilidad de Tailwind en `@theme inline`
@@ -523,7 +528,23 @@ plegado de instrucciones, chip de estado contra su token, offline sin emoji. Ojo
 DS-19: no asumen el estado de la cuenta PSN (otro test de la corrida puede haberla conectado)
 -- abren el plegado de reconexión si existe y leen `data-status` antes de elegir el token.
 
-Queda la fase 6: el lint que prohíbe los colores literales en CI y `PRODUCT_SPEC.md` §7.
+### Barrido final — fase 6 del remake (issue #176)
+
+Cierra el issue. No toca ninguna pantalla: convierte la convención en algo que falla en CI y
+deja la documentación consistente con el sistema real.
+
+- **`npm run lint` falla ante un color literal de Tailwind** en `app/` o `components/` (ver la
+  regla arriba). Antes de esto, el DoD se verificaba con `grep`; ahora un PR que reintroduzca un
+  `text-zinc-400` "por ahora" se pone en rojo solo.
+- **CI corre lint y `tsc`** como job propio (`Lint + tipos`), separado del build de
+  Playwright, para que un color literal se vea por su nombre y no como un fallo de E2E.
+- `.claude/**` está en los ignores de ESLint: los worktrees locales de Claude Code traen su
+  `.next/` compilado y, sin eso, `npm run lint` en local tardaba minutos y reportaba miles de
+  errores ajenos al repo.
+- `PRODUCT_SPEC.md` §7 describe el sistema real (tokens, dos familias, escala `type-*`, set de
+  íconos, anchos de contenedor) en vez del borrador de "una sans-serif moderna tipo Inter".
+- `ACCESSIBILITY.md` aclara que las tablas anteriores al remake (`zinc-*`/`blue-*`) son
+  históricas: describen problemas de una piel que ya no existe.
 
 ## App instalable en el celular (PWA)
 

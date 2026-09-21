@@ -11,6 +11,31 @@ on:
         required: false
 
 jobs:
+  lint:
+    # Fase 6 del issue #176: el lint del sistema de diseño (ningún color
+    # literal de Tailwind en `app/`/`components/`) tiene que fallar en CI, no
+    # sólo en local. Va como job aparte para que se vea en rojo por su nombre y
+    # no escondido dentro del build de Playwright. Corre también `tsc`: es la
+    # otra verificación que CLAUDE.md pide antes de pedir review.
+    name: Lint + tipos
+    if: ${{ github.event_name != 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      # `LayoutProps` / `PageProps` son globales que Next genera en
+      # `.next/types` durante `next dev`/`next build`. Este job no buildea,
+      # así que sin este paso `tsc` falla con "Cannot find name 'LayoutProps'"
+      # aunque en local (con un `.next/` de antes) pase.
+      - run: npx next typegen
+      - run: npx tsc --noEmit
+
   e2e:
     name: Playwright (mocks)
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.base_url == '' }}

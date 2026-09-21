@@ -106,12 +106,54 @@ Además de las tablas ya definidas (`users`, `psn_accounts`, `games`, `trophies`
 
 ## 7. Diseño visual
 
+Remake completo en el issue #176 (2026-09, seis fases). La referencia es **la app de
+Letterboxd**: se copia la estructura (el póster como unidad, versalitas sobre hairline, tiras
+de stats, serif para lo editorial), no sus colores. `CLAUDE.md` § "Diseño visual" tiene el
+detalle por fase; acá va lo que define el producto.
+
 - **Idioma**: 100% español en la UI (código, nombres de variables y comentarios en inglés como siempre).
-- **Tema**: dark mode por defecto (no hay modo claro en el MVP). Paleta inspirada en PlayStation: negros/grises azulados de fondo, acentos en azul PSN, y los 4 colores de trofeo bien diferenciados:
-  - Bronce `#CD7F32`, Plata `#C0C0C0`, Oro `#FFD700`, Platino `#B9E1FF` (tono frío característico del platino de PSN, no blanco plano).
-- Los íconos de trofeo son protagonistas: en tarjetas de juego, mostrar conteo por tipo con su ícono, no solo números.
-- Tipografía: una sans-serif moderna (ej. Inter o similar vía next/font), buen contraste sobre fondo oscuro (WCAG AA mínimo).
-- Componentes clave a diseñar primero: tarjeta de juego (cover + barra de progreso + conteo de trofeos), vista de detalle de juego (lista de trofeos + panel del advisor IA), vista de perfil (stats globales, nivel de trofeos, rareza).
+- **Tema**: dark mode únicamente, sin modo claro ni dependencia de `prefers-color-scheme`.
+- **Tokens, no paleta de Tailwind.** `app/globals.css` es la única fuente de verdad, con pocos
+  escalones y un rol explícito cada uno:
+  - Superficies (3 + fondo): `background` / `surface` / `surface-raised` / `surface-hover`,
+    negros azulados.
+  - Tinta (3): `ink` / `ink-muted` / `ink-faint`.
+  - Hairlines (2): `border` (separar) / `border-strong` (bordes de controles, ≥3:1).
+  - Acentos: `accent` (azul PSN como relleno), `accent-ink` (el mismo azul como texto o ícono
+    sobre superficie oscura — son dos tokens porque tienen umbrales de contraste opuestos),
+    `accent-hover`, `accent-2` (rosa ○, sólo display y rellenos).
+  - Semánticos: `success` (100% / logro obtenido / conexión sana), `warning`, `danger`.
+  - Trofeos: Bronce `#CD7F32`, Plata `#C0C0C0`, Oro `#FFD700`, Platino `#B9E1FF` (tono frío
+    característico del platino de PSN, no blanco plano), más `trophy-neutral` para el
+    `achievement` de Steam, que es "sin desglose" y no un quinto color.
+  - Rareza (3 + 1): `rarity-ultra` / `rarity-very` / `rarity-rare`; "común" va con `ink-muted`.
+  - Radios (3): `rounded-chip`, `rounded-card`, `rounded-full` (sólo avatares).
+  - **Regla no negociable: ningún componente usa un color literal de Tailwind** (`zinc-*`,
+    `blue-*`, `emerald-*`…). La hace cumplir ESLint en CI
+    (`eslint-rules/no-tailwind-literal-colors.mjs`). Si falta un color, se agrega como token
+    con su rol.
+- **Tipografía: dos familias con roles.** Geist (sans) para el chrome — nav, botones,
+  metadatos, números de stats, versalitas — y Newsreader (serif) para el contenido editorial:
+  nombre del juego en las fichas y cuerpo de las reseñas del diario. La escala es semántica
+  (`type-display`, `type-title`, `type-subtitle`, `type-body`, `type-review`, `type-meta`,
+  `type-caption`, `type-overline`, `type-stat`) y se elige por el rol del texto, nunca
+  combinando `text-sm font-semibold` a mano. Contraste AA mínimo, auditado por token contra las
+  cuatro superficies en `ACCESSIBILITY.md`.
+- **Iconografía: set SVG propio** (`components/ui/Icon.tsx`, 24×24, `currentColor`), nunca
+  emojis: se dibujan distinto en cada sistema y no toman el color del tema. Los íconos de
+  trofeo por tipo (`TrophyTypeIcon`) siguen aparte porque lo que los distingue es su color
+  canónico. Las plataformas van con un gamepad y un monitor genéricos, no con logos de
+  PlayStation ni Steam (marcas registradas).
+- **Estructura**: la carátula es la unidad (`GamePoster`, 3:4, con sólo la barra de progreso y
+  el badge de platino / 100% encima; los números viven en la ficha); las pantallas de navegar
+  son grillas de pósters (`PosterGrid`, 3 columnas en mobile); los títulos de sección son
+  versalitas sobre hairline (`SectionHeader`); las listas largas (trofeos, entradas de diario,
+  feed de amigos) son filas separadas por hairline, no tarjetas apiladas.
+- **Anchos de contenedor, dos**: `max-w-5xl` para listados y fichas (biblioteca, diario,
+  perfil, ficha de juego, header) y `max-w-2xl` para formularios (Configuración; auth va en
+  `max-w-sm` dentro de la misma familia).
+- **Mobile primero**: navegación por barra inferior de tabs debajo de `sm`, header con la nav
+  en escritorio; la app es instalable como PWA (ver `CLAUDE.md`).
 
 ## 8. Seguridad y privacidad (refuerza `CLAUDE.md`)
 
