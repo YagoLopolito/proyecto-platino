@@ -116,6 +116,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
   if (entries.length === 0) {
     return (
       <EmptyState
+        icon="book"
         title="Todavía no marcaste ningún juego como terminado."
         action={
           <Link href="/diario?nuevo=1" className="text-accent-ink hover:underline">

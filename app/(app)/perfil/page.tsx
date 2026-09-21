@@ -2,14 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
-import {
-  TrophyTypeIcon,
-  trophyTypeLabel,
-  PSN_TROPHY_TYPES,
-  type PsnTrophyType,
-} from "@/components/TrophyTypeIcon";
-import { StatCard } from "@/components/StatCard";
+import { PSN_TROPHY_TYPES, type PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { Button } from "@/components/Button";
+import { Icon } from "@/components/ui/Icon";
 import { isVisibleInLibrary } from "@/lib/library/visibility";
 import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
 import { ProfileHeader, ProfileBadge } from "@/components/profile/ProfileHeader";
@@ -20,6 +15,7 @@ import {
   PROFILE_DIARY_PREVIEW_LIMIT,
 } from "@/components/profile/DiaryPreviewSection";
 import { FriendsStrip } from "@/components/profile/FriendsStrip";
+import { TrophyTypeStrip } from "@/components/profile/TrophyTypeStrip";
 import { TopFiveEditor } from "@/components/profile/TopFiveEditor";
 import { getFavoriteGames } from "@/lib/profile/queries";
 import { getUserDiaryEntries } from "@/lib/diary/queries";
@@ -198,7 +194,7 @@ export default async function PerfilPage() {
   const diaryEntries = diaryOutcome.status === "ok" ? diaryOutcome.entries : [];
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
+    <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-8">
         <ProfileHeader
           name={psnAccount?.online_id ?? "Perfil"}
@@ -206,9 +202,13 @@ export default async function PerfilPage() {
           avatarUrl={psnAccount?.avatar_url ?? null}
           badges={
             <>
-              {psnAccount && <ProfileBadge>PSN · {psnAccount.online_id}</ProfileBadge>}
+              {psnAccount && (
+                <ProfileBadge icon="gamepad">PSN · {psnAccount.online_id}</ProfileBadge>
+              )}
               {steamAccount && (
-                <ProfileBadge>Steam · {steamAccount.persona_name ?? "conectada"}</ProfileBadge>
+                <ProfileBadge icon="monitor">
+                  Steam · {steamAccount.persona_name ?? "conectada"}
+                </ProfileBadge>
               )}
               {!psnAccount && !steamAccount && (
                 <ProfileBadge>Sin plataformas conectadas</ProfileBadge>
@@ -250,51 +250,38 @@ export default async function PerfilPage() {
 
         <FriendsStrip friends={friends} />
 
-        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-          {/* Todo este panel es de PSN: nivel, puntos y los cuatro tipos de
-              trofeo. Steam no tiene nada de eso, por eso va con su título y su
-              propio panel abajo en vez de mezclarse acá. */}
-          <SectionHeader title="PlayStation Network · trofeos por tipo" />
-          {/*
-           * 2 columnas en mobile (4 no entran sin achicar el ícono a algo
-           * ilegible) y 4 a partir de sm. Dentro de cada tarjeta el ícono va
-           * al lado del número, alineados en una fila, en vez de apretado
-           * arriba a la derecha como cuando esto usaba StatCard.
-           */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {TROPHY_TYPES.map((type) => (
-              <div
-                key={type}
-                className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 sm:flex-col sm:gap-2 sm:p-4 sm:text-center"
-              >
-                <TrophyTypeIcon type={type} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
-                <div className="min-w-0 sm:space-y-0.5">
-                  <p className="text-2xl font-semibold leading-none">{displayCounts[type]}</p>
-                  <p className="text-xs text-zinc-400">{trophyTypeLabel(type)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="pt-1 text-xs text-zinc-600">
+        {/* Todo este bloque es de PSN: nivel, puntos y los cuatro tipos de
+            trofeo. Steam no tiene nada de eso, por eso va con su título y su
+            propia tira abajo en vez de mezclarse acá. Sin tarjeta contenedora:
+            la `SectionHeader` ya ordena, y una tarjeta con una tira adentro
+            eran dos marcos para un solo bloque. */}
+        <section className="space-y-3" aria-labelledby="psn-trophies-heading">
+          <SectionHeader
+            title={<span id="psn-trophies-heading">PlayStation Network · trofeos por tipo</span>}
+          />
+          <TrophyTypeStrip counts={displayCounts} />
+          <p className="type-caption text-ink-faint">
             {isRealPsnData
               ? "Nivel y totales tal cual los informa PSN para tu cuenta."
               : "Totales calculados a partir de los juegos ya sincronizados: sincronizá tu cuenta PSN para ver tus números reales."}
           </p>
-        </div>
+        </section>
 
         {steamAccount && (
-          <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <SectionHeader title="Steam · logros" />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <StatCard label="Juegos de Steam" value={steamStats.games} />
-              <StatCard label="Logros desbloqueados" value={steamStats.achievements} />
-              <StatCard label="Juegos al 100%" value={steamStats.completed} />
-            </div>
-            <p className="pt-1 text-xs text-zinc-600">
+          <section className="space-y-3" aria-labelledby="steam-stats-heading">
+            <SectionHeader title={<span id="steam-stats-heading">Steam · logros</span>} />
+            <ProfileStatStrip
+              stats={[
+                { label: "Juegos de Steam", value: steamStats.games },
+                { label: "Logros", value: steamStats.achievements },
+                { label: "Al 100%", value: steamStats.completed },
+              ]}
+            />
+            <p className="type-caption text-ink-faint">
               Los logros de Steam no tienen tipo ni platino: el equivalente es completar el 100% de
               un juego. Por eso no se suman con los trofeos de PSN.
             </p>
-          </div>
+          </section>
         )}
 
         {/*
@@ -303,14 +290,18 @@ export default async function PerfilPage() {
          * barra inferior de tabs (Juegos / Ajustes), que está a un pulgar de
          * distancia. Queda sólo lo que no vive en ningún tab.
          */}
-        <div className="flex flex-wrap items-center gap-4 border-t border-zinc-800 pt-6 text-sm">
+        <div className="flex flex-wrap items-center gap-4 border-t border-border pt-6">
           {!psnAccount && (
-            <Link href="/configuracion/conexiones" className="text-blue-400 hover:underline">
+            <Link
+              href="/configuracion/conexiones"
+              className="type-meta font-medium text-accent-ink hover:underline"
+            >
               Conectar cuenta PSN
             </Link>
           )}
           <form action={logout} className="ml-auto">
             <Button type="submit" variant="secondary">
+              <Icon name="logout" className="h-4 w-4" />
               Cerrar sesión
             </Button>
           </form>

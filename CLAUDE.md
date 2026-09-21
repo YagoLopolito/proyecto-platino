@@ -235,8 +235,8 @@ que definía estaban muertos: 566 `zinc-*` a mano en 79 archivos contra **0** us
 **Regla permanente: ningún componente usa un color literal de Tailwind** (`zinc-*`, `blue-*`,
 `emerald-*`, `amber-*`…). Todo pasa por un token. Si hace falta un color que no existe, se
 agrega como token **con su rol**, no se hardcodea en el JSX. La regla se vuelve verificable con
-un lint en la fase 6; hasta entonces es convención, y las pantallas todavía sin migrar
-(fase 5) siguen con `zinc-*`.
+un lint en la fase 6; hasta entonces es convención. Desde la fase 5 **no queda ningún color
+literal en `app/` ni en `components/`** (`grep -ro "zinc-[0-9]*" app components` da 0).
 
 Los tokens se declaran dos veces a propósito: el valor crudo en `:root` con nombre sin
 prefijo (`--ink`, `--accent`), y el mapeo a la utilidad de Tailwind en `@theme inline`
@@ -296,8 +296,7 @@ Ojo con un detalle de Tailwind: **una `@utility` que nadie usa no se compila**. 
 Las piezas compartidas (`components/Button.tsx`, `Input.tsx`, `StatCard.tsx`,
 `ProgressBar.tsx`, `Modal.tsx`, los tres badges, `components/ui/*` y
 `components/game/GamePoster.tsx`) ya no usan ningún color literal: son la referencia de cómo
-se ve un componente migrado. Las pantallas que todavía no pasaron (fase 5) siguen con
-`zinc-*` y se migran en su fase.
+se ve un componente migrado.
 
 Reglas que salieron de esta pasada:
 
@@ -469,6 +468,62 @@ el caché de la otra.
 `ProfileStatStrip`, `FavoriteGamesSection`, `DiaryPreviewSection`,
 `FriendsStrip`), compartidas entre el perfil propio y el de otro usuario — ver la
 sección de perfil más abajo.
+
+### Perfil, configuración, chrome y estados — fase 5 del remake (issue #176)
+
+`/perfil`, `/perfil/[id]`, `/configuracion/*`, `AppHeader`, `MobileTabBar`, los tres estados
+(`EmptyState` / `ErrorState` / `LoadingState`), `components/profile/*`, `components/friends/*`,
+`components/connections/*`, `components/pwa/*` y las pantallas de auth y offline ya no usan
+ningún color literal. Con esto las dos `grep` del DoD dan **0**. Lo que salió de esta pasada:
+
+- **El logo es una imagen** (`public/logo.webp`, con transparencia, recortada y reducida del
+  PNG original) en el header y arriba de los forms de auth; reemplaza al "Platin|oob" tipeado
+  con dos colores. Va con `unoptimized` por la misma razón que `GameArt` (la cuota de
+  transformaciones de Vercel) y el link del header lleva `aria-label="Platinoob"`, así que el
+  nombre accesible no cambió.
+- **El activo de una nav no es sólo un color.** Header, barra inferior y tabs de Configuración
+  marcan el tab activo con tres señales: `accent-ink`, peso 600 contra 500 y una regla de 2px
+  (`after:`/`before:` con `bg-accent-ink`), además de `aria-current="page"`. La nav del header
+  va en `type-overline` (es chrome, no lectura) y los íconos de la barra inferior salen del set
+  (`gamepad` / `book` / `user` / `settings`) en vez de paths copiados a mano. El header pasa a
+  `max-w-5xl`, el mismo ancho que las pantallas de listado: con `max-w-4xl` el logo quedaba
+  corrido respecto del contenido.
+- **Dos anchos de contenedor y nada más**: `max-w-5xl` para listados (biblioteca, diario,
+  perfil, fichas) y `max-w-2xl` para formularios (Configuración; auth va en `max-w-sm` dentro
+  de la misma familia). Cada layout lo dice en un comentario.
+- **`EmptyState` tiene jerarquía**: ícono del set en un círculo, título, descripción opcional y
+  acción primaria. Reemplaza a las cinco copias del "párrafo en marco punteado" que tenían
+  `FriendsStrip`, `FavoriteGamesSection`, `DiaryPreviewSection` y los dos feeds de amigos, y los
+  callers viejos ganan un ícono (`gamepad`, `search`, `book`, `chart`). `ErrorState` suma el
+  ícono `alert` con el mismo `role="alert"`.
+- **Las instrucciones de Conexiones van plegadas** en `components/ui/Disclosure.tsx`, un
+  `<details>` nativo cerrado por defecto (no `MobileDisclosure`, que es sólo-mobile y tiene
+  estado propio por el problema de `::details-content`). Lo que queda a la vista es la acción:
+  el campo NPSSO / SteamID y el botón. **Excepción a propósito**: las instrucciones para
+  destrabar un perfil de Steam en privado siguen desplegadas, porque son el arreglo de un estado
+  roto que la app ya detectó (misma lógica que el form de reconexión con NPSSO vencido).
+- **Las stats del perfil son una sola tira**: `TrophyTypeStrip` (los cuatro tipos de PSN, con
+  celdas separadas por 1px vía `gap-px` + `bg-border`, sin bordes por celda) reemplaza a la
+  tarjeta-con-cuatro-tarjetas que estaba copiada en el perfil propio y en el ajeno; el panel de
+  Steam usa `ProfileStatStrip`. La banda del `ProfileHeader` sale de `accent/50 → accent/15 →
+  surface`, no de un azul de Tailwind.
+- **El feed de amigos son filas con hairline** con carátula 3:4, la reseña en `type-review` y
+  el "tiene reseña" de la grilla como ícono `note` con `label` (ahí el ícono **es** la
+  información, al revés que el resto del set). Era el último 📝 y el último 📡 (offline) en
+  JSX.
+- **Chip de estado de conexión** en color semántico: `success` conectada, `warning` "necesita
+  atención", `ink-muted` sobre `surface-hover` "no conectada" (un vacío, no un problema). El
+  "Iniciar sesión con Steam" es un `<a>` con `buttonClassName("primary")`, exportada de
+  `Button.tsx` para que un link que tiene que verse como botón no hardcodee el azul.
+
+Íconos nuevos: `user`, `users`, `settings`, `download`, `offline` (contenido) y `plus`,
+`logout` (chrome, de trazo). Tests DS-16..DS-20 en `21-design-system.spec.ts` y sus filas en
+`TESTING_PRD.md` §6.18: activo del header por estilo computado, íconos de la barra inferior,
+plegado de instrucciones, chip de estado contra su token, offline sin emoji. Ojo con DS-18 y
+DS-19: no asumen el estado de la cuenta PSN (otro test de la corrida puede haberla conectado)
+-- abren el plegado de reconexión si existe y leen `data-status` antes de elegir el token.
+
+Queda la fase 6: el lint que prohíbe los colores literales en CI y `PRODUCT_SPEC.md` §7.
 
 ## App instalable en el celular (PWA)
 

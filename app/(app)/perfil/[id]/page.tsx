@@ -12,9 +12,10 @@ import {
   PROFILE_DIARY_PREVIEW_LIMIT,
 } from "@/components/profile/DiaryPreviewSection";
 import { FollowButton } from "@/components/profile/FollowButton";
-import { SectionAction } from "@/components/ui/SectionHeader";
+import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
 import { ErrorState } from "@/components/ErrorState";
-import { PSN_TROPHY_TYPES, TrophyTypeIcon, trophyTypeLabel } from "@/components/TrophyTypeIcon";
+import { PSN_TROPHY_TYPES } from "@/components/TrophyTypeIcon";
+import { TrophyTypeStrip } from "@/components/profile/TrophyTypeStrip";
 
 /**
  * Perfil público de otro usuario: su Top 5, sus últimas partidas terminadas con
@@ -67,7 +68,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
   const totalTrophies = earned ? PSN_TROPHY_TYPES.reduce((sum, type) => sum + earned[type], 0) : 0;
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
+    <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-8">
         <ProfileHeader
           name={name}
@@ -75,7 +76,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
           avatarUrl={profile.avatarUrl}
           badges={
             profile.psnOnlineId ? (
-              <ProfileBadge>PSN · {profile.psnOnlineId}</ProfileBadge>
+              <ProfileBadge icon="gamepad">PSN · {profile.psnOnlineId}</ProfileBadge>
             ) : (
               <ProfileBadge>Sin PSN conectada</ProfileBadge>
             )
@@ -117,26 +118,16 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
         )}
 
         {earned && (
-          <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {PSN_TROPHY_TYPES.map((type) => (
-                <div
-                  key={type}
-                  className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 sm:flex-col sm:gap-2 sm:p-4 sm:text-center"
-                >
-                  <TrophyTypeIcon type={type} className="h-9 w-9 shrink-0 sm:h-11 sm:w-11" />
-                  <div className="min-w-0 sm:space-y-0.5">
-                    <p className="text-2xl font-semibold leading-none">{earned[type]}</p>
-                    <p className="text-xs text-zinc-400">{trophyTypeLabel(type)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="pt-1 text-xs text-zinc-600">
+          <section className="space-y-3" aria-labelledby="psn-trophies-heading">
+            <SectionHeader
+              title={<span id="psn-trophies-heading">PlayStation Network · trofeos por tipo</span>}
+            />
+            <TrophyTypeStrip counts={earned} />
+            <p className="type-caption text-ink-faint">
               Totales tal cual los informa PSN. El progreso por juego es privado: solo lo ve cada
               usuario en su propia biblioteca.
             </p>
-          </div>
+          </section>
         )}
       </div>
     </div>

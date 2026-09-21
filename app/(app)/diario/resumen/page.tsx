@@ -46,7 +46,7 @@ export default async function DiarySummaryPage({
   if (years.length === 0) {
     return (
       <PageShell>
-        <EmptyState title="Todavía no marcaste ninguna partida como terminada." />
+        <EmptyState icon="chart" title="Todavía no marcaste ninguna partida como terminada." />
       </PageShell>
     );
   }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FriendAvatar } from "@/components/friends/FriendAvatar";
 import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { profileLabel } from "@/lib/friends/constants";
 import type { FriendProfile } from "@/lib/friends/queries";
 
@@ -22,10 +23,19 @@ export function FriendsStrip({ friends }: { friends: FriendProfile[] }) {
         }
       />
       {friends.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-          Todavía no agregaste amigos. Se agregan desde el diario, y desde acá vas a poder ver su
-          perfil.
-        </p>
+        <EmptyState
+          icon="users"
+          title="Todavía no agregaste amigos."
+          description="Se agregan desde el diario, y desde acá vas a poder ver su perfil."
+          action={
+            <Link
+              href="/diario/amigos"
+              className="type-meta font-medium text-accent-ink hover:underline"
+            >
+              Buscar gente
+            </Link>
+          }
+        />
       ) : (
         <ul className="flex flex-wrap gap-2">
           {friends.map((friend) => {
@@ -35,7 +45,7 @@ export function FriendsStrip({ friends }: { friends: FriendProfile[] }) {
                 <Link
                   href={`/perfil/${friend.id}`}
                   data-testid="friend-link"
-                  className="flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 py-1 pl-1 pr-3 text-sm text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
+                  className="flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface py-1 pl-1 pr-3 type-meta text-ink-muted transition-colors hover:border-border-strong hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink sm:min-h-0"
                 >
                   <FriendAvatar url={friend.avatarUrl} name={label} size={28} />
                   <span className="max-w-[9rem] truncate">{label}</span>

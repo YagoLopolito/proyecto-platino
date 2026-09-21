@@ -1,30 +1,24 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { ConfigTabs } from "./ConfigTabs";
 
 /**
  * Configuración es la casa de todo lo que no es contenido: por ahora solo
  * Conexiones, pero la estructura de tabs ya está lista para el nombre de
  * usuario, las preferencias del diario y el borrado de cuenta.
+ *
+ * `max-w-2xl`: es el ancho de las pantallas de formulario (Configuración y
+ * las de auth), contra el `max-w-5xl` de las de listado. Son los dos únicos
+ * anchos de contenedor de la app.
  */
 const TABS = [{ href: "/configuracion/conexiones", label: "Conexiones" }];
 
 export default function ConfiguracionLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-8 sm:py-16 text-zinc-50">
+    <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-2xl space-y-6">
-        <h1 className="text-2xl font-semibold">Configuración</h1>
+        <h1 className="type-title">Configuración</h1>
 
-        <nav aria-label="Configuración" className="flex gap-1 border-b border-zinc-800 text-sm">
-          {TABS.map((tab) => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="rounded-t px-3 py-2 text-zinc-300 hover:text-zinc-50"
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </nav>
+        <ConfigTabs tabs={TABS} />
 
         {children}
       </div>

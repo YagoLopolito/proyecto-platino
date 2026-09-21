@@ -20,9 +20,9 @@ export default function ReplaceSteamAccountForm({ verifiedSteamId }: { verifiedS
   return (
     <form
       action={formAction}
-      className="space-y-2 rounded border border-amber-600/60 bg-amber-500/10 p-3"
+      className="space-y-2 rounded-card border border-warning/40 bg-warning/10 p-3"
     >
-      <p className="text-sm text-amber-200">
+      <p className="type-meta text-warning">
         Te logueaste en Steam con la cuenta <span className="font-mono">{verifiedSteamId}</span>,
         que no es la que tenés conectada.
       </p>

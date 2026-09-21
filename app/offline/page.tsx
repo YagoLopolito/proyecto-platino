@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Icon } from "@/components/ui/Icon";
 
 export const metadata: Metadata = { title: "Sin conexión — Platinoob" };
 
@@ -10,11 +11,13 @@ export const metadata: Metadata = { title: "Sin conexión — Platinoob" };
 export default function OfflinePage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
-      <p className="text-5xl" aria-hidden="true">
-        📡
-      </p>
-      <h1 className="text-2xl font-semibold text-zinc-50">Sin conexión</h1>
-      <p className="max-w-sm text-sm text-zinc-400">
+      {/* Ícono del set y no el 📡: un emoji se dibuja distinto en cada sistema
+          y no toma el color del tema (issue #176 §3.3). */}
+      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-raised text-ink-faint">
+        <Icon name="offline" className="h-8 w-8" />
+      </span>
+      <h1 className="type-title text-ink">Sin conexión</h1>
+      <p className="max-w-sm type-body text-ink-muted">
         Platinoob necesita internet para traer tus trofeos y tu diario. Volvé a intentar cuando
         recuperes la señal.
       </p>

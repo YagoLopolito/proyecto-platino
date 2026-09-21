@@ -222,6 +222,7 @@ export default async function JuegosPage({
 
         {!error && games.length === 0 && fuente !== "todos" ? (
           <EmptyState
+            icon="gamepad"
             title={`No tenés juegos de ${SOURCE_LABEL[fuente]} sincronizados. Sincronizá esa cuenta desde Configuración › Conexiones.`}
             action={
               <Link href="/juegos" className="text-accent-ink hover:underline">

@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Sistema de diseño: tokens, escala tipográfica y set de íconos.
- * Casos DS-01..DS-15 de TESTING_PRD.md §6.18 (fases 1 a 4 del issue #176).
+ * Casos DS-01..DS-20 de TESTING_PRD.md §6.18 (fases 1 a 5 del issue #176).
  *
  * Por qué se testea algo "visual": lo que se verifica acá no es cómo se ve,
  * sino que las piezas del sistema **existan y se apliquen de verdad**. Los dos
@@ -472,5 +472,127 @@ test.describe("Sistema de diseño", () => {
     const heading = page.getByRole("heading", { level: 1 });
     await expect(heading).toBeVisible();
     expect(await heading.evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(SERIF);
+  });
+
+  test("DS-16: el tab activo del header se marca con acento, peso y aria-current", async ({
+    page,
+  }) => {
+    await page.goto("/perfil");
+
+    const nav = page.getByRole("navigation", { name: "Principal" });
+    const active = nav.getByRole("link", { name: "Perfil" });
+    await expect(active).toHaveAttribute("aria-current", "page");
+
+    const styles = await active.evaluate((el) => {
+      const root = getComputedStyle(document.documentElement);
+      const probe = document.createElement("div");
+      probe.style.color = root.getPropertyValue("--accent-ink").trim();
+      document.body.appendChild(probe);
+      const token = getComputedStyle(probe).color;
+      probe.remove();
+      const s = getComputedStyle(el);
+      const inactive = getComputedStyle(el.parentElement!.querySelector('a:not([aria-current])')!);
+      return {
+        color: s.color,
+        token,
+        weight: parseInt(s.fontWeight, 10),
+        inactiveWeight: parseInt(inactive.fontWeight, 10),
+        textTransform: s.textTransform,
+      };
+    });
+
+    // El activo no se distingue sólo por el color (WCAG 1.4.1): pesa más que
+    // los otros. Y el color es el token, no un azul parecido.
+    expect(styles.color).toBe(styles.token);
+    expect(styles.weight).toBeGreaterThan(styles.inactiveWeight);
+    // La nav es chrome en versalitas (issue #176 §4), no texto de lectura.
+    expect(styles.textTransform).toBe("uppercase");
+  });
+
+  test("DS-17: la barra inferior de mobile dibuja sus tabs con íconos del set", async ({
+    page,
+  }) => {
+    await page.goto("/perfil");
+
+    // La barra está en el DOM en cualquier tamaño (es `sm:hidden`, no
+    // condicional), así que se cuenta sin exigir visibilidad. Antes tenía sus
+    // propios paths copiados a mano; ahora son los mismos íconos del set.
+    const bar = page.getByTestId("mobile-tab-bar");
+    await expect(bar.locator("[data-icon]")).toHaveCount(4);
+    for (const icon of ["gamepad", "book", "user", "settings"]) {
+      await expect(bar.locator(`[data-icon="${icon}"]`)).toHaveCount(1);
+    }
+  });
+
+  test("DS-18: las instrucciones de Conexiones van plegadas y el campo queda a la vista", async ({
+    page,
+  }) => {
+    await page.goto("/configuracion/conexiones");
+    const psnCard = page.getByRole("region", { name: "PlayStation Network" });
+
+    // Puede haber una cuenta PSN conectada por otro test de la corrida: en
+    // ese caso el form vive detrás de "Reconectar con un NPSSO nuevo" y hay
+    // que abrirlo primero. Lo que se prueba es el plegado de las
+    // instrucciones, no el estado de la cuenta.
+    const reconnect = psnCard.getByText("Reconectar con un NPSSO nuevo");
+    if (await reconnect.count()) await reconnect.click();
+
+    // El campo y el botón, siempre visibles: son la acción.
+    await expect(psnCard.getByLabel("NPSSO")).toBeVisible();
+
+    // El manual, plegado de entrada: el link a playstation.com está en el DOM
+    // pero no se ve hasta abrir el `<details>`.
+    const howTo = psnCard.getByText("Cómo conseguir el NPSSO");
+    await expect(howTo).toBeVisible();
+    const link = psnCard.getByRole("link", { name: "playstation.com" });
+    await expect(link).toBeHidden();
+
+    await howTo.click();
+    await expect(link).toBeVisible();
+  });
+
+  test("DS-19: el chip de estado de una conexión pinta con el token semántico de su estado", async ({
+    page,
+  }) => {
+    await page.goto("/configuracion/conexiones");
+
+    // No se asume el estado de la cuenta (otro test de la corrida puede
+    // haberla conectado): se lee `data-status` y se verifica que el color sea
+    // exactamente el token que le corresponde a ESE estado.
+    const chip = page
+      .getByRole("region", { name: "PlayStation Network" })
+      .getByTestId("connection-status");
+    await expect(chip).toBeVisible();
+
+    const colors = await chip.evaluate((el) => {
+      const tokenByStatus: Record<string, string> = {
+        connected: "--success",
+        attention: "--warning",
+        disconnected: "--ink-muted",
+      };
+      const status = el.getAttribute("data-status") ?? "";
+      const root = getComputedStyle(document.documentElement);
+      const probe = document.createElement("div");
+      probe.style.color = root.getPropertyValue(tokenByStatus[status]).trim();
+      document.body.appendChild(probe);
+      const token = getComputedStyle(probe).color;
+      probe.remove();
+      return { chip: getComputedStyle(el).color, token, status };
+    });
+
+    expect(colors.chip).toBe(colors.token);
+  });
+
+  test("DS-20: la pantalla offline usa un ícono del set, no un emoji", async ({ browser }) => {
+    // Sin sesión, igual que PWA-04: el fallback del service worker se sirve
+    // antes de que haya usuario.
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto("/offline");
+
+    const main = page.getByRole("main");
+    await expect(main.locator('[data-icon="offline"]')).toBeVisible();
+    await expect(main).not.toContainText("📡");
+    await context.close();
   });
 });

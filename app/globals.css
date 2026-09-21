@@ -11,8 +11,8 @@
  * ojo pantalla por pantalla. Los colores son los de la marca, no los de
  * Letterboxd: negros azulados, acento PSN, oro de trofeo.
  *
- * Regla: NINGÚN componente usa un color literal de Tailwind (`zinc-*`,
- * `blue-*`, `emerald-*`). Todo pasa por un token de acá. Si hace falta un
+ * Regla: NINGÚN componente usa un color literal de Tailwind (los grises, los
+ * azules ni los verdes de su paleta). Todo pasa por un token de acá. Si hace falta un
  * color que no existe, se agrega como token con su rol, no se hardcodea.
  */
 :root {

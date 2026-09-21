@@ -78,7 +78,7 @@ export default function SteamSyncButton({ className = "" }: { className?: string
       {message?.kind === "private" && (
         <div className="space-y-1">
           <FormError>{message.text}</FormError>
-          <p className="text-sm text-zinc-400">
+          <p className="type-meta text-ink-muted">
             En Steam: Perfil → Editar perfil → Configuración de privacidad → &quot;Detalles del
             juego&quot;: Público.
           </p>
