@@ -546,7 +546,7 @@ llama a IGDB.
 
 ### 6.18 Sistema de diseño (`21-design-system.spec.ts`)
 
-Fases 1 a 3 del remake visual (issue #176). Lo que se verifica no es "cómo se ve" sino que las
+Fases 1 a 4 del remake visual (issue #176). Lo que se verifica no es "cómo se ve" sino que las
 piezas del sistema **se apliquen de verdad**: los dos bugs que motivaron la fase eran de ese
 tipo y ninguno se veía leyendo el diff (la fuente cargada no la usaba nadie porque `body` la
 pisaba con Arial; los tokens de `globals.css` estaban definidos y con 0 usos). Un test que
@@ -565,8 +565,12 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-09 | La nav de la ficha usa íconos, no emojis | Las cuatro secciones muestran `[data-icon]` (trophy/sparkle/link/book) y ninguna contiene 🏆 ✨ 🔗 📔 | P2 |
 | DS-10 | La lista de trofeos son filas con hairline | Una fila de trofeo no tiene fondo propio ni radio, y separa con un borde inferior de 1px | P2 |
 | DS-11 | La rareza pinta con los tokens de rareza | El `color` computado del chip "Ultra rara" es exactamente `--rarity-ultra`, no un fucsia parecido | P2 |
+| DS-12 | La reseña del diario va en la serif de lectura | El `font-family` computado del texto de una reseña resuelve a Newsreader | P1 |
+| DS-13 | El rating son íconos del set, no los glifos ★/☆ | Un rating 9/10 muestra 10 `[data-icon="star"]` y no contiene ★ ni ☆ | P2 |
+| DS-14 | Las acciones de `/diario` usan íconos, no emojis | La fila de acciones muestra `[data-icon]` (chart/camera/trophy/check) y no contiene 📊 📷 🏆 ✓ | P2 |
+| DS-15 | El nombre del juego en la ficha de diario va en la serif | El `font-family` computado del `h1` de `GameHero` resuelve a Newsreader | P1 |
 
-**Total: 137 casos** — 52 P0, 57 P1, 28 P2.
+**Total: 141 casos** — 52 P0, 59 P1, 30 P2.
 
 ---
 

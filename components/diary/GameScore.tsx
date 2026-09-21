@@ -24,7 +24,7 @@ export function GameScore({
 
   if (count < MIN_RATINGS_FOR_AVERAGE || average === null) {
     return (
-      <span className={`text-sm text-zinc-500 ${className}`}>
+      <span className={`type-meta text-ink-faint ${className}`}>
         Todavía sin suficientes valoraciones
         {count > 0 && ` (${count} ${count === 1 ? "voto" : "votos"})`}.
       </span>
@@ -32,7 +32,7 @@ export function GameScore({
   }
 
   return (
-    <span className={`inline-flex items-center gap-1.5 text-sm text-zinc-400 ${className}`}>
+    <span className={`inline-flex items-center gap-1.5 type-meta text-ink-muted ${className}`}>
       <StarRatingDisplay rating={average} />
       <span>
         {(average / 2).toFixed(1)}/5 · {count} valoraciones

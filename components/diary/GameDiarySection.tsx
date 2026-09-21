@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { GameDiarySummary } from "@/lib/diary/queries";
 import { GameScore } from "@/components/diary/GameScore";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
+import { Icon } from "@/components/ui/Icon";
 
 /**
  * Letterbox dentro de la ficha del juego (issue #95): score comunitario con su
@@ -20,14 +21,14 @@ export function GameDiarySection({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+      <div className="rounded-card border border-border bg-surface p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <GameScore
             score={{ average_rating: summary.averageRating, rating_count: summary.ratingCount }}
           />
           <Link
             href={`/juegos/${gameId}/diario`}
-            className="rounded border border-blue-700 bg-blue-900/30 px-3 py-1.5 text-sm text-blue-300 hover:border-blue-500"
+            className="inline-flex min-h-11 items-center rounded-chip border border-accent-ink bg-accent/15 px-3 type-meta font-medium text-accent-ink transition-colors hover:bg-accent/25 sm:min-h-0 sm:py-1.5"
           >
             {summary.ownEntries.length > 0 ? "Editar mis partidas" : "Marcar como terminado"}
           </Link>
@@ -38,11 +39,14 @@ export function GameDiarySection({
             {[5, 4, 3, 2, 1].map((stars) => {
               const count = summary.distribution[stars - 1];
               return (
-                <li key={stars} className="flex items-center gap-2 text-xs text-zinc-500">
-                  <span className="w-10 shrink-0 tabular-nums">{stars} ★</span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
+                <li key={stars} className="flex items-center gap-2 type-meta text-ink-faint">
+                  <span className="flex w-10 shrink-0 items-center gap-1 tabular-nums">
+                    {stars}
+                    <Icon name="star" className="h-3 w-3 text-trophy-gold" />
+                  </span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-hover">
                     <div
-                      className="h-full bg-[var(--color-trophy-gold)]"
+                      className="h-full bg-trophy-gold"
                       style={{ width: `${Math.round((count / maxBucket) * 100)}%` }}
                     />
                   </div>
@@ -57,38 +61,42 @@ export function GameDiarySection({
       {summary.ownEntries.length > 0 ? (
         <ul className="space-y-2">
           {summary.ownEntries.map((entry) => (
-            <li
-              key={entry.id}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-zinc-400">
+            <li key={entry.id} className="border-t border-border py-3 first:border-t-0">
+              <div className="flex flex-wrap items-center gap-2 type-meta">
+                <span className="text-ink-muted">
                   Partida #{entry.playthroughNumber} · {entry.finishedOn}
                 </span>
                 <StarRatingDisplay rating={entry.rating} />
                 {entry.platinumEarnedAt && (
-                  <span className="rounded-full border border-zinc-600/60 bg-zinc-700/20 px-1.5 py-0.5 text-[11px] text-zinc-300">
-                    🏆 Platino {entry.platinumEarnedAt.slice(0, 10)}
+                  <span className="inline-flex items-center gap-1 rounded-chip border border-trophy-platinum/50 bg-trophy-platinum/10 px-1.5 py-0.5 type-caption text-trophy-platinum">
+                    <Icon name="trophy" className="h-3 w-3" />
+                    Platino {entry.platinumEarnedAt.slice(0, 10)}
                   </span>
                 )}
                 {entry.completedAt && (
-                  <span className="rounded-full border border-emerald-500/60 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] text-emerald-300">
+                  <span className="inline-flex items-center gap-1 rounded-chip border border-success/50 bg-success/10 px-1.5 py-0.5 type-caption text-success">
+                    <Icon name="completed" className="h-3 w-3" />
                     100% {entry.completedAt.slice(0, 10)}
                   </span>
                 )}
                 {entry.source === "platinum_sync" && (
-                  <span className="text-[11px] text-zinc-500">creada por el sync de PSN</span>
+                  <span className="type-caption text-ink-faint">creada por el sync de PSN</span>
                 )}
                 {entry.source === "completion_sync" && (
-                  <span className="text-[11px] text-zinc-500">creada por el sync de Steam</span>
+                  <span className="type-caption text-ink-faint">creada por el sync de Steam</span>
                 )}
               </div>
-              {entry.review && <p className="mt-1 text-xs text-zinc-500">{entry.review}</p>}
+              {/* La reseña va en la serif de lectura: es el contenido, no un metadato. */}
+              {entry.review && (
+                <p className="mt-1.5 whitespace-pre-line break-words type-review text-ink">
+                  {entry.review}
+                </p>
+              )}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="rounded-lg border border-dashed border-zinc-800 p-6 text-center text-sm text-zinc-500">
+        <p className="rounded-card border border-dashed border-border p-6 text-center type-body text-ink-muted">
           Todavía no registraste una partida de este juego.
         </p>
       )}

@@ -16,6 +16,7 @@ import { groupFilesByGame, type MatchableGame } from "@/lib/diary/screenshot-imp
 import { Button } from "@/components/Button";
 import { FormError, FormSuccess } from "@/components/FormError";
 import { GameArt } from "@/components/game/GameArt";
+import { Select } from "@/components/ui/Select";
 
 interface ImporterGame extends MatchableGame {
   coverUrl: string | null;
@@ -208,15 +209,15 @@ export default function ScreenshotImporter({
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className={`space-y-3 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
-          dragging ? "border-blue-500 bg-blue-500/5" : "border-zinc-700 bg-zinc-900"
+        className={`space-y-3 rounded-card border-2 border-dashed p-6 text-center transition-colors ${
+          dragging ? "border-accent-ink bg-accent/10" : "border-border-strong bg-surface"
         }`}
       >
-        <p className="text-sm text-zinc-300">
-          Arrastrá acá la carpeta <code className="text-zinc-400">Screenshots</code> de tu USB, o
+        <p className="type-body text-ink">
+          Arrastrá acá la carpeta <code className="text-ink-muted">Screenshots</code> de tu USB, o
           elegila con los botones.
         </p>
-        <p className="text-xs text-zinc-500">
+        <p className="type-caption text-ink-faint">
           JPG, PNG, WebP o AVIF · hasta {MAX_MB} MB cada una · {MAX_SCREENSHOTS_PER_IMPORT} por vez.
           Los videos y archivos de otro tipo se ignoran solos.
         </p>
@@ -265,7 +266,7 @@ export default function ScreenshotImporter({
       {groups.length > 0 && (
         <div className="space-y-3" data-testid="screenshot-import-groups">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-zinc-300">
+            <p className="type-body text-ink-muted">
               {picked.length} {picked.length === 1 ? "captura" : "capturas"} en {groups.length}{" "}
               {groups.length === 1 ? "grupo" : "grupos"} · {assignedCount} con juego asignado
             </p>
@@ -290,9 +291,9 @@ export default function ScreenshotImporter({
               return (
                 <li
                   key={key}
-                  className="flex flex-wrap items-center gap-3 rounded border border-zinc-800 bg-zinc-900 p-3"
+                  className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface p-3"
                 >
-                  <div className="h-14 w-11 shrink-0 overflow-hidden rounded bg-zinc-800">
+                  <div className="h-14 w-11 shrink-0 overflow-hidden rounded-chip bg-surface-hover">
                     {game?.coverUrl && (
                       <GameArt
                         src={game.coverUrl}
@@ -305,26 +306,25 @@ export default function ScreenshotImporter({
                     )}
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
-                    <p className="truncate text-sm text-zinc-200">
+                    <p className="truncate type-subtitle text-ink">
                       {group.detectedName ?? "Sin juego detectado"}
                     </p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="type-meta text-ink-faint">
                       {group.fileIndexes.length}{" "}
                       {group.fileIndexes.length === 1 ? "captura" : "capturas"}
                       {group.game ? " · detectado automáticamente" : ""}
                     </p>
                   </div>
-                  <label className="w-full text-xs text-zinc-400 sm:w-64">
+                  <label className="w-full sm:w-64">
                     <span className="sr-only">
                       Juego para {group.detectedName ?? "las capturas sin juego"}
                     </span>
-                    <select
+                    <Select
                       value={gameId}
                       disabled={uploading}
                       onChange={(event) =>
                         setOverrides((current) => ({ ...current, [key]: event.target.value }))
                       }
-                      className="min-h-11 w-full rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-200 focus:border-blue-500 focus:outline-none sm:min-h-0"
                     >
                       <option value="">— No importar —</option>
                       {games.map((candidate) => (
@@ -332,7 +332,7 @@ export default function ScreenshotImporter({
                           {candidate.name}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </label>
                 </li>
               );
@@ -348,7 +348,7 @@ export default function ScreenshotImporter({
       )}
 
       {games.length === 0 && (
-        <p className="text-sm text-zinc-400">
+        <p className="type-body text-ink-muted">
           Todavía no tenés juegos en la biblioteca: sincronizá PSN o Steam antes de importar
           capturas.
         </p>

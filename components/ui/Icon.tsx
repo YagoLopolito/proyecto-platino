@@ -41,12 +41,18 @@ export const ICON_NAMES = [
   "link",
   "book",
   "help",
+  "star",
+  "camera",
+  "chart",
+  "note",
   "search",
   "arrow-down",
   "close",
   "chevron-down",
   "filters",
   "check",
+  "arrow-left",
+  "arrow-right",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -68,6 +74,8 @@ const STROKE_ICONS = new Set<IconName>([
   "filters",
   "check",
   "arrow-down",
+  "arrow-left",
+  "arrow-right",
 ]);
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -135,6 +143,30 @@ const PATHS: Record<IconName, ReactNode> = {
     <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM9.2 9.3a2.9 2.9 0 1 1 3.9 2.7c-.5.2-.6.4-.6.6v.6a1 1 0 1 1-2 0v-.6c0-1.2.8-2 1.7-2.4a.9.9 0 1 0-1.2-.9 1 1 0 1 1-2 0Zm2.8 6.1a1.2 1.2 0 1 0 0 2.5 1.2 1.2 0 0 0 0-2.5Z" />
   ),
 
+  /**
+   * Estrella del rating del diario. Reemplaza a los glifos ★/☆, que son
+   * dingbats: cada sistema los dibuja con su propia forma y su propio ancho,
+   * así que las cinco estrellas no quedaban alineadas entre dispositivos.
+   * La media estrella no es un ícono aparte: se recorta este mismo al 50%
+   * (ver `StarRating`), que es lo único que garantiza que las dos mitades
+   * sean exactamente la misma forma.
+   */
+  star: (
+    <path d="M12 2.6a1 1 0 0 1 .9.57l2.36 4.9 5.32.77a1 1 0 0 1 .56 1.7l-3.86 3.8.91 5.35a1 1 0 0 1-1.45 1.05L12 18.2l-4.74 2.54a1 1 0 0 1-1.45-1.05l.9-5.35-3.85-3.8a1 1 0 0 1 .56-1.7l5.32-.77 2.36-4.9a1 1 0 0 1 .9-.57Z" />
+  ),
+  /** Capturas de pantalla del juego. Reemplaza al 📷. */
+  camera: (
+    <path d="M9.4 3h5.2a1 1 0 0 1 .84.46L16.5 5H20a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3.5l1.06-1.54A1 1 0 0 1 9.4 3Zm2.6 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z" />
+  ),
+  /** Resumen con estadísticas del año. Reemplaza al 📊. */
+  chart: (
+    <path d="M4 3a1 1 0 0 1 1 1v15h15a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm4 9a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1-1Zm4-5a1 1 0 0 1 1 1v8a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1Zm4 3a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0v-5a1 1 0 0 1 1-1Zm4-5a1 1 0 0 1 1 1v10a1 1 0 1 1-2 0V6a1 1 0 0 1 1-1Z" />
+  ),
+  /** La entrada de diario tiene reseña escrita. Reemplaza al 📝. */
+  note: (
+    <path d="M5 3h9.6a1 1 0 0 1 .7.3l3.4 3.4a1 1 0 0 1 .3.7V21a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm3 6a1 1 0 0 0 0 2h8a1 1 0 1 0 0-2H8Zm0 4a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2H8Zm0 4a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2H8Z" />
+  ),
+
   /* --- Chrome (trazo, ver STROKE_ICONS) --------------------------------- */
   /** Buscador. */
   search: (
@@ -153,6 +185,10 @@ const PATHS: Record<IconName, ReactNode> = {
   check: <path d="m5 13 4 4L19 7" />,
   /** Dirección del orden de un listado: apunta abajo, rota 180° para "asc". */
   "arrow-down": <path d="M12 5v14M6 13l6 6 6-6" />,
+  /** Volver a la pantalla anterior. Reemplaza al carácter ← suelto. */
+  "arrow-left": <path d="M19 12H5M11 6l-6 6 6 6" />,
+  /** Siguiente (la navegación del lightbox de capturas). */
+  "arrow-right": <path d="M5 12h14M13 6l6 6-6 6" />,
 };
 
 /**

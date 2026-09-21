@@ -16,7 +16,7 @@ const DEBOUNCE_MS = 300;
 /** Carátula del resultado, con placeholder cuando el juego no tiene imagen. */
 function ResultCoverPlaceholder() {
   return (
-    <div className="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+    <div className="flex h-20 w-14 shrink-0 items-center justify-center rounded-chip bg-surface-hover type-caption text-ink-faint">
       Sin img
     </div>
   );
@@ -30,7 +30,7 @@ function ResultCover({ url, name }: { url: string | null; name: string }) {
       alt={name}
       width={56}
       height={80}
-      className="h-20 w-14 shrink-0 rounded object-cover"
+      className="h-20 w-14 shrink-0 rounded-chip object-cover"
       fallback={<ResultCoverPlaceholder />}
     />
   );
@@ -128,7 +128,7 @@ export default function CatalogSearchCombobox() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Nombre del juego..."
         />
-        <p className="text-xs text-zinc-500" aria-live="polite">
+        <p className="type-caption text-ink-faint" aria-live="polite">
           {tooShort
             ? `Escribí al menos ${MIN_QUERY_LENGTH} caracteres.`
             : isSearching
@@ -138,13 +138,16 @@ export default function CatalogSearchCombobox() {
       </div>
 
       {visibleMessage && (
-        <p role={searchStatus === "error" ? "alert" : "status"} className="text-sm text-zinc-400">
+        <p
+          role={searchStatus === "error" ? "alert" : "status"}
+          className="type-body text-ink-muted"
+        >
           {visibleMessage}
         </p>
       )}
 
       {active && !isSearching && !visibleMessage && visibleResults.length === 0 && (
-        <p className="text-sm text-zinc-500">No encontramos juegos con ese nombre.</p>
+        <p className="type-body text-ink-muted">No encontramos juegos con ese nombre.</p>
       )}
 
       {visibleResults.length > 0 && (
@@ -155,13 +158,13 @@ export default function CatalogSearchCombobox() {
             return (
               <li
                 key={key}
-                className="flex flex-col gap-3 rounded border border-zinc-800 bg-zinc-900 p-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-card border border-border bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <ResultCover url={result.coverUrl} name={result.name} />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-zinc-200">{result.name}</p>
-                    <p className="truncate text-xs text-zinc-500">
+                    <p className="truncate type-subtitle text-ink">{result.name}</p>
+                    <p className="truncate type-meta text-ink-faint">
                       {[
                         result.releaseYear ? String(result.releaseYear) : null,
                         result.platform,
@@ -177,7 +180,7 @@ export default function CatalogSearchCombobox() {
                   <Button
                     type="button"
                     variant="secondary"
-                    className="w-full shrink-0 py-2 text-xs sm:w-auto sm:py-1.5"
+                    className="w-full shrink-0 sm:w-auto"
                     onClick={() => selectLibraryGame(result.gameId!)}
                   >
                     Elegir
@@ -190,7 +193,7 @@ export default function CatalogSearchCombobox() {
                     <Button
                       type="button"
                       variant="secondary"
-                      className="w-full shrink-0 py-2 text-xs sm:w-auto sm:py-1.5"
+                      className="w-full shrink-0 sm:w-auto"
                       onClick={() => setPendingDuplicate(result)}
                     >
                       ¿Es el mismo juego?
@@ -200,8 +203,8 @@ export default function CatalogSearchCombobox() {
                 {result.source === "catalog" &&
                   result.possibleDuplicateOf &&
                   isDuplicatePending && (
-                    <div className="flex w-full shrink-0 flex-col gap-1 text-xs sm:w-auto sm:items-end">
-                      <p className="text-zinc-400">
+                    <div className="flex w-full shrink-0 flex-col gap-1 type-meta sm:w-auto sm:items-end">
+                      <p className="text-ink-muted">
                         ¿Es el mismo juego que &quot;{result.possibleDuplicateOf.name}&quot;?
                       </p>
                       <div className="flex gap-2">
@@ -214,11 +217,7 @@ export default function CatalogSearchCombobox() {
                             name="confirmedDuplicateOfGameId"
                             value={result.possibleDuplicateOf.gameId}
                           />
-                          <Button
-                            type="submit"
-                            disabled={addPending}
-                            className="w-full py-2 text-xs sm:py-1.5"
-                          >
+                          <Button type="submit" disabled={addPending} className="w-full">
                             Sí, es el mismo
                           </Button>
                         </form>
@@ -230,7 +229,7 @@ export default function CatalogSearchCombobox() {
                             type="submit"
                             variant="secondary"
                             disabled={addPending}
-                            className="w-full py-2 text-xs sm:py-1.5"
+                            className="w-full"
                           >
                             No, es distinto
                           </Button>
@@ -247,7 +246,7 @@ export default function CatalogSearchCombobox() {
                     <Button
                       type="submit"
                       disabled={addPending}
-                      className="w-full shrink-0 py-2 text-xs sm:w-auto sm:py-1.5"
+                      className="w-full shrink-0 sm:w-auto"
                     >
                       {addPending ? "Agregando..." : "Agregar"}
                     </Button>

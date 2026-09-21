@@ -8,6 +8,8 @@ import { advancedStats, availableYears, MONTH_NAMES, summarizeYear } from "@/lib
 import { StarRatingDisplay } from "@/components/diary/StarRating";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
+import { BackToDiaryLink } from "@/components/diary/BackToDiaryLink";
+import { Icon } from "@/components/ui/Icon";
 
 /**
  * Resumen mensual/anual del diario (issue #94). Todo se calcula server-side
@@ -68,10 +70,10 @@ export default async function DiarySummaryPage({
             key={option}
             href={`/diario/resumen?anio=${option}`}
             aria-current={option === year ? "page" : undefined}
-            className={`shrink-0 rounded border px-3 py-1.5 text-sm ${
+            className={`flex min-h-11 shrink-0 items-center rounded-chip border px-3 type-meta font-medium transition-colors sm:min-h-0 sm:py-1.5 ${
               option === year
-                ? "border-blue-600 bg-blue-900/30 text-blue-300"
-                : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                ? "border-accent-ink bg-accent/15 text-accent-ink"
+                : "border-border-strong text-ink-muted hover:border-ink-muted hover:text-ink"
             }`}
           >
             {option}
@@ -89,6 +91,7 @@ export default async function DiarySummaryPage({
           }
         />
         <Stat
+          size="text"
           label="Mes más activo"
           value={
             summary.busiestMonth
@@ -101,24 +104,26 @@ export default async function DiarySummaryPage({
       {summary.topRated.length > 0 && (
         <section className="space-y-3">
           <SectionHeader title={`Tus mejor puntuados de ${year}`} />
-          <ul className="space-y-2">
+          <ul className="divide-y divide-border">
             {summary.topRated.map((entry) => (
-              <li
-                key={entry.id}
-                className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 sm:items-center"
-              >
+              <li key={entry.id} className="flex items-start gap-3 py-2.5 sm:items-center">
                 <Cover imageUrl={entry.imageUrl} name={entry.gameName} />
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/juegos/${entry.gameId}`}
-                    className="block text-sm font-medium break-words hover:underline sm:text-base"
+                    className="block type-subtitle break-words text-ink hover:underline"
                   >
                     {entry.gameName}
                   </Link>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-ink-faint">
                     <StarRatingDisplay rating={entry.rating} />
                     <span>{entry.finishedOn}</span>
-                    {entry.isPlatinum && <span>🏆 Platino</span>}
+                    {entry.isPlatinum && (
+                      <span className="inline-flex items-center gap-1 text-trophy-platinum">
+                        <Icon name="trophy" className="h-3.5 w-3.5" />
+                        Platino
+                      </span>
+                    )}
                   </div>
                 </div>
               </li>
@@ -130,20 +135,20 @@ export default async function DiarySummaryPage({
       <section className="space-y-3">
         <SectionHeader title="Estadísticas avanzadas" />
 
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs text-zinc-500">Juegos terminados por mes</p>
+        <div className="rounded-card border border-border bg-surface p-4">
+          <p className="type-overline text-ink-faint">Juegos terminados por mes</p>
           <ul className="mt-3 flex h-28 items-end gap-0.5 sm:gap-1">
             {advanced.monthlyCounts.map((count, index) => {
               const max = Math.max(1, ...advanced.monthlyCounts);
               return (
                 <li key={index} className="flex flex-1 flex-col items-center gap-1">
-                  <span className="text-[10px] tabular-nums text-zinc-500">{count || ""}</span>
+                  <span className="type-caption tabular-nums text-ink-faint">{count || ""}</span>
                   <div
-                    className="w-full rounded-t bg-blue-600"
+                    className="w-full rounded-t bg-accent"
                     style={{ height: `${(count / max) * 72}px` }}
                     title={`${MONTH_NAMES[index]}: ${count}`}
                   />
-                  <span className="text-[9px] text-zinc-600 sm:text-[10px]">
+                  <span className="type-caption text-ink-faint">
                     {MONTH_NAMES[index].slice(0, 3)}
                   </span>
                 </li>
@@ -152,10 +157,12 @@ export default async function DiarySummaryPage({
           </ul>
         </div>
 
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-xs text-zinc-500">Cómo puntuaste ({advanced.ratedCount} valoradas)</p>
+        <div className="rounded-card border border-border bg-surface p-4">
+          <p className="type-overline text-ink-faint">
+            Cómo puntuaste ({advanced.ratedCount} valoradas)
+          </p>
           {advanced.ratedCount === 0 ? (
-            <p className="mt-2 text-sm text-zinc-500">
+            <p className="mt-2 type-body text-ink-muted">
               Todavía no puntuaste ninguna partida de {year}.
             </p>
           ) : (
@@ -164,11 +171,14 @@ export default async function DiarySummaryPage({
                 const count = advanced.ratingDistribution[stars - 1];
                 const max = Math.max(1, ...advanced.ratingDistribution);
                 return (
-                  <li key={stars} className="flex items-center gap-2 text-xs text-zinc-500">
-                    <span className="w-10 shrink-0 tabular-nums">{stars} ★</span>
-                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
+                  <li key={stars} className="flex items-center gap-2 type-meta text-ink-faint">
+                    <span className="flex w-10 shrink-0 items-center gap-1 tabular-nums">
+                      {stars}
+                      <Icon name="star" className="h-3 w-3 text-trophy-gold" />
+                    </span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-hover">
                       <div
-                        className="h-full bg-[var(--color-trophy-gold)]"
+                        className="h-full bg-trophy-gold"
                         style={{ width: `${Math.round((count / max) * 100)}%` }}
                       />
                     </div>
@@ -182,6 +192,7 @@ export default async function DiarySummaryPage({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Stat
+            size="text"
             label="Plataforma más jugada"
             value={
               advanced.topPlatform
@@ -190,10 +201,11 @@ export default async function DiarySummaryPage({
             }
           />
           <Stat
+            size="text"
             label="Racha de meses seguidos"
             value={
               advanced.longestMonthlyStreak
-                ? `${advanced.longestMonthlyStreak.months} (${advanced.longestMonthlyStreak.from} → ${advanced.longestMonthlyStreak.to})`
+                ? `${advanced.longestMonthlyStreak.months}, de ${advanced.longestMonthlyStreak.from} a ${advanced.longestMonthlyStreak.to}`
                 : "—"
             }
           />
@@ -203,10 +215,10 @@ export default async function DiarySummaryPage({
       <section className="space-y-4">
         <SectionHeader title="Mes a mes" />
         {monthsWithEntries.map((month) => (
-          <div key={month.month} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <div key={month.month} className="rounded-card border border-border bg-surface p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="font-medium">{month.monthName}</h3>
-              <p className="text-xs text-zinc-500">
+              <h3 className="type-subtitle text-ink">{month.monthName}</h3>
+              <p className="type-meta text-ink-faint">
                 {month.finishedCount} {month.finishedCount === 1 ? "juego" : "juegos"}
                 {month.platinumCount > 0 &&
                   ` · ${month.platinumCount} platino${month.platinumCount === 1 ? "" : "s"}`}
@@ -232,21 +244,16 @@ export default async function DiarySummaryPage({
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-16">
+    <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-16">
       <div className="mx-auto w-full max-w-5xl space-y-6 sm:space-y-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold sm:text-2xl">Resumen del diario</h1>
-            <p className="text-sm text-zinc-400">
+            <h1 className="type-title text-ink">Resumen del diario</h1>
+            <p className="type-body text-ink-muted">
               Tus partidas terminadas, mes a mes y con el balance del año.
             </p>
           </div>
-          <Link
-            href="/diario"
-            className="block rounded border border-zinc-700 px-3 py-2 text-center text-sm text-zinc-300 hover:border-zinc-500 sm:py-1.5"
-          >
-            ← Volver al diario
-          </Link>
+          <BackToDiaryLink />
         </div>
         {children}
       </div>
@@ -254,18 +261,36 @@ function PageShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+/**
+ * Celda de la tira de estadísticas: número grande arriba, etiqueta en
+ * versalitas abajo (el mismo patrón que `GameDetailHero`).
+ *
+ * `size="text"` es para los valores que no son un número sino una frase
+ * ("Septiembre (4)", "3 meses, de Enero a Marzo"): a 24px ocupan tres
+ * renglones y rompen la tira, así que bajan a tamaño de subtítulo.
+ */
+function Stat({
+  label,
+  value,
+  size = "stat",
+}: {
+  label: string;
+  value: string;
+  size?: "stat" | "text";
+}) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-3">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="mt-1 text-base font-semibold break-words sm:text-lg">{value}</p>
+    <div className="space-y-0.5 rounded-card border border-border bg-surface px-3 py-2.5">
+      <p className={`break-words text-ink ${size === "stat" ? "type-stat" : "type-subtitle"}`}>
+        {value}
+      </p>
+      <p className="type-overline text-ink-faint">{label}</p>
     </div>
   );
 }
 
 function CoverPlaceholder() {
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-chip bg-surface-hover type-caption text-ink-faint">
       Sin img
     </div>
   );
@@ -279,7 +304,7 @@ function Cover({ imageUrl, name }: { imageUrl: string | null; name: string }) {
       alt={name}
       width={48}
       height={48}
-      className="h-12 w-12 shrink-0 rounded object-cover"
+      className="h-12 w-12 shrink-0 rounded-chip object-cover"
       fallback={<CoverPlaceholder />}
     />
   );

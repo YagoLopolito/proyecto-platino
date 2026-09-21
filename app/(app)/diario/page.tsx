@@ -15,6 +15,7 @@ import ImportPlatinumsButton from "@/components/diary/ImportPlatinumsButton";
 import RecommendationsSection from "@/components/diary/RecommendationsSection";
 import { getCachedRecommendations } from "@/lib/diary/recommendations";
 import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
+import { Icon } from "@/components/ui/Icon";
 
 export default async function DiaryPage({
   searchParams,
@@ -41,7 +42,7 @@ export default async function DiaryPage({
   ]);
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-950 px-4 py-6 text-zinc-50 sm:py-12">
+    <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-8">
         {/*
          * En mobile las acciones son una fila de chips que scrollea con el
@@ -51,8 +52,8 @@ export default async function DiaryPage({
          */}
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold sm:text-2xl">Mi diario</h1>
-            <p className="text-sm text-zinc-400">
+            <h1 className="type-title text-ink">Mi diario</h1>
+            <p className="type-body text-ink-muted">
               Todas tus partidas terminadas, de la más reciente a la más vieja.
             </p>
           </div>
@@ -61,15 +62,17 @@ export default async function DiaryPage({
           <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             <Link
               href="/diario/resumen"
-              className="flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full border border-zinc-700 px-3 text-sm text-zinc-300 hover:border-zinc-500"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-chip border border-border-strong px-3 type-meta font-medium text-ink-muted transition-colors hover:border-ink-muted hover:text-ink sm:min-h-0 sm:py-1.5"
             >
-              📊 Resumen del año
+              <Icon name="chart" className="h-4 w-4" />
+              Resumen del año
             </Link>
             <Link
               href="/diario/capturas"
-              className="flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-full border border-zinc-700 px-3 text-sm text-zinc-300 hover:border-zinc-500"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-chip border border-border-strong px-3 type-meta font-medium text-ink-muted transition-colors hover:border-ink-muted hover:text-ink sm:min-h-0 sm:py-1.5"
             >
-              📷 Importar capturas
+              <Icon name="camera" className="h-4 w-4" />
+              Importar capturas
             </Link>
             <ImportPlatinumsButton />
             <MarkAsFinishedModal defaultOpen={nuevo === "1"} />

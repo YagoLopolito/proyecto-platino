@@ -3,6 +3,7 @@ import type { GameCardData } from "@/lib/catalog/details";
 import { GameScore } from "@/components/diary/GameScore";
 import { formatPlaytime } from "@/lib/playtime";
 import { TimeToBeat, timeToBeatProps } from "@/components/game/TimeToBeat";
+import { Icon } from "@/components/ui/Icon";
 
 const DESCRIPTION_PREVIEW_CHARS = 340;
 
@@ -77,7 +78,7 @@ export function GameHero({
           />
           {/* Degradado doble: oscurece de arriba para que se lea la nav, y
               funde el final de la imagen con el fondo de la página. */}
-          <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/70 via-zinc-950/40 to-zinc-950" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background" />
         </div>
       )}
 
@@ -92,7 +93,7 @@ export function GameHero({
          * apaisadas), y sin un marco la imagen quedaba chica al lado del resto
          * de la ficha. object-cover recorta para llenarlo siempre igual.
          */}
-        <div className="relative aspect-[3/4] w-32 shrink-0 self-start overflow-hidden rounded-lg border border-zinc-700 bg-zinc-800 shadow-lg min-[420px]:w-40 sm:w-56">
+        <div className="relative aspect-[3/4] w-32 shrink-0 self-start overflow-hidden rounded-card border border-border-strong bg-surface shadow-lg min-[420px]:w-40 sm:w-56">
           {game.coverUrl ? (
             <GameArt
               src={game.coverUrl}
@@ -107,15 +108,14 @@ export function GameHero({
           )}
         </div>
 
-        <div className="min-w-0 flex-1 space-y-3 rounded-xl bg-zinc-950/70 p-3 backdrop-blur-sm sm:p-4">
+        <div className="min-w-0 flex-1 space-y-3 rounded-card bg-background/70 p-3 backdrop-blur-sm sm:p-4">
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold break-words sm:text-3xl">{game.name}</h1>
-            {meta.length > 0 && (
-              <p className="text-xs text-zinc-400 sm:text-sm">{meta.join(" · ")}</p>
-            )}
+            <h1 className="type-display break-words text-ink">{game.name}</h1>
+            {meta.length > 0 && <p className="type-overline text-ink-faint">{meta.join(" · ")}</p>}
             {playtime && (
-              <p className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-900/70 px-2.5 py-0.5 text-xs text-zinc-300">
-                <span aria-hidden="true">⏱</span> {playtime} jugadas
+              <p className="inline-flex items-center gap-1.5 rounded-chip border border-border bg-surface/70 px-2.5 py-1 type-meta text-ink-muted">
+                <Icon name="clock" className="h-3.5 w-3.5 text-ink-faint" />
+                {playtime} jugadas
               </p>
             )}
           </div>
@@ -129,31 +129,32 @@ export function GameHero({
               // flex-col + order: con el detalle abierto, el "Ver menos" tiene que
               // quedar DEBAJO del texto, pero un <summary> siempre va primero en
               // el DOM (es el disparador del <details>).
-              <details className="group flex flex-col text-sm leading-relaxed text-zinc-300">
+              <details className="group flex flex-col type-review text-ink-muted">
                 <summary className="order-2 cursor-pointer list-none">
                   <span className="group-open:hidden">
                     {description.slice(0, DESCRIPTION_PREVIEW_CHARS).trimEnd()}…{" "}
-                    <span className="text-blue-400">Ver más</span>
+                    <span className="text-accent-ink">Ver más</span>
                   </span>
-                  <span className="hidden text-blue-400 group-open:inline">Ver menos</span>
+                  <span className="hidden text-accent-ink group-open:inline">Ver menos</span>
                 </summary>
                 <p className="order-1 mb-1 whitespace-pre-line">{description}</p>
               </details>
             ) : (
-              <p className="text-sm leading-relaxed text-zinc-300">{description}</p>
+              <p className="type-review text-ink-muted">{description}</p>
             )
           ) : (
-            <p className="text-sm text-zinc-500">Sin descripción disponible para este juego.</p>
+            <p className="type-body text-ink-faint">Sin descripción disponible para este juego.</p>
           )}
 
           {description && game.descriptionSource === "ai" && (
-            <p className="text-xs text-zinc-500">✨ Descripción generada por IA.</p>
+            <p className="flex items-center gap-1.5 type-caption text-ink-faint">
+              <Icon name="sparkle" className="h-3.5 w-3.5" />
+              Descripción generada por IA.
+            </p>
           )}
 
-          <div className="space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">
-              Puntuación de la comunidad
-            </p>
+          <div className="space-y-2 rounded-card border border-border bg-background/70 p-3">
+            <p className="type-overline text-ink-faint">Puntuación de la comunidad</p>
             <GameScore score={score} />
             {totalVotes > 0 && (
               <ul
@@ -162,13 +163,16 @@ export function GameHero({
               >
                 {distribution.map((count, index) => (
                   <li key={index} className="flex flex-1 flex-col items-center gap-1">
-                    <span className="text-[10px] tabular-nums text-zinc-500">{count || ""}</span>
+                    <span className="type-caption tabular-nums text-ink-faint">{count || ""}</span>
                     <div
-                      className="w-full rounded-t bg-[var(--color-trophy-gold)]"
+                      className="w-full rounded-t bg-trophy-gold"
                       style={{ height: `${Math.max(2, (count / maxBucket) * 44)}px` }}
-                      title={`${index + 1} ★: ${count}`}
+                      title={`${index + 1} estrellas: ${count}`}
                     />
-                    <span className="text-[10px] text-zinc-600">{index + 1}★</span>
+                    <span className="flex items-center gap-0.5 type-caption text-ink-faint">
+                      {index + 1}
+                      <Icon name="star" className="h-2.5 w-2.5" />
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -183,7 +187,7 @@ export function GameHero({
 /** Marco sin carátula: el juego no tiene imagen, o la que tenía no cargó. */
 function CoverPlaceholder() {
   return (
-    <span className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
+    <span className="flex h-full w-full items-center justify-center p-2 text-center type-caption text-ink-muted">
       Sin carátula
     </span>
   );
