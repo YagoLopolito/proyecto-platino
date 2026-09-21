@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { Button } from "@/components/Button";
+import { Icon } from "@/components/ui/Icon";
 
 /**
  * Evento no estándar de Chromium: lo dispara el browser cuando la app cumple
@@ -99,42 +101,48 @@ export function InstallAppCard() {
   return (
     <section
       data-testid="install-app-card"
-      className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5"
+      className="space-y-4 rounded-card border border-border bg-surface p-4 sm:p-6"
     >
-      <div className="space-y-1">
-        <h2 className="text-base font-semibold text-zinc-50">Instalar Platinoob en el celular</h2>
-        <p className="text-sm text-zinc-400">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-chip bg-surface-raised text-ink-muted">
+            <Icon name="download" className="h-4 w-4" />
+          </span>
+          <h2 className="type-subtitle text-ink">Instalar Platinoob en el celular</h2>
+        </div>
+        <p className="type-meta text-ink-muted">
           Se agrega a la pantalla de inicio y se abre a pantalla completa, como una app. No pasa por
           ninguna tienda y se actualiza sola cuando publicamos cambios.
         </p>
       </div>
 
       {installed ? (
-        <p className="text-sm text-green-400">
+        <p className="flex items-center gap-1.5 type-meta text-success">
+          <Icon name="check" className="h-4 w-4" />
           Listo, ya está instalada. Buscala en tu pantalla de inicio.
         </p>
       ) : promptEvent ? (
-        <button
+        <Button
           type="button"
           data-testid="install-app-button"
           onClick={() => void install()}
-          className="min-h-11 w-full rounded bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
+          className="w-full sm:w-auto"
         >
           Instalar app
-        </button>
+        </Button>
       ) : isIOS ? (
-        <ol className="list-decimal space-y-1 pl-5 text-sm text-zinc-400">
+        <ol className="list-decimal space-y-1 pl-5 type-meta text-ink-muted">
           <li>Abrí esta página en Safari (no funciona desde Chrome en iPhone).</li>
           <li>
-            Tocá el botón <strong className="text-zinc-200">Compartir</strong> de abajo.
+            Tocá el botón <strong className="text-ink">Compartir</strong> de abajo.
           </li>
           <li>
-            Elegí <strong className="text-zinc-200">Añadir a pantalla de inicio</strong>.
+            Elegí <strong className="text-ink">Añadir a pantalla de inicio</strong>.
           </li>
         </ol>
       ) : (
-        <p className="text-sm text-zinc-400">
-          Buscá la opción <strong className="text-zinc-200">Instalar aplicación</strong> en el menú
+        <p className="type-meta text-ink-muted">
+          Buscá la opción <strong className="text-ink">Instalar aplicación</strong> en el menú
           de tu navegador. Si no aparece, es que este navegador no soporta instalar apps web.
         </p>
       )}

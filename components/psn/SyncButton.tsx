@@ -20,9 +20,12 @@ type SyncMessage =
 export default function SyncButton({
   className = "",
   reconnectHref = "#reconectar-psn",
+  variant = "secondary",
 }: {
   className?: string;
   reconnectHref?: string;
+  /** En Conexiones es la acción primaria de la tarjeta; en la biblioteca, una más de la barra. */
+  variant?: "primary" | "secondary";
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -70,7 +73,7 @@ export default function SyncButton({
     <div className="space-y-2">
       <Button
         type="button"
-        variant="secondary"
+        variant={variant}
         onClick={handleClick}
         disabled={pending}
         className={className}

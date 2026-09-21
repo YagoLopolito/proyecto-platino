@@ -9,6 +9,8 @@ import { ConnectionCard, type ConnectionStatus } from "@/components/connections/
 import VerifySteamButton from "@/components/connections/VerifySteamButton";
 import ReplaceSteamAccountForm from "@/components/connections/ReplaceSteamAccountForm";
 import { ErrorState } from "@/components/ErrorState";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { Icon } from "@/components/ui/Icon";
 import { InstallAppCard } from "@/components/pwa/InstallAppCard";
 import { disconnectPsnAccount, disconnectSteamAccount } from "./actions";
 
@@ -62,7 +64,7 @@ export default async function ConexionesPage({
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-zinc-400">
+      <p className="type-body text-ink-muted">
         Conectá las plataformas de las que querés traer tus juegos y trofeos. Podés tener una, las
         dos, o ninguna.
       </p>
@@ -70,24 +72,29 @@ export default async function ConexionesPage({
       {openIdResult && OPENID_MESSAGE[openIdResult] && (
         <p
           role="status"
-          className={`rounded-lg border p-3 text-sm ${
+          className={`flex items-start gap-2 rounded-card border p-3 type-meta ${
             openIdResult === "verificada"
-              ? "border-green-700 bg-green-950/30 text-green-400"
-              : "border-amber-700 bg-amber-950/30 text-amber-300"
+              ? "border-success/40 bg-success/10 text-success"
+              : "border-warning/40 bg-warning/10 text-warning"
           }`}
         >
-          {OPENID_MESSAGE[openIdResult]}
+          <Icon
+            name={openIdResult === "verificada" ? "check" : "alert"}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span>{OPENID_MESSAGE[openIdResult]}</span>
         </p>
       )}
 
       <ConnectionCard
         title="PlayStation Network"
+        icon="gamepad"
         status={psnStatus}
         lastSyncedAt={psnAccount?.last_synced_at ?? null}
         subtitle={
           psnAccount ? (
             <>
-              Conectado como <span className="font-mono text-zinc-50">{psnAccount.online_id}</span>
+              Conectado como <span className="font-mono text-ink">{psnAccount.online_id}</span>
             </>
           ) : (
             "Tus juegos y trofeos se traen automáticamente desde tu cuenta PSN."
@@ -107,19 +114,14 @@ export default async function ConexionesPage({
             )}
 
             {/* Con el token vencido el form va desplegado: es la única acción
-                que destraba el flujo, esconderla detrás de un <details> obliga
+                que destraba el flujo, esconderla detrás de un plegado obliga
                 a un click de más justo cuando la app ya sabe que hace falta. */}
             {psnStatus === "connected" ? (
               <>
-                <SyncButton />
-                <details className="rounded border border-zinc-800 p-3">
-                  <summary className="cursor-pointer text-sm text-zinc-300">
-                    Reconectar con un NPSSO nuevo
-                  </summary>
-                  <div className="pt-4">
-                    <ConnectPsnForm isReconnect />
-                  </div>
-                </details>
+                <SyncButton variant="primary" />
+                <Disclosure summary="Reconectar con un NPSSO nuevo">
+                  <ConnectPsnForm isReconnect />
+                </Disclosure>
               </>
             ) : (
               <ConnectPsnForm isReconnect />
@@ -138,13 +140,13 @@ export default async function ConexionesPage({
 
       <ConnectionCard
         title="Steam"
+        icon="monitor"
         status={steamStatus}
         lastSyncedAt={steamAccount?.last_synced_at ?? null}
         subtitle={
           steamAccount ? (
             <>
-              Conectado como{" "}
-              <span className="font-mono text-zinc-50">{steamAccount.persona_name}</span>
+              Conectado como <span className="font-mono text-ink">{steamAccount.persona_name}</span>
             </>
           ) : (
             "Tus juegos y logros de Steam, con el mismo seguimiento que los trofeos de PSN."
@@ -156,21 +158,26 @@ export default async function ConexionesPage({
             {steamStatus === "attention" && (
               <div className="space-y-2">
                 <ErrorState message="El perfil de Steam está en privado: la API devuelve cero juegos aunque todo lo demás esté bien." />
-                <p className="text-sm text-zinc-400">
+                {/* Estas instrucciones NO van plegadas: son el arreglo de un
+                    estado roto, y la app ya sabe que hacen falta. */}
+                <p className="type-meta text-ink-muted">
                   En Steam: Perfil → Editar perfil → Configuración de privacidad → &quot;Detalles
-                  del juego&quot;: <span className="text-zinc-200">Público</span>. Después
-                  sincronizá de nuevo.
+                  del juego&quot;: <span className="text-ink">Público</span>. Después sincronizá
+                  de nuevo.
                 </p>
               </div>
             )}
 
             {steamAccount.verified ? (
-              <p className="text-sm text-emerald-400">✓ Cuenta verificada con Steam.</p>
+              <p className="flex items-center gap-1.5 type-meta text-success">
+                <Icon name="check" className="h-4 w-4" />
+                Cuenta verificada con Steam.
+              </p>
             ) : (
-              <div className="space-y-2 rounded border border-zinc-700 bg-zinc-800/50 p-3">
-                <p className="text-sm text-zinc-400">
-                  <span className="text-zinc-200">Cuenta no verificada.</span> Escribiste el SteamID
-                  a mano, así que no podemos comprobar que el perfil sea tuyo: solo leemos datos
+              <div className="space-y-2 rounded-card border border-border bg-surface-raised p-3">
+                <p className="type-meta text-ink-muted">
+                  <span className="text-ink">Cuenta no verificada.</span> Escribiste el SteamID a
+                  mano, así que no podemos comprobar que el perfil sea tuyo: solo leemos datos
                   públicos. Verificala iniciando sesión en Steam.
                 </p>
                 <VerifySteamButton label="Verificar con Steam" />
@@ -183,14 +190,9 @@ export default async function ConexionesPage({
 
             <SteamSyncButton />
 
-            <details className="rounded border border-zinc-800 p-3">
-              <summary className="cursor-pointer text-sm text-zinc-300">
-                Conectar otro perfil de Steam
-              </summary>
-              <div className="pt-4">
-                <ConnectSteamForm isReconnect />
-              </div>
-            </details>
+            <Disclosure summary="Conectar otro perfil de Steam">
+              <ConnectSteamForm isReconnect />
+            </Disclosure>
 
             <DisconnectButton
               action={disconnectSteamAccount}
@@ -201,8 +203,8 @@ export default async function ConexionesPage({
         ) : (
           <div className="space-y-4">
             <ConnectSteamForm />
-            <div className="space-y-2 border-t border-zinc-800 pt-4">
-              <p className="text-sm text-zinc-400">
+            <div className="space-y-2 border-t border-border pt-4">
+              <p className="type-meta text-ink-muted">
                 O conectala directamente iniciando sesión en Steam: así queda verificada de entrada
                 y no hace falta escribir nada.
               </p>

@@ -224,9 +224,52 @@ dificultad) y el resto es informativo.
   decorativo, pero el botón tiene `aria-label` propio, que es donde
   corresponde ponerlo.
 
+## Perfil, configuración y chrome (fase 5 del issue #176)
+
+Con esta fase no queda ningún color literal de Tailwind en `app/` ni en
+`components/`: la auditoría vieja de arriba ("Encontrado y corregido" /
+"Verificado, sin cambios") queda como historia, y **los ratios que valen son
+los de los tokens**.
+
+### Combinaciones nuevas
+
+| Combinación | Dónde | Peor ratio | Umbral |
+|---|---|---|---|
+| `text-success` sobre `bg-success/10` | chip "Conectada", aviso de Steam verificada | 6.49:1 | 4.5 |
+| `text-warning` sobre `bg-warning/10` | chip "Necesita atención", aviso de OpenID, cuenta distinta | 7.38:1 | 4.5 |
+| `text-ink-muted` sobre `bg-surface-hover` | chip "No conectada" | 5.79:1 | 4.5 |
+| `text-danger` sobre `bg-danger/10` | `ErrorState` (ahora con ícono, mismo fondo) | 4.74:1 | 4.5 |
+| `text-accent-ink` sobre superficie | tab activo del header, de la barra inferior y de Configuración | 5.35:1 | 4.5 |
+| `text-ink-faint` sobre `bg-surface-raised` | ícono del `EmptyState` (gráfico) | 5.16:1 | 3 |
+| `text-ink` sobre la banda del perfil (`accent/50` → `accent/15` sobre `surface`) | no hay texto sobre la banda: el nombre va debajo, sobre `surface` | 11.64:1 | 4.5 |
+| `border-border-strong` sobre `bg-surface` | chips de `ProfileBadge`, `Disclosure` | 4.01:1 | 3 (1.4.11) |
+| `text-ink` sobre `bg-background/80` | número de puesto del Top 5 sobre la carátula | ≥ 12.8:1 sobre un gris medio | 4.5 |
+
+### El activo no es sólo un color
+
+El tab activo del header, el de la barra inferior de mobile y el de
+Configuración se marcan con **tres** señales: el acento, el peso (`600`
+contra `500`) y una regla de 2px debajo o encima. Antes era sólo el color.
+`aria-current="page"` sigue en los tres (`MobileTabBar` ya lo tenía; el
+header también, y Configuración lo gana con `ConfigTabs`).
+
+### Lo que la fase no rompe
+
+- **Targets táctiles**: los tabs del header y de Configuración van a
+  `min-h-11`; la barra inferior sigue en `min-h-14`; el `summary` de
+  `Disclosure` mide 44px; los chips de amigos del perfil, `min-h-11` en mobile.
+- **Los íconos nuevos** (`user`, `users`, `settings`, `download`, `offline`,
+  `plus`, `logout`) van sin `label`: acompañan a un texto que ya lo dice o
+  están dentro de un control con nombre propio (el tab, el botón). La
+  excepción es el ícono de "tiene reseña" del feed de amigos, que **es** la
+  información y por eso lleva `label="Tiene reseña"`.
+- **El logo del header** es una imagen con `alt="Platinoob"` dentro de un
+  link con `aria-label`: el nombre accesible del link no cambió.
+- **`<details>` nativo** en `Disclosure`: el `summary` es un botón para el
+  teclado y el lector de pantalla sin ningún ARIA a mano. El marker del
+  navegador se oculta y lo reemplaza el chevron del set (decorativo).
+
 ### Pendiente
 
-- La migración de las pantallas restantes (fases 4-5) tiene que ir
-  reemplazando los `zinc-*` por estos tokens, no sumándolos. Mientras convivan
-  las dos paletas, los ratios de arriba valen para lo migrado y los de la
-  auditoría vieja para lo que falta.
+- El lint que prohíbe los colores literales (fase 6) es lo que evita que esta
+  auditoría vuelva a desactualizarse: hasta entonces, la regla es convención.

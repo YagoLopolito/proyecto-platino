@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { buttonClassName } from "@/components/Button";
 
 /** Cada cuánto se le pregunta al server si hubo un deploy nuevo. */
 const VERSION_POLL_MS = 5 * 60 * 1000;
@@ -91,14 +92,14 @@ export function PwaRuntime() {
       data-testid="update-banner"
       // `pb-safe` para no quedar debajo de la barra de gestos del iPhone, y
       // `bottom-16` en mobile para no taparse con la barra de navegación.
-      className="fixed inset-x-3 bottom-20 z-50 flex items-center gap-3 rounded-xl border border-blue-500/60 bg-zinc-900 p-3 shadow-lg pb-safe sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-sm"
+      className="fixed inset-x-3 bottom-20 z-50 flex items-center gap-3 rounded-card border border-accent-ink/60 bg-surface-raised p-3 shadow-lg pb-safe sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-sm"
     >
-      <p className="flex-1 text-sm text-zinc-200">Hay una versión nueva de Platinoob.</p>
+      <p className="flex-1 type-meta text-ink">Hay una versión nueva de Platinoob.</p>
       <button
         type="button"
         onClick={() => void applyUpdate()}
         disabled={reloading}
-        className="min-h-11 shrink-0 rounded bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+        className={buttonClassName("primary", "shrink-0")}
       >
         {reloading ? "Actualizando…" : "Actualizar"}
       </button>

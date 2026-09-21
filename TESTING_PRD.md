@@ -546,7 +546,7 @@ llama a IGDB.
 
 ### 6.18 Sistema de diseño (`21-design-system.spec.ts`)
 
-Fases 1 a 4 del remake visual (issue #176). Lo que se verifica no es "cómo se ve" sino que las
+Fases 1 a 5 del remake visual (issue #176). Lo que se verifica no es "cómo se ve" sino que las
 piezas del sistema **se apliquen de verdad**: los dos bugs que motivaron la fase eran de ese
 tipo y ninguno se veía leyendo el diff (la fuente cargada no la usaba nadie porque `body` la
 pisaba con Arial; los tokens de `globals.css` estaban definidos y con 0 usos). Un test que
@@ -569,6 +569,11 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-13 | El rating son íconos del set, no los glifos ★/☆ | Un rating 9/10 muestra 10 `[data-icon="star"]` y no contiene ★ ni ☆ | P2 |
 | DS-14 | Las acciones de `/diario` usan íconos, no emojis | La fila de acciones muestra `[data-icon]` (chart/camera/trophy/check) y no contiene 📊 📷 🏆 ✓ | P2 |
 | DS-15 | El nombre del juego en la ficha de diario va en la serif | El `font-family` computado del `h1` de `GameHero` resuelve a Newsreader | P1 |
+| DS-16 | El tab activo del header se marca con acento, peso y `aria-current` | El link activo de la nav "Principal" tiene `aria-current="page"`, su `color` es exactamente `--accent-ink`, pesa más que los inactivos y va en versalitas | P1 |
+| DS-17 | La barra inferior de mobile usa íconos del set | `mobile-tab-bar` contiene exactamente 4 `[data-icon]`: gamepad, book, user, settings | P2 |
+| DS-18 | Las instrucciones de Conexiones van plegadas | En la tarjeta de PSN el campo NPSSO es visible de entrada, el link a playstation.com está oculto detrás de "Cómo conseguir el NPSSO" y aparece al abrirlo | P1 |
+| DS-19 | El chip de estado de una conexión pinta con su token semántico | El `color` computado de `connection-status` es exactamente `--success` / `--warning` / `--ink-muted` según su `data-status` | P2 |
+| DS-20 | La pantalla offline usa un ícono del set | `/offline` muestra `[data-icon="offline"]` y no contiene 📡 | P2 |
 
 **Total: 141 casos** — 52 P0, 59 P1, 30 P2.
 

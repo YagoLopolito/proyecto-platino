@@ -198,13 +198,13 @@ export function TopFiveEditor({
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Nombre del juego..."
             />
-            <p className="text-xs text-zinc-500" aria-live="polite">
+            <p className="type-caption text-ink-faint" aria-live="polite">
               {selected.length} de {MAX_FAVORITE_GAMES} elegidos
             </p>
           </div>
 
           {allGames.length === 0 && !shouldSearchCatalog ? (
-            <p className="text-sm text-zinc-500">
+            <p className="type-body text-ink-muted">
               Todavía no tenés juegos en tu biblioteca: sincronizá una cuenta o buscá cualquier
               juego por nombre para armar tu Top {MAX_FAVORITE_GAMES}.
             </p>
@@ -221,13 +221,13 @@ export function TopFiveEditor({
                       aria-pressed={isSelected}
                       title={game.name}
                       data-testid="favorite-candidate"
-                      className={`block w-full overflow-hidden rounded-md border text-left transition ${
+                      className={`block w-full overflow-hidden rounded-card border text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
                         isSelected
-                          ? "border-blue-500 ring-2 ring-blue-500/40"
-                          : "border-zinc-800 hover:border-zinc-500"
+                          ? "border-accent-ink ring-2 ring-accent-ink/40"
+                          : "border-border hover:border-border-strong"
                       }`}
                     >
-                      <span className="relative block aspect-[3/4] w-full bg-zinc-900">
+                      <span className="relative block aspect-[3/4] w-full bg-surface">
                         {game.imageUrl && (
                           <GameArt
                             src={game.imageUrl}
@@ -238,12 +238,12 @@ export function TopFiveEditor({
                           />
                         )}
                         {isSelected && (
-                          <span className="absolute left-1 top-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                          <span className="absolute left-1 top-1 rounded-chip bg-accent px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
                             #{rank + 1}
                           </span>
                         )}
                       </span>
-                      <span className="block px-1.5 py-1 text-[11px] leading-tight text-zinc-300">
+                      <span className="block px-1.5 py-1 text-[11px] leading-tight text-ink-muted">
                         <span className="line-clamp-2">{game.name}</span>
                       </span>
                     </button>
@@ -252,7 +252,7 @@ export function TopFiveEditor({
               })}
             </ul>
           ) : (
-            <p className="text-sm text-zinc-500">
+            <p className="type-body text-ink-muted">
               {term.length >= MIN_QUERY_LENGTH
                 ? "Ningún juego de tu biblioteca coincide."
                 : "Ningún juego coincide."}
@@ -261,12 +261,12 @@ export function TopFiveEditor({
 
           {shouldSearchCatalog && (
             <div className="space-y-2" data-testid="favorite-catalog-results">
-              <p className="text-xs uppercase tracking-wide text-zinc-500">
+              <p className="type-overline text-ink-faint">
                 {isSearching ? "Buscando en el catálogo..." : "Agregar desde el catálogo"}
               </p>
-              {catalogMessage && <p className="text-sm text-zinc-400">{catalogMessage}</p>}
+              {catalogMessage && <p className="type-meta text-ink-muted">{catalogMessage}</p>}
               {!isSearching && !catalogMessage && visibleCatalogResults.length === 0 && (
-                <p className="text-sm text-zinc-500">No encontramos juegos con ese nombre.</p>
+                <p className="type-meta text-ink-muted">No encontramos juegos con ese nombre.</p>
               )}
               <ul className="max-h-64 space-y-2 overflow-y-auto">
                 {visibleCatalogResults.map((result) => (
@@ -276,9 +276,9 @@ export function TopFiveEditor({
                       disabled={isAdding}
                       onClick={() => addFromCatalog(result)}
                       data-testid="favorite-catalog-result"
-                      className="flex w-full items-center gap-3 rounded-md border border-zinc-800 p-2 text-left transition hover:border-zinc-500 disabled:opacity-60"
+                      className="flex w-full items-center gap-3 rounded-card border border-border p-2 text-left transition-colors hover:border-border-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink disabled:opacity-60"
                     >
-                      <span className="relative block h-16 w-12 shrink-0 overflow-hidden rounded bg-zinc-900">
+                      <span className="relative block h-16 w-12 shrink-0 overflow-hidden rounded-chip bg-surface">
                         {result.coverUrl && (
                           <GameArt
                             src={result.coverUrl}
@@ -289,10 +289,10 @@ export function TopFiveEditor({
                           />
                         )}
                       </span>
-                      <span className="min-w-0 text-sm text-zinc-200">
+                      <span className="min-w-0 type-meta text-ink">
                         <span className="block truncate">{result.name}</span>
                         {result.releaseYear && (
-                          <span className="block text-xs text-zinc-500">{result.releaseYear}</span>
+                          <span className="block type-caption text-ink-faint">{result.releaseYear}</span>
                         )}
                       </span>
                     </button>

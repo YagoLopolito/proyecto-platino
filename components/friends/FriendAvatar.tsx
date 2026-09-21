@@ -26,7 +26,7 @@ export function FriendAvatar({
     return (
       <div
         style={{ width: size, height: size, fontSize: Math.round(size * 0.45) }}
-        className="flex shrink-0 items-center justify-center rounded-full bg-zinc-800 font-medium text-zinc-300"
+        className="flex shrink-0 items-center justify-center rounded-full bg-surface-hover font-medium text-ink-muted"
         aria-hidden="true"
       >
         {name.slice(0, 1).toUpperCase()}
@@ -45,7 +45,7 @@ export function FriendAvatar({
       // gasta la cuota de transformaciones de Vercel (ver GameArt).
       unoptimized
       onError={() => setFailed(true)}
-      className="shrink-0 rounded-full bg-zinc-800 object-cover"
+      className="shrink-0 rounded-full bg-surface-hover object-cover"
     />
   );
 }

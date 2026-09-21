@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { GamePoster } from "@/components/game/GamePoster";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { MAX_FAVORITE_GAMES } from "@/lib/profile/constants";
 import type { FavoriteGame } from "@/lib/profile/queries";
 
@@ -28,9 +29,7 @@ export function FavoriteGamesSection({
         action={action}
       />
       {games.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-          {emptyMessage}
-        </p>
+        <EmptyState icon="star" title={emptyMessage} />
       ) : (
         /*
          * Cinco columnas desde el primer breakpoint (antes eran 3 en mobile):
@@ -47,7 +46,7 @@ export function FavoriteGamesSection({
                 imageUrl={game.imageUrl}
                 sizes="(max-width: 520px) 19vw, 160px"
                 overlay={
-                  <span className="absolute left-1 top-1 rounded bg-zinc-950/80 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-zinc-200 backdrop-blur-sm">
+                  <span className="absolute left-1 top-1 rounded-chip bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-ink backdrop-blur-sm">
                     #{index + 1}
                   </span>
                 }

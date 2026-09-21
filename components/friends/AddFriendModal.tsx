@@ -99,7 +99,7 @@ export default function AddFriendModal() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Nombre de PSN..."
             />
-            <p className="text-xs text-zinc-500" aria-live="polite">
+            <p className="type-caption text-ink-faint" aria-live="polite">
               {isSearching ? "Buscando..." : " "}
             </p>
           </div>
@@ -107,29 +107,29 @@ export default function AddFriendModal() {
           {searchError && <FormError>{searchError}</FormError>}
 
           {!isSearching && !searchError && results.length === 0 && (
-            <p className="text-sm text-zinc-500">
+            <p className="type-body text-ink-muted">
               {query.trim() ? "Ningún usuario coincide." : "Todavía no hay otros usuarios."}
             </p>
           )}
 
           {results.length > 0 && (
-            <ul className="max-h-80 space-y-2 overflow-y-auto">
+            <ul className="max-h-80 overflow-y-auto">
               {results.map((profile) => {
                 const label = profileLabel(profile);
                 return (
                   <li
                     key={profile.id}
-                    className="flex items-center justify-between gap-3 rounded border border-zinc-800 bg-zinc-900 p-2"
+                    className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-b-0"
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       <FriendAvatar url={profile.avatarUrl} name={label} />
-                      <span className="min-w-0 truncate text-sm text-zinc-200">{label}</span>
+                      <span className="min-w-0 truncate type-meta text-ink">{label}</span>
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">
                       <Link
                         href={`/perfil/${profile.id}`}
-                        className="text-xs text-zinc-400 underline-offset-2 hover:text-zinc-200 hover:underline"
+                        className="type-caption text-ink-muted underline-offset-2 hover:text-ink hover:underline"
                       >
                         Ver perfil
                       </Link>

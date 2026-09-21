@@ -3,6 +3,7 @@ import { GamePoster } from "@/components/game/GamePoster";
 import { PosterGrid } from "@/components/game/PosterGrid";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { EmptyState } from "@/components/EmptyState";
 import type { DiaryTimelineEntry } from "@/lib/diary/queries";
 
 /** Cuántas entradas de diario muestra la vista previa de un perfil. */
@@ -50,9 +51,7 @@ export function DiaryPreviewSection({
     <section className="space-y-3" aria-labelledby="diary-preview-heading">
       <SectionHeader title={<span id="diary-preview-heading">{title}</span>} action={action} />
       {entries.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-          {emptyMessage}
-        </p>
+        <EmptyState icon="book" title={emptyMessage} />
       ) : (
         <PosterGrid>
           {entries.slice(0, PROFILE_DIARY_PREVIEW_LIMIT).map((entry) => (
@@ -68,10 +67,10 @@ export function DiaryPreviewSection({
                   <span className="block space-y-0.5">
                     <span className="flex flex-wrap items-center justify-between gap-x-1.5">
                       <StarRatingDisplay rating={entry.rating} />
-                      <span className="text-zinc-600">{shortDate(entry.finishedOn)}</span>
+                      <span className="text-ink-faint">{shortDate(entry.finishedOn)}</span>
                     </span>
                     {entry.review && (
-                      <span className="line-clamp-2 text-[11px] leading-snug text-zinc-500">
+                      <span className="line-clamp-2 text-[11px] leading-snug text-ink-faint">
                         {entry.review}
                       </span>
                     )}

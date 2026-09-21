@@ -240,6 +240,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
 
       {games.length === 0 && (
         <EmptyState
+          icon="gamepad"
           title={
             <>
               Todavía no hay juegos.{" "}
@@ -254,6 +255,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
 
       {games.length > 0 && visibleGames.length === 0 && (
         <EmptyState
+          icon="search"
           title={
             query.trim() !== ""
               ? `Ningún juego de tu biblioteca coincide con “${query.trim()}”.`

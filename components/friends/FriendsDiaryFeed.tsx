@@ -2,6 +2,8 @@ import { GameArt } from "@/components/game/GameArt";
 import Link from "next/link";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
 import { FriendAvatar } from "@/components/friends/FriendAvatar";
+import { EmptyState } from "@/components/EmptyState";
+import { Icon } from "@/components/ui/Icon";
 import { profileLabel } from "@/lib/friends/constants";
 import type { FriendDiaryEntry, FriendProfile } from "@/lib/friends/queries";
 
@@ -34,6 +36,11 @@ function formatDate(finishedOn: string): string {
  * "Jugados por amigos": las entradas de diario de la gente que agregaste, más
  * reciente primero. Sin filtros ni agrupado por mes a propósito -- es un feed
  * de novedades, no el archivo cronológico que es el diario propio.
+ *
+ * Son filas con hairline y no tarjetas (misma regla que la lista de trofeos y
+ * el diario propio, fases 3 y 4 del issue #176): lo que interesa distinguir es
+ * la reseña de cada uno, no el marco. La carátula va en 3:4 como en el resto
+ * de la app, no en un cuadrado que la recortaba.
  */
 export function FriendsDiaryFeed({
   friends,
@@ -44,53 +51,54 @@ export function FriendsDiaryFeed({
 }) {
   if (friends.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-        Todavía no agregaste amigos. Agregá a alguien para ver qué está jugando.
-      </p>
+      <EmptyState
+        icon="users"
+        title="Todavía no agregaste amigos."
+        description="Agregá a alguien para ver qué está jugando."
+      />
     );
   }
 
   if (entries.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-        Tus amigos todavía no marcaron ningún juego como terminado.
-      </p>
+      <EmptyState icon="book" title="Tus amigos todavía no marcaron ningún juego como terminado." />
     );
   }
 
   return (
-    <ul className="space-y-2">
+    <ul className="divide-y divide-border">
       {entries.map((entry) => {
         const author = profileLabel(entry.author);
         return (
           <li key={entry.id}>
             <Link
               href={`/juegos/${entry.gameId}/diario`}
-              className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900 p-3 hover:border-zinc-600"
+              className="group flex items-start gap-3 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
             >
-              {entry.imageUrl ? (
-                <GameArt
-                  src={entry.imageUrl}
-                  alt={entry.gameName}
-                  width={48}
-                  height={48}
-                  className="h-12 w-12 shrink-0 rounded object-cover"
-                  fallback={<FeedCoverPlaceholder />}
-                />
-              ) : (
-                <FeedCoverPlaceholder />
-              )}
+              <span className="relative block h-16 w-12 shrink-0 overflow-hidden rounded-chip border border-border bg-surface">
+                {entry.imageUrl ? (
+                  <GameArt
+                    src={entry.imageUrl}
+                    alt={entry.gameName}
+                    sizes="48px"
+                    className="object-cover"
+                    fallback={<FeedCoverPlaceholder />}
+                  />
+                ) : (
+                  <FeedCoverPlaceholder />
+                )}
+              </span>
               <div className="min-w-0 flex-1 space-y-1">
-                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-zinc-100">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-subtitle text-ink group-hover:text-accent-ink">
                   <span className="min-w-0 break-words">{entry.gameName}</span>
                   {entry.playthroughNumber > 1 && (
-                    <span className="rounded border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-400">
+                    <span className="rounded-chip border border-border-strong px-1.5 py-0.5 type-caption font-normal text-ink-muted">
                       Rejugada #{entry.playthroughNumber}
                     </span>
                   )}
                 </p>
-                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
-                  <span className="flex items-center gap-1.5 text-zinc-400">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-caption text-ink-faint">
+                  <span className="flex items-center gap-1.5 text-ink-muted">
                     <FriendAvatar url={entry.author.avatarUrl} name={author} size={20} />
                     {author}
                   </span>
@@ -99,7 +107,7 @@ export function FriendsDiaryFeed({
                   <StarRatingDisplay rating={entry.rating} />
                 </p>
                 {entry.review && (
-                  <p className="line-clamp-3 whitespace-pre-line break-words text-xs leading-relaxed text-zinc-400">
+                  <p className="line-clamp-3 whitespace-pre-line break-words type-review text-ink-muted">
                     {entry.review}
                   </p>
                 )}
@@ -114,8 +122,8 @@ export function FriendsDiaryFeed({
 
 function FeedCoverPlaceholder() {
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-zinc-800 text-[10px] text-zinc-500">
-      Sin img
-    </div>
+    <span className="flex h-full w-full items-center justify-center text-border-strong">
+      <Icon name="gamepad" className="h-5 w-5" />
+    </span>
   );
 }

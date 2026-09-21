@@ -3,6 +3,8 @@ import { GamePoster } from "@/components/game/GamePoster";
 import { PosterGrid } from "@/components/game/PosterGrid";
 import { FriendAvatar } from "@/components/friends/FriendAvatar";
 import { profileLabel } from "@/lib/friends/constants";
+import { EmptyState } from "@/components/EmptyState";
+import { Icon } from "@/components/ui/Icon";
 import type { FriendDiaryEntry, FriendProfile } from "@/lib/friends/queries";
 
 /** Cuántas partidas de amigos se muestran en el feed corto de /diario. */
@@ -46,17 +48,17 @@ export function FriendsDiaryGrid({
 }) {
   if (friends.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-        Todavía no agregaste amigos. Agregá a alguien para ver qué está jugando.
-      </p>
+      <EmptyState
+        icon="users"
+        title="Todavía no agregaste amigos."
+        description="Agregá a alguien para ver qué está jugando."
+      />
     );
   }
 
   if (entries.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-500">
-        Tus amigos todavía no marcaron ningún juego como terminado.
-      </p>
+      <EmptyState icon="book" title="Tus amigos todavía no marcaron ningún juego como terminado." />
     );
   }
 
@@ -73,16 +75,16 @@ export function FriendsDiaryGrid({
               // El badge de platino no se puede derivar acá: sale de
               // `user_trophies`, que es privado (ver CLAUDE.md).
               overlay={
-                <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-zinc-950/85 px-1.5 py-1">
+                <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-background/85 px-1.5 py-1">
                   <FriendAvatar url={entry.author.avatarUrl} name={author} size={14} />
-                  <span className="truncate text-[10px] text-zinc-300">{author}</span>
+                  <span className="truncate text-[10px] text-ink-muted">{author}</span>
                 </div>
               }
               caption={
                 <span className="flex flex-wrap items-center justify-between gap-x-1.5">
                   <StarRatingDisplay rating={entry.rating} />
-                  <span className="flex items-center gap-1 text-zinc-600">
-                    {entry.review && <span title="Tiene reseña">📝</span>}
+                  <span className="flex items-center gap-1 text-ink-faint">
+                    {entry.review && <Icon name="note" className="h-3 w-3" label="Tiene reseña" />}
                     {shortDate(entry.finishedOn)}
                   </span>
                 </span>

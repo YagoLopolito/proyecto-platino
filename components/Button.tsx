@@ -4,7 +4,7 @@ type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
 /*
  * Todo color sale de un token de `app/globals.css` (issue #176 §3.1): no hay
- * `blue-600` ni `zinc-500` acá. Los nombres de token ya llevan el rol, así que
+ * azul ni gris de Tailwind acá. Los nombres de token ya llevan el rol, así que
  * las razones de accesibilidad que antes estaban en cada clase viven ahora en
  * la definición del token:
  *
@@ -23,17 +23,20 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   ghost: "text-ink-muted hover:text-accent-ink",
 };
 
+/**
+ * Las clases de un botón, para los `<a>` que tienen que verse como uno (el
+ * "Iniciar sesión con Steam", que es una navegación y no un submit). Así el
+ * link no vuelve a hardcodear un azul de Tailwind por su cuenta.
+ */
+export function buttonClassName(variant: ButtonVariant = "primary", className = ""): string {
+  return `inline-flex min-h-11 items-center justify-center gap-2 rounded-chip px-3 py-1.5 type-meta font-medium transition-colors sm:min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${className}`;
+}
+
 export function Button({
   variant = "primary",
   className = "",
   disabled,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
-  return (
-    <button
-      disabled={disabled}
-      className={`inline-flex min-h-11 items-center justify-center rounded-chip px-3 py-1.5 type-meta font-medium transition-colors sm:min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${className}`}
-      {...props}
-    />
-  );
+  return <button disabled={disabled} className={buttonClassName(variant, className)} {...props} />;
 }

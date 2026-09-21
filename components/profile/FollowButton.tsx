@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
+import { Icon } from "@/components/ui/Icon";
 import { addFriend, removeFriend, type FriendActionState } from "@/lib/friends/actions";
 
 const initialState: FriendActionState = { error: null, success: null };
@@ -29,7 +30,14 @@ export function FollowButton({ userId, isFriend }: { userId: string; isFriend: b
     <form action={formAction} className="space-y-1">
       <input type="hidden" name="friendId" value={userId} />
       <Button type="submit" variant={isFriend ? "secondary" : "primary"} disabled={pending}>
-        {isFriend ? "Quitar de amigos" : "+ Agregar a amigos"}
+        {isFriend ? (
+          "Quitar de amigos"
+        ) : (
+          <>
+            <Icon name="plus" className="h-4 w-4" />
+            Agregar a amigos
+          </>
+        )}
       </Button>
       <FormError>{state.error}</FormError>
     </form>
