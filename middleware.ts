@@ -17,6 +17,7 @@ export const config = {
     "/psn/:path*",
     "/configuracion/:path*",
     "/diario/:path*",
+    "/listas/:path*",
     "/login",
     "/registro",
     "/auth/:path*",

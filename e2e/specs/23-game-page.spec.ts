@@ -145,13 +145,12 @@ test.describe("Ficha de juego unificada", () => {
     const gameId = page.url().split("/").pop()!;
 
     const panel = page.getByRole("region", { name: "Acciones" });
-    // Lista llega con #189: se ve, pero deshabilitada. Jugando (#187, PLAY-02)
-    // y Playlist (#188, PLIST-01) ya funcionan.
-    await expect(panel.getByRole("button", { name: "Lista" })).toBeDisabled();
-    await expect(panel.getByRole("button", { name: "Lista" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    // Jugando (#187), Playlist (#188) y Lista (#189) arrancan sin marcar en un
+    // juego recién materializado; cada uno tiene su propio caso (PLAY-02,
+    // PLIST-01, LIST-03).
+    for (const name of ["Jugando", "Playlist", "Lista"]) {
+      await expect(panel.getByRole("button", { name })).toHaveAttribute("aria-pressed", "false");
+    }
 
     await panel.getByRole("button", { name: "Registrar o puntuar" }).click();
     const dialog = page.getByRole("dialog", { name: "Registrar o puntuar" });

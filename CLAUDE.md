@@ -682,8 +682,7 @@ su hero, y sólo abrían juegos de tu `user_games`.
   `addCatalogGame` dejaba). En E2E, `fetchGameDetails` responde un fixture para los ids `E2E-…`.
 - **Registrar una partida sí vincula** el juego a `user_games` (`createDiaryEntry`), mismo
   criterio que `addCatalogGame`.
-- **Panel de acciones**: Jugando (#187) · Playlist (#188) · Lista, con `aria-pressed`; Lista
-  va deshabilitada con la aclaración hasta su sub-issue (#189); "Registrar o puntuar" abre `AddDiaryEntryForm`
+- **Panel de acciones**: Jugando (#187) · Playlist (#188) · Lista (#189), con `aria-pressed`; "Registrar o puntuar" abre `AddDiaryEntryForm`
   en una `BottomSheet` en mobile y en un `Modal` en escritorio; debajo, tu puntuación (`rating`)
   y el score de la comunidad con su histograma (oro).
 - **El foco de trofeo viaja en la URL**: el advisor y la lista ya no conviven, así que los chips
@@ -766,6 +765,45 @@ lo **querés jugar**.
   póster. El issue lo marcaba opcional, y un long-press sobre un `<Link>` choca con el menú
   nativo del sistema en mobile; se agrega cuando haya un menú de póster compartido.
 
+## Listas (epic #183, issue #189)
+
+Las listas de Letterboxd, para juegos: numeradas o no, públicas o privadas. Este issue es la
+base (datos, crear/editar, ficha y "Agregar a una lista"); descubrirlas es #191/#192 y los likes
+son #190.
+
+- **`user_lists`** (`title` 1-100, `description` hasta 2000, `is_ranked`, `visibility`
+  `public`/`private`) y **`user_list_items`** (`list_id + game_id`, `position` 1..N, `note`
+  hasta 280, `unique (list_id, position)`); migración `20260923030000_user_lists.sql`. RLS: una
+  lista pública la lee cualquiera, una privada sólo su dueño, y los items **heredan** eso vía
+  `exists` sobre la lista; escribir, sólo el dueño. Los límites están también en
+  `lib/lists/constants.ts` (puro, lo usa el editor) y tienen que coincidir con los `check`.
+- `lib/lists/`: `queries.ts` (server-only: `getUserLists`, `getList`, `countPlayed`,
+  `countOwnListsWithGame`) y `actions.ts` (`saveList`, `deleteList`, `getMyListsForGame`,
+  `toggleGameInList`). **`saveList` reescribe los items enteros** (delete + insert), igual que
+  el Top 5: reordenar de a uno pasaría por dos items en la misma `position` y el unique lo
+  rechaza. `toggleGameInList` agrega al final o saca, y puede dejar huecos en `position`: el
+  orden se mantiene y la próxima edición renumera. Tope de 250 juegos por lista.
+- **Rutas**: `/listas/nueva` (`?juego=<id>` la arranca con ese juego: el "Nueva lista con este
+  juego" de la ficha), `/listas/[id]` y `/listas/[id]/editar` (404 si no es tuya). Una lista
+  privada ajena también da **404**: no se confirma que exista. `/listas` está en el matcher del
+  middleware y cuenta como la sección Perfil (`nav-links.ts`).
+- **Editor** (`components/lists/ListEditor.tsx`): todo el estado vive en el cliente hasta
+  "Guardar". El orden se cambia con **↑/↓ con nombre accesible** ("Subir X"/"Bajar X"), no con
+  drag & drop, que podría sumarse encima pero nunca como único camino. El buscador
+  (`CatalogSearchCombobox`, que ahora le pasa a `onSelectGame` el nombre y la carátula) va
+  **fuera** del `<form>` del editor: tiene sus propios `<form>` para dar de alta juegos de RAWG,
+  y un form anidado no es HTML válido.
+- **Ficha**: título en `type-display` (es contenido editorial), autor con avatar, descripción
+  en `type-review`, vista grilla/detalle en `?vista=` (links, no estado) y **"Vos jugaste N de
+  M"** con una barra fina: cuenta lo que quien mira platinó, completó al 100% o registró en su
+  diario (`countPlayed`, sobre `get_library_trophy_stats()` y `game_diary_entries`).
+- **"Agregar a una lista"**: el toggle "Lista" del panel de la ficha (`aria-pressed` si el juego
+  está en alguna de tus listas) abre `AddToListPanel` (hoja en mobile, modal en escritorio), que
+  pide tus listas al abrirse y marca cada una con un toggle.
+- Perfil › Listas muestra tus listas (`ListCard`: cuatro carátulas superpuestas); "Nueva lista"
+  es un botón en escritorio y un botón flotante en mobile (`NewListButton`), también en
+  Biblioteca › Listas mientras esa pantalla sigue en placeholder.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -781,6 +819,7 @@ lo **querés jugar**.
   última sync). Planeado, ver sección de Steam arriba.
 - `now_playing` — rachas de "Jugando ahora" (inicio, fin y motivo), públicas. Ver la sección de arriba.
 - `user_playlist` — los juegos que el usuario quiere jugar, públicos. Ver la sección de Playlist.
+- `user_lists` / `user_list_items` — listas de juegos, públicas o privadas. Ver la sección de Listas.
 - `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
 
 ## Letterbox: diario de partidas (`game_diary_entries`, `game_scores`)
@@ -1168,8 +1207,9 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     juego unificada con tabs y panel de acciones, que abre cualquier juego del catálogo. **#187
     completo**: "Jugando ahora" (`now_playing`, el + con sugerencia, perfil, biblioteca y
     ficha). **#188 completo**: Playlist (`user_playlist`, toggle optimista en la ficha,
-    `/perfil/playlist` con órdenes, salida automática al jugar o terminar). Ver el epic para
-    el orden y las decisiones ya tomadas.
+    `/perfil/playlist` con órdenes, salida automática al jugar o terminar). **#189 completo**:
+    listas (`user_lists` / `user_list_items`, editor, ficha con "Vos jugaste N de M" y
+    "Agregar a una lista"). Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
