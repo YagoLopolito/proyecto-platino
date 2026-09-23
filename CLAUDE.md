@@ -720,8 +720,8 @@ ve en tu perfil (y en el de otros), arriba de la biblioteca y en la ficha del ju
   `user_games.last_played_at` que ya escriben los syncs, **nunca marca solo**. Candidato = el
   último abierto que no está jugando, no está platinado ni al 100% y no lo dejaste después de
   esa sesión. El banner de la biblioteca además respeta el "Descartar"
-  (`user_games.play_suggestion_dismissed_at`: se vuelve a sugerir con un `last_played_at`
-  posterior) y no sugiere nada de hace más de 30 días; el + no lleva esos filtros porque ahí
+  (`user_games.play_suggestion_dismissed_at` guarda el `last_played_at` del juego al
+  descartarlo, **no la hora actual**: se vuelve a sugerir con uno posterior) y no sugiere nada de hace más de 30 días; el + no lleva esos filtros porque ahí
   el usuario abrió el menú a propósito. No hay una columna de "sugerencia" que escriba el sync:
   se deriva al leer, así el sync no suma escrituras.
 - El + pide su contexto (`getRegisterContext`) **al abrirse**, no en el layout: vive en todas

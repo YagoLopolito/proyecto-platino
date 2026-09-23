@@ -83,9 +83,12 @@ export async function stopPlaying(gameId: string): Promise<NowPlayingActionResul
 }
 
 /**
- * "Descartar" en el banner de sugerencia de la biblioteca. Guarda el momento
- * del descarte: el juego se vuelve a sugerir recién cuando el sync traiga un
- * `last_played_at` posterior (una sesión nueva).
+ * "Descartar" en el banner de sugerencia de la biblioteca. Guarda el
+ * `last_played_at` que tenía el juego al descartarlo (no la hora actual): el
+ * juego se vuelve a sugerir recién cuando el sync traiga uno posterior, o sea
+ * una sesión nueva. Con la hora actual, un `last_played_at` que el sync
+ * aproxima con el momento del sync (Steam) podía quedar después del descarte
+ * y la sugerencia no se iba.
  */
 export async function dismissPlaySuggestion(gameId: string): Promise<NowPlayingActionResult> {
   const parsed = gameIdSchema.safeParse(gameId);
@@ -94,9 +97,16 @@ export async function dismissPlaySuggestion(gameId: string): Promise<NowPlayingA
   const { supabase, user } = await requireUser();
   if (!user) return { error: "Tenés que iniciar sesión." };
 
+  const { data: row } = await supabase
+    .from("user_games")
+    .select("last_played_at")
+    .eq("user_id", user.id)
+    .eq("game_id", parsed.data)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("user_games")
-    .update({ play_suggestion_dismissed_at: new Date().toISOString() })
+    .update({ play_suggestion_dismissed_at: row?.last_played_at ?? new Date().toISOString() })
     .eq("user_id", user.id)
     .eq("game_id", parsed.data);
   if (error) return { error: `No se pudo descartar: ${error.message}` };
