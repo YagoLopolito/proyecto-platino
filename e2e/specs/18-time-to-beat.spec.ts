@@ -125,8 +125,9 @@ test.describe("Tiempos estimados en las fichas", () => {
         time_estimates_source: "igdb",
       });
 
-    // La ficha de diario lee el mismo caché: el dato no depende de por dónde entró el usuario.
-    await page.goto(`/juegos/${gameId}/diario`);
+    // Cualquier tab de la ficha lee el mismo caché: el hero es uno solo desde
+    // la ficha unificada (issue #186), y el dato no depende de la tab.
+    await page.goto(`/juegos/${gameId}/guias`);
     const estimates = page.getByTestId("time-to-beat");
     await expect(estimates.getByText("12 h")).toBeVisible();
     await expect(estimates.getByText("30 h")).toBeVisible();
@@ -147,9 +148,9 @@ test.describe("Fallo al consultar IGDB", () => {
       np: 1803,
     });
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/trofeos`);
     // La ficha carga igual, sólo que sin la sección de tiempos.
-    await expect(page.getByRole("heading", { name: /Trofeos\s+2/i })).toBeVisible();
+    await expect(page.getByRole("definition").filter({ hasText: "0/2" })).toBeVisible();
     await expect(page.getByTestId("time-to-beat")).toHaveCount(0);
 
     const { data } = await supabase

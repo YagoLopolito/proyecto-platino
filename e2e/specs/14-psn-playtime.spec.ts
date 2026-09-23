@@ -136,7 +136,9 @@ test.describe("Cruce de nombres entre las dos listas de PSN", () => {
     );
     // Pegar horas del juego equivocado es peor que no tener horas: los Spyro
     // numerados tienen que seguir siendo claves distintas.
-    expect(playtimeMatchKey("Spyro the Dragon")).not.toBe(playtimeMatchKey("Spyro 2: Ripto's Rage!"));
+    expect(playtimeMatchKey("Spyro the Dragon")).not.toBe(
+      playtimeMatchKey("Spyro 2: Ripto's Rage!"),
+    );
     expect(playtimeMatchKey("Spyro 2: Ripto's Rage!")).not.toBe(
       playtimeMatchKey("Spyro 3: Year of the Dragon"),
     );

@@ -207,7 +207,8 @@ test.describe("Sync y biblioteca", () => {
     const cardSinHoras = page.getByRole("listitem").filter({ hasText: "[E2E] PSN Game Dos" });
     await expect(cardSinHoras.locator('[data-icon="clock"]')).toHaveCount(0);
 
-    await page.goto(`/juegos/${gameId}/diario`);
+    // Las horas van en el hero de la ficha unificada (issue #186).
+    await page.goto(`/juegos/${gameId}`);
     await expect(page.getByText("13 h jugadas")).toBeVisible();
   });
 

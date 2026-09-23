@@ -72,7 +72,7 @@ export function FriendsDiaryFeed({
         return (
           <li key={entry.id}>
             <Link
-              href={`/juegos/${entry.gameId}/diario`}
+              href={`/juegos/${entry.gameId}`}
               className="group flex items-start gap-3 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
             >
               <span className="relative block h-16 w-12 shrink-0 overflow-hidden rounded-chip border border-border bg-surface">

@@ -61,6 +61,9 @@ export async function cleanupTestData(supabase: SupabaseClient): Promise<void> {
   // Los juegos que crea el sync mockeado de Steam no tienen np_comm_id: se
   // limpian por su rango reservado de appid.
   await supabase.from("games").delete().gte("steam_appid", E2E_STEAM_APPID_MIN);
+  // Los juegos de catálogo que materializa la ficha (issue #186) no tienen
+  // np_comm_id ni appid: se reconocen por el id de RAWG inventado, `E2E-…`.
+  await supabase.from("games").delete().like("external_catalog_id", `${E2E_GAME_PREFIX}%`);
 
   const { data } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
   const testUsers = (data?.users ?? []).filter((u) => u.email?.endsWith(`@${E2E_EMAIL_DOMAIN}`));

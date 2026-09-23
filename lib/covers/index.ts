@@ -239,6 +239,8 @@ export async function searchCatalogGames(
 }
 
 export interface GameDetails {
+  /** Nombre en RAWG. Lo usa `materializeCatalogGame` para crear la fila. */
+  name: string | null;
   description: string | null;
   developer: string | null;
   releaseYear: number | null;
@@ -264,6 +266,21 @@ function firstString(raw: unknown, key: string): string | null {
  * es información decorativa, nunca puede romper la página que la pide.
  */
 export async function fetchGameDetails(externalId: string): Promise<GameDetails | null> {
+  // Mock de la suite E2E (issue #186): los ids de catálogo de test llevan el
+  // prefijo `E2E-` y nunca existen en RAWG. Devolver un detalle fijo deja probar
+  // la materialización de una ficha sin salir a internet ni tener la key.
+  if (process.env.E2E_MOCKS === "1") {
+    if (!externalId.startsWith("E2E-")) return null;
+    return {
+      name: `[E2E] Catálogo ${externalId}`,
+      description: "Juego de catálogo inventado para la suite E2E.",
+      developer: "Estudio E2E",
+      releaseYear: 2024,
+      backgroundUrl: null,
+      coverUrl: null,
+    };
+  }
+
   const apiKey = process.env.RAWG_API_KEY;
   if (!apiKey) return null;
 
@@ -281,6 +298,7 @@ export async function fetchGameDetails(externalId: string): Promise<GameDetails 
     const released = typeof obj.released === "string" ? Number(obj.released.slice(0, 4)) : NaN;
 
     return {
+      name: typeof obj.name === "string" && obj.name.trim() ? obj.name.trim() : null,
       // `description_raw` es la descripción sin HTML (la otra viene con <p>).
       description: typeof obj.description_raw === "string" ? obj.description_raw : null,
       developer: firstString(obj.developers, "name"),

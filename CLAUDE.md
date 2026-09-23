@@ -34,7 +34,7 @@ Sony **no tiene una API pública ni oficial** para trofeos. No hay developer pro
 - Se sospechaba que **Sony bloquea el intercambio de NPSSO desde IPs de datacenter** (Vercel/AWS). **Nunca se confirmó** y no se implementó proxy (`PSN_PROXY_URL`) — el bug del alias `"me"` alcanza para explicar el fallo original. Si el sync falla específicamente en producción (Vercel) pero funciona en local con el mismo NPSSO, ahí sí vale la pena investigar un proxy saliente (`undici`'s `ProxyAgent`) antes de asumir que es el único camino.
 - Las filas de `games`/`trophies` que trae el sync quedan con `created_by = auth.uid()` y `source = 'psn'` (encaja con las RLS existentes sin migraciones nuevas). Limitación v1: si dos usuarios sincronizan el mismo juego, el catálogo compartido queda "de facto" en manos de quien lo sincronizó primero — `lib/psn/sync.ts` busca antes de escribir para no romper por RLS, pero no reescribe filas de otro usuario. Considerar un cliente service-role si esto se vuelve un problema real.
 - **El primer sync real puede tardar** (varias decenas de juegos, cada uno con su propia consulta a PSN) y en Vercel eso se traduce en `FUNCTION_INVOCATION_TIMEOUT` si no se lo tiene en cuenta. `lib/psn/sync.ts` procesa títulos con concurrencia limitada (`lib/psn/concurrency.ts`) y hace los inserts/upserts de trofeos en bloque por título en vez de uno por uno (antes eran hasta 2 round-trips a la base *por trofeo*, lo cual escalaba fatal con bibliotecas grandes). `app/api/psn/sync/route.ts` declara `export const maxDuration = 300`, pero en el plan Hobby de Vercel el límite real sigue siendo 60s pase lo que declare la ruta — si el sync sigue dando timeout en producción con eso, el plan de Vercel es la causa más probable, no el código.
-- **Horas jugadas**: `lib/psn/playtime.ts` trae el `playDuration` de `getUserPlayedGames` (ISO 8601, ej. `"PT228H56M33S"`) y lo guarda en `user_games.playtime_minutes`, la misma columna que ya llenaba Steam. Esa lista está indexada por `titleId` (`CUSA…`/`PPSA…`) y los trofeos por `npCommunicationId` (`NPWR…`), y Sony no publica un mapeo entre las dos: el cruce es **por nombre normalizado**, con las mismas limitaciones que `adoptCatalogGame` (remasters y ediciones pueden no matchear). Es una sola llamada paginada por biblioteca, no una por juego, y va en un `.catch` — si el endpoint falla o cambia, el sync de trofeos sigue. Cuando un título no matchea, la columna **ni se menciona en el upsert**, para no pisar con NULL un valor ya guardado. Las horas de PSN y las de Steam **no son comparables** (Steam cuenta el proceso abierto; PSN, sesiones de consola desde que empezó a trackearlas): se muestran por juego, nunca sumadas entre plataformas. El formato es `lib/playtime.ts` (`formatPlaytime`), compartido por la tarjeta de `/juegos` y la ficha de `/juegos/[id]/diario`. Dos detalles del endpoint que costaron una corrida real: hay que **pedir las `categories` explícitamente** (`ps4_game,ps5_native_game,pspc_game,unknown` — el default deja afuera media biblioteca) y el corte de la paginación **no puede ser `titles.length < limit`**, porque PSN devuelve páginas más chicas que el limit pedido y con eso se cortaba en la primera página (solo quedaban con horas los últimos juegos jugados). El sync loguea un resumen (`[psn-sync] horas jugadas: N títulos devueltos…`) para poder ver si el cruce por nombre está fallando sin tener que mirar la base.
+- **Horas jugadas**: `lib/psn/playtime.ts` trae el `playDuration` de `getUserPlayedGames` (ISO 8601, ej. `"PT228H56M33S"`) y lo guarda en `user_games.playtime_minutes`, la misma columna que ya llenaba Steam. Esa lista está indexada por `titleId` (`CUSA…`/`PPSA…`) y los trofeos por `npCommunicationId` (`NPWR…`), y Sony no publica un mapeo entre las dos: el cruce es **por nombre normalizado**, con las mismas limitaciones que `adoptCatalogGame` (remasters y ediciones pueden no matchear). Es una sola llamada paginada por biblioteca, no una por juego, y va en un `.catch` — si el endpoint falla o cambia, el sync de trofeos sigue. Cuando un título no matchea, la columna **ni se menciona en el upsert**, para no pisar con NULL un valor ya guardado. Las horas de PSN y las de Steam **no son comparables** (Steam cuenta el proceso abierto; PSN, sesiones de consola desde que empezó a trackearlas): se muestran por juego, nunca sumadas entre plataformas. El formato es `lib/playtime.ts` (`formatPlaytime`), compartido por la tarjeta de la biblioteca y el hero de la ficha (`GameHero`). Dos detalles del endpoint que costaron una corrida real: hay que **pedir las `categories` explícitamente** (`ps4_game,ps5_native_game,pspc_game,unknown` — el default deja afuera media biblioteca) y el corte de la paginación **no puede ser `titles.length < limit`**, porque PSN devuelve páginas más chicas que el limit pedido y con eso se cortaba en la primera página (solo quedaban con horas los últimos juegos jugados). El sync loguea un resumen (`[psn-sync] horas jugadas: N títulos devueltos…`) para poder ver si el cruce por nombre está fallando sin tener que mirar la base.
 - `lib/covers/index.ts` (RAWG, vía `RAWG_API_KEY`) sólo complementa la carátula (`cover_url`) cuando se crea un juego nuevo por sync; nunca aporta trofeos ni bloquea el sync si falla.
 - **Sync automático**: `app/api/cron/sync/route.ts` corre vía Vercel Cron (`vercel.json`, diario) y sincroniza todas las `psn_accounts` con `token_status = 'valid'`, con la misma concurrencia limitada que el sync manual. Usa `lib/supabase/service.ts` (service role, bypassea RLS) porque no hay sesión de cookies de usuario en un cron; nunca usar ese cliente en una ruta que sirve requests de usuarios. El endpoint exige `Authorization: Bearer ${CRON_SECRET}` (Vercel lo manda solo si `CRON_SECRET` está seteada en el proyecto) — sin esa variable, el endpoint rechaza todo con 401. Si una cuenta falla (NPSSO vencido, error de PSN), no aborta el resto: se guarda por-cuenta en la respuesta y `psn_accounts.token_status` queda en `'expired'` para que la UI le pida al usuario reconectar.
 
@@ -143,7 +143,7 @@ Pobla `game_external_guides` (tabla sin RLS de insert para `authenticated` — s
 ## Tiempos estimados de juego: `lib/time-to-beat/`
 
 Cuánto lleva pasarse la historia principal y cuánto llegar al 100%, como HowLongToBeat. Se
-muestran en la ficha de trofeos (`GameDetailHero`) y en la de diario (`GameHero`), las dos vía
+muestran en el hero de la ficha de juego (`GameHero`, uno solo desde el issue #186), vía
 `components/game/TimeToBeat.tsx`.
 
 - **HowLongToBeat no tiene API pública** y no se usa: lo que circula por ahí es su endpoint
@@ -474,12 +474,9 @@ Las **tiras de estadísticas** (perfil y ficha de juego) son el otro patrón pre
 grande, etiqueta chica en versalitas, celdas separadas por 1px. En mobile van de 2 o 3 por
 fila.
 
-`components/game/GameDetailHero.tsx` (ficha de trofeos) y `components/diary/GameHero.tsx`
-(ficha de diario) son primos: los dos hacen el wallpaper a ancho completo de la ventana con
-el truco de `w-screen` + `left-1/2` + `-translate-x-1/2`. El de diario además muestra
-descripción y puntuación de la comunidad; el de trofeos, la tira de progreso del usuario.
-Los dos leen `getGameCardData` (`lib/catalog/details.ts`), así que abrir una ficha calienta
-el caché de la otra.
+La ficha de juego es **una sola**, con tabs: ver "Ficha de juego unificada" más abajo. Los dos
+heroes primos que había (`GameDetailHero` y `diary/GameHero`) se fusionaron en
+`components/game/GameHero.tsx` (issue #186).
 
 `components/GameCard.tsx` (la fila de la biblioteca con progreso, horas y desglose por tipo)
 **se eliminó**: la reemplazó la grilla de carátulas.
@@ -654,6 +651,50 @@ Configuración).
   importa código de otros lados); sólo cambió a qué ruta hacen `revalidatePath`.
 - `start_url` de la PWA pasa a `/biblioteca`; el matcher de `middleware.ts` y
   `isProtectedRoute` de `lib/supabase/middleware.ts` cubren las rutas nuevas.
+
+## Ficha de juego unificada (epic #183, issue #186)
+
+`/juegos/[id]` es **una ficha con tabs**, como la de una película en Letterboxd. Antes eran dos
+pantallas primas (`/juegos/[id]` con trofeos y `/juegos/[id]/diario` con reseñas), cada una con
+su hero, y sólo abrían juegos de tu `user_games`.
+
+- **`app/(app)/juegos/[id]/layout.tsx`** monta lo que no cambia entre tabs: `GameHero` (el único
+  hero: backdrop, póster, título en `type-display`, metadatos, horas, `TimeToBeat`, descripción)
+  y `GameActionPanel` (tercera columna en escritorio, debajo de los datos en mobile). Cada tab
+  es una ruta con su `page.tsx` y `SwipeTabs` las recorre: **Reseñas** (`/juegos/[id]`, la
+  default: tus partidas editables, las de tus amigos primero y después el resto, con el nombre
+  de quien reseñó), **Trofeos** (`/trofeos`: tira de progreso + `TrophyList`) y **Guías e IA**
+  (`/guias`: advisor, enlaces externos y capturas; declara `maxDuration = 60` porque de ahí se
+  invocan las actions del LLM y de Steam).
+- **`lib/game-page/data.ts`** tiene los loaders compartidos con `cache()` de React
+  (`getGamePageBase`, `getGameTrophyProgress`, `getGameDiary`): el layout y la tab se renderizan
+  en el mismo request y sin eso cada consulta corría dos veces. Al cambiar de tab Next sólo
+  renderiza la página nueva.
+- **Cualquier juego tiene ficha.** `games` es de lectura pública, así que la ficha ya no pasa
+  por `user_games`; `isMember` sólo decide lo que depende de tu progreso: la tab Trofeos y el
+  advisor muestran un `EmptyState` que lo explica si el juego no está en tu biblioteca.
+- **Juegos que no están en `games`** (resultados de RAWG): `/juegos/catalogo/[rawgId]` (route
+  handler) los materializa con `materializeCatalogGame` (`lib/catalog/materialize.ts`) y
+  redirige a `/juegos/[id]`. A diferencia de `addCatalogGame`, **no vincula a `user_games`**
+  (abrir la ficha no es agregar el juego) y escribe por service role con `created_by` NULL
+  (es catálogo compartido). La unicidad vive en la base: índice único de
+  `games.external_catalog_id` + `on conflict do nothing` (migración
+  `20260923000000_games_external_catalog_unique.sql`, que antes limpia los duplicados que
+  `addCatalogGame` dejaba). En E2E, `fetchGameDetails` responde un fixture para los ids `E2E-…`.
+- **Registrar una partida sí vincula** el juego a `user_games` (`createDiaryEntry`), mismo
+  criterio que `addCatalogGame`.
+- **Panel de acciones**: Jugando / Playlist / Lista van deshabilitados con `aria-pressed` y la
+  aclaración hasta sus sub-issues (#187-#189); "Registrar o puntuar" abre `AddDiaryEntryForm`
+  en una `BottomSheet` en mobile y en un `Modal` en escritorio; debajo, tu puntuación (`rating`)
+  y el score de la comunidad con su histograma (oro).
+- **El foco de trofeo viaja en la URL**: el advisor y la lista ya no conviven, así que los chips
+  del advisor son links a `/juegos/[id]/trofeos?trofeo=<id>` (`focusTrophy.ts`) y `TrophyList`
+  lee el parámetro durante el render (no en un effect), limpia filtros y enfoca.
+- Las actions revalidan con `revalidatePath("/juegos/<id>", "layout")`, que cubre las tres tabs.
+- Rutas viejas: `/juegos/[id]/diario` → `/juegos/[id]` y `/juegos/[id]/enlaces` →
+  `/juegos/[id]/guias` (`redirects()` de `next.config.ts`). Sus Server Actions quedaron en esas
+  carpetas. `GameBreadcrumb` y `GameDiarySection` se borraron: las tabs y el panel los
+  reemplazan.
 
 ## Modelo de datos (borrador)
 
@@ -1051,8 +1092,9 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     ahora, estudios (IGDB), actividad y perfil nuevo, en 14 sub-issues (#184-#197). 🔄
     **#184 completo**: paleta refinada (chrome, superficies a pasos parejos, `rating` /
     `rating-muted` / `like`). **#185 completo**: shell de navegación de 5 botones, header
-    web, `SwipeTabs`, rutas nuevas con placeholders y redirects. Ver el epic para el orden y
-    las decisiones ya tomadas.
+    web, `SwipeTabs`, rutas nuevas con placeholders y redirects. **#186 completo**: ficha de
+    juego unificada con tabs y panel de acciones, que abre cualquier juego del catálogo. Ver el
+    epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

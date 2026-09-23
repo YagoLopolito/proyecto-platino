@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import TrophyItem from "./TrophyItem";
-import { FOCUS_TROPHY_EVENT, type FocusTrophyDetail } from "./focusTrophy";
+import { FOCUS_TROPHY_PARAM } from "./focusTrophy";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EmptyState } from "@/components/EmptyState";
 import { MobileDisclosure } from "@/components/ui/MobileDisclosure";
@@ -58,23 +59,23 @@ export default function TrophyList({
   const [sort, setSort] = useState<SortOption>("default");
   const [focus, setFocus] = useState<{ trophyId: string; token: number } | null>(null);
 
-  // Foco pedido desde el advisor con IA (ver `focusTrophy.ts`). Se limpian los
+  // Foco pedido desde el advisor con IA (`?trofeo=<id>`, ver `focusTrophy.ts`).
+  // Se compara contra el último pedido durante el render y no en un effect
+  // (regla `react-hooks/set-state-in-effect`, ver CLAUDE.md). Se limpian los
   // filtros antes de enfocar: si el trofeo estaba filtrado, su fila ni siquiera
   // está montada y no habría nada que abrir ni a dónde scrollear.
-  useEffect(() => {
-    function handleFocusTrophy(event: Event) {
-      const trophyId = (event as CustomEvent<FocusTrophyDetail>).detail?.trophyId;
-      if (!trophyId) return;
+  const requestedTrophyId = useSearchParams().get(FOCUS_TROPHY_PARAM);
+  const [handledRequest, setHandledRequest] = useState<string | null>(null);
+  if (requestedTrophyId !== handledRequest) {
+    setHandledRequest(requestedTrophyId);
+    if (requestedTrophyId) {
       setQuery("");
       setStatus("all");
       setType("all");
       setRarity("all");
-      setFocus((current) => ({ trophyId, token: (current?.token ?? 0) + 1 }));
+      setFocus((current) => ({ trophyId: requestedTrophyId, token: (current?.token ?? 0) + 1 }));
     }
-
-    window.addEventListener(FOCUS_TROPHY_EVENT, handleFocusTrophy);
-    return () => window.removeEventListener(FOCUS_TROPHY_EVENT, handleFocusTrophy);
-  }, []);
+  }
 
   const filteredGroups = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

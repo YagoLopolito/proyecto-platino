@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Sistema de diseño: tokens, escala tipográfica y set de íconos.
- * Casos DS-01..DS-20 de TESTING_PRD.md §6.18 (fases 1 a 5 del issue #176) y
+ * Casos DS-01..DS-20 de TESTING_PRD.md §6.18 (fases 1 a 5 del issue #176; las
+ * URLs de la ficha, al día con la ficha unificada del issue #186) y
  * DS-21..DS-24 (paleta refinada del epic #183, issue #184).
  *
  * Por qué se testea algo "visual": lo que se verifica acá no es cómo se ve,
@@ -273,7 +274,7 @@ test.describe("Sistema de diseño", () => {
     expect(fonts.meta).toMatch(SANS);
   });
 
-  test("DS-09: la nav de secciones de la ficha usa íconos del set, no emojis", async ({
+  test("DS-09: las secciones de la ficha son tabs, sin emojis", async ({
     page,
     supabase,
     users,
@@ -286,13 +287,13 @@ test.describe("Sistema de diseño", () => {
 
     await page.goto(`/juegos/${gameId}`);
 
-    const nav = page.getByRole("link", { name: /Enlaces/ }).locator("xpath=..");
-    for (const icon of ["trophy", "sparkle", "link", "book"]) {
-      await expect(nav.locator(`[data-icon="${icon}"]`)).toBeVisible();
-    }
-    // Los cuatro emojis que encabezaban las secciones (issue #176 §3.3).
+    // Desde la ficha unificada (issue #186) las secciones son las tabs de
+    // `SwipeTabs`, no una fila de pills con ancla. Los cuatro emojis que las
+    // encabezaban antes del remake (issue #176 §3.3) no pueden volver.
+    const tabs = page.getByRole("tablist", { name: "Ficha del juego" });
+    await expect(tabs.getByRole("tab")).toHaveText(["Reseñas", "Trofeos", "Guías e IA"]);
     for (const emoji of ["🏆", "✨", "🔗", "📔"]) {
-      await expect(nav).not.toContainText(emoji);
+      await expect(tabs).not.toContainText(emoji);
     }
   });
 
@@ -307,7 +308,7 @@ test.describe("Sistema de diseño", () => {
       np: 2106,
     });
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/trofeos`);
 
     const row = page.getByRole("listitem").filter({ hasText: "Trofeo 1" }).first();
     await expect(row).toBeVisible();
@@ -345,7 +346,7 @@ test.describe("Sistema de diseño", () => {
     // Rareza 0 = ultra rara, el escalón que tiene token propio.
     await supabase.from("trophies").update({ rarity: 0 }).eq("id", trophyIds[0]);
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/trofeos`);
 
     // Acotado a la fila del trofeo: suelto, `getByText("Ultra rara")` pegaba
     // primero en el `<option>` del filtro de rareza, que está en el DOM pero
@@ -408,7 +409,7 @@ test.describe("Sistema de diseño", () => {
     const review = "[E2E] Resena en serif de lectura";
     await seedDiaryEntry(supabase, users.userA.id, gameId, review);
 
-    await page.goto(`/juegos/${gameId}/diario`);
+    await page.goto(`/juegos/${gameId}`);
 
     // La reseña es el otro texto editorial de la app, junto con el nombre del
     // juego (issue #176 §3.2): si cae a la sans, el contraste que justifica
@@ -430,7 +431,7 @@ test.describe("Sistema de diseño", () => {
     });
     await seedDiaryEntry(supabase, users.userA.id, gameId, "[E2E] Resena con rating");
 
-    await page.goto(`/juegos/${gameId}/diario`);
+    await page.goto(`/juegos/${gameId}`);
 
     // ★ y ☆ son dingbats: cada sistema los dibuja con su propia forma y su
     // propio ancho, así que las cinco estrellas no alineaban entre
@@ -466,7 +467,7 @@ test.describe("Sistema de diseño", () => {
       np: 2110,
     });
 
-    await page.goto(`/juegos/${gameId}/diario`);
+    await page.goto(`/juegos/${gameId}`);
 
     // `GameHero` es primo de `GameDetailHero` (DS-08) y tiene que leerse
     // igual: el nombre del juego es el texto editorial de la pantalla.
@@ -708,7 +709,7 @@ test.describe("Sistema de diseño", () => {
     });
     await seedDiaryEntry(supabase, users.userA.id, gameId, "[E2E] Rating propio");
 
-    await page.goto(`/juegos/${gameId}/diario`);
+    await page.goto(`/juegos/${gameId}`);
 
     const own = page.getByLabel("9/10").first();
     await expect(own).toBeVisible();
@@ -740,7 +741,7 @@ test.describe("Sistema de diseño", () => {
       { onConflict: "user_id,game_id,playthrough_number" },
     );
 
-    await page.goto(`/juegos/${gameId}/diario`);
+    await page.goto(`/juegos/${gameId}`);
 
     const others = page.getByLabel("7/10").first();
     await expect(others).toBeVisible();

@@ -92,9 +92,7 @@ test.describe.serial("Recomendaciones del diario", () => {
 
     // El label del botón no cambia entre corridas, así que la señal de que
     // terminó es la fila nueva en la base, no un cambio en la UI.
-    await expect
-      .poll(() => countRecommendations(supabase, users.userA.id))
-      .toBe(before + 1);
+    await expect.poll(() => countRecommendations(supabase, users.userA.id)).toBe(before + 1);
 
     // La anterior sigue estando: el historial es versionado, no un upsert.
     expect(before).toBeGreaterThan(0);

@@ -308,7 +308,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-10 | Juegos `source='catalog'` no aparecen | Un juego de catálogo del diario no se lista en `/juegos` | P1 |
 | SYNC-11 | `/api/cron/sync` sin `CRON_SECRET` | 401 | **P0 (seguridad)** |
 | SYNC-12 | `/api/cron/sync` con bearer correcto | 200 con resumen por cuenta | P1 |
-| SYNC-13 | Horas jugadas de PSN | `playtime_minutes` guardado desde `playDuration`, visible en la tarjeta de `/juegos` y en la ficha de diario; un juego sin horas reportadas no muestra nada | P1 |
+| SYNC-13 | Horas jugadas de PSN | `playtime_minutes` guardado desde `playDuration`, visible en la tarjeta de la biblioteca y en el hero de la ficha; un juego sin horas reportadas no muestra nada | P1 |
 | SYNC-14 | Paginación de horas de PSN | `decideNextPage` no corta en la primera página cuando falta `totalItemCount` y recorre una biblioteca grande en páginas chicas | P1 |
 | SYNC-15 | Fallo parcial de horas de PSN | Si una página de la lista de juegos jugados falla, `fetchPsnPlaytime` devuelve las páginas ya obtenidas en vez de perder el mapa entero | P1 |
 | SYNC-16 | RLS de `user_games` | El usuario puede actualizar su propia fila: el segundo upsert del sync (ON CONFLICT DO UPDATE) no lo rechaza la RLS | P0 |
@@ -322,7 +322,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | GAME-02 | Trofeos no obtenidos en b/n | Filtro grayscale presente; los obtenidos en color (PR #102) | P1 |
 | GAME-03 | Barra de progreso | % coincide con obtenidos/total | P1 |
 | GAME-04 | Rareza y DLC | Se muestran cuando el fixture los trae (PR #87) | P2 |
-| GAME-05 | Breadcrumb | Volver lleva a `/juegos` desde enlaces/diario (issue #60) | P1 |
+| GAME-05 | ~~Breadcrumb~~ | Reemplazado por FICHA-02/03 (issue #186): con la ficha unificada no hay subpantallas de enlaces/diario de las que volver, y el breadcrumb se eliminó | — |
 | GAME-06 | `id` inexistente | Estado de error/404 controlado, no un stack trace | P1 |
 | GAME-07 | Juego de otro usuario | No se filtran trofeos ajenos (RLS) | **P0 (seguridad)** |
 | GAME-08 | Caché de datos de catálogo | La ficha guarda fondo/descripción aunque el juego lo haya creado otro usuario | P1 |
@@ -337,6 +337,9 @@ hay UI que las edite, así que no hay casos que testear. Los IDs GUIDE-01 a GUID
 retirados y no se reutilizan.
 
 ### 6.6 Enlaces externos (`06-external-links.spec.ts`)
+
+Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]/guias`);
+`/juegos/[id]/enlaces` redirige.
 
 | ID | Caso | Resultado esperado | Prio |
 | --- | --- | --- | --- |
@@ -360,8 +363,8 @@ retirados y no se reutilizan.
 | AI-06 | Error del proveedor | Mensaje distinguible del de schema (PR #55) | P1 |
 | AI-07 | Estado de carga | Botón deshabilitado + spinner mientras genera | P2 |
 | AI-08 | `@live`: Groq real | Plan válido contra el schema de Zod | P2 |
-| AI-10 | Clic en un trofeo del plan | Lleva al trofeo en la lista de arriba y le abre la ayuda de "cómo desbloquearlo" ya cargada | P1 |
-| AI-11 | Siguiente trofeo | La tarjeta "Siguiente trofeo" muestra un trofeo pendiente con los pasos para desbloquearlo, y clickearlo lleva al trofeo en la lista | P1 |
+| AI-10 | Clic en un trofeo del plan | Es un link a la tab Trofeos con `?trofeo=<id>` (#186): lleva al trofeo y le abre la ayuda de "cómo desbloquearlo" ya cargada | P1 |
+| AI-11 | Siguiente trofeo | La tarjeta "Siguiente trofeo" muestra un trofeo pendiente con los pasos para desbloquearlo, y clickearlo lleva al trofeo en la tab Trofeos | P1 |
 | AI-12 | Trofeos de acumulación | El plan lista los trofeos que piden juntar una cantidad, con su objetivo, su categoría y el aviso cuando no se pueden farmear después | P1 |
 | AI-13 | Tamaño del prompt del plan | El prompt de un juego de 53/80/120 trofeos entra en el presupuesto de tokens del free tier, y los trofeos ya obtenidos no se mandan | P0 |
 | AI-14 | Trofeos de historia no son perdibles | El system prompt del plan le prohíbe explícitamente al modelo poner en "missables" los trofeos que se desbloquean solos avanzando la historia, y exige un punto de no retorno concreto para cada missable | P1 |
@@ -386,6 +389,11 @@ retirados y no se reutilizan.
 | DIARY-13 | Badge de platino en el diario propio | Aparece solo si los trofeos sincronizados lo justifican | P2 |
 | DIARY-14 | Diario público | userB ve el diario de userA | P1 |
 | DIARY-15 | userB no puede editar el diario de userA | Sin controles; la Server Action rechaza | **P0 (seguridad)** |
+
+> Desde la ficha unificada (issue #186) el diario de un juego es la tab Reseñas de
+> `/juegos/[id]` y "Marcar como terminado" se abre desde "Registrar o puntuar" en el panel de
+> acciones; `/juegos/[id]/diario` redirige. Registrar una partida vincula el juego a
+> `user_games` si no lo estaba.
 
 ### 6.9 Amigos (`09-friends.spec.ts`)
 
@@ -539,7 +547,7 @@ llama a IGDB.
 | TIME-02 | Ediciones | "Remastered"/"Director's Cut" matchean contra el juego base (`normalizeName`) | P1 |
 | TIME-03 | Unidades y valores vacíos | Los segundos pasan a minutos; 0 y negativos devuelven `null` en vez de "0 h" | P0 |
 | TIME-04 | Ficha de trofeos | Se ven "Pasarlo" y "Platino" con sus horas, y la fuente citada; en un juego sin platino la segunda dice "Al 100%" | P0 |
-| TIME-05 | Caché y ficha de diario | Los tiempos quedan guardados en `games` y la ficha de diario muestra los mismos | P1 |
+| TIME-05 | Caché compartido entre tabs | Los tiempos quedan guardados en `games` y la tab Guías e IA de la ficha muestra los mismos | P1 |
 | TIME-06 | `@live`: IGDB real | Un juego conocido devuelve `status: "ok"` con los dos tiempos mayores a cero | P2 |
 | TIME-07 | No se pudo consultar IGDB | El juego **no** queda marcado como consultado, para que se reintente cuando el problema se arregle | P0 |
 | TIME-08 | Nombres del catálogo contra IGDB | "Skyrim", "…- Multiplayer" y los que traen ®/™ matchean contra el título real; una entrega distinta de la saga no | P0 |
@@ -562,13 +570,13 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-06 | Las primitivas pintan con los tokens | El `background-color` computado del botón primario es exactamente el valor de `--accent`, no un `blue-*` parecido | P1 |
 | DS-07 | El badge de platino del póster es un ícono | La tarjeta de un juego platinado muestra `[data-icon="trophy"]`, no contiene 🏆, y el ícono se anuncia como imagen "Platino" | P2 |
 | DS-08 | El nombre del juego va en la serif editorial | El `font-family` computado del título de la ficha resuelve a Newsreader mientras el resto de la app sigue en Geist | P1 |
-| DS-09 | La nav de la ficha usa íconos, no emojis | Las cuatro secciones muestran `[data-icon]` (trophy/sparkle/link/book) y ninguna contiene 🏆 ✨ 🔗 📔 | P2 |
+| DS-09 | Las secciones de la ficha son tabs, sin emojis | El `tablist` "Ficha del juego" tiene las tabs Reseñas / Trofeos / Guías e IA (ficha unificada, #186) y no contiene 🏆 ✨ 🔗 📔 | P2 |
 | DS-10 | La lista de trofeos son filas con hairline | Una fila de trofeo no tiene fondo propio ni radio, y separa con un borde inferior de 1px | P2 |
 | DS-11 | La rareza pinta con los tokens de rareza | El `color` computado del chip "Ultra rara" es exactamente `--rarity-ultra`, no un fucsia parecido | P2 |
 | DS-12 | La reseña del diario va en la serif de lectura | El `font-family` computado del texto de una reseña resuelve a Newsreader | P1 |
 | DS-13 | El rating son íconos del set, no los glifos ★/☆ | Un rating 9/10 muestra 10 `[data-icon="star"]` y no contiene ★ ni ☆ | P2 |
 | DS-14 | Las acciones de `/diario` usan íconos, no emojis | La fila de acciones muestra `[data-icon]` (chart/camera/trophy/check) y no contiene 📊 📷 🏆 ✓ | P2 |
-| DS-15 | El nombre del juego en la ficha de diario va en la serif | El `font-family` computado del `h1` de `GameHero` resuelve a Newsreader | P1 |
+| DS-15 | El nombre del juego en la ficha va en la serif | El `font-family` computado del `h1` de `GameHero` (el hero único de la ficha, #186) resuelve a Newsreader | P1 |
 | DS-16 | El tab activo del header se marca con acento, peso y `aria-current` | El link activo de la nav "Principal" tiene `aria-current="page"`, su `color` es exactamente `--accent-ink`, pesa más que los inactivos y va en versalitas | P1 |
 | DS-17 | La barra inferior de mobile usa íconos del set | `mobile-tab-bar` contiene exactamente 5 `[data-icon]`: library, search, plus-circle, bolt, user (epic #183) | P2 |
 | DS-18 | Las instrucciones de Conexiones van plegadas | En la tarjeta de PSN el campo NPSSO es visible de entrada, el link a playstation.com está oculto detrás de "Cómo conseguir el NPSSO" y aparece al abrirlo | P1 |
@@ -576,7 +584,7 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-20 | La pantalla offline usa un ícono del set | `/offline` muestra `[data-icon="offline"]` y no contiene 📡 | P2 |
 | DS-21 | Tokens de la paleta refinada (#184) | `--chrome`, `--chrome-raised`, `--rating`, `--rating-muted` y `--like` tienen valor, y `--rating` resuelve exactamente al mismo color que `--accent-ink` (y no al oro) | P1 |
 | DS-22 | Chrome del header y de la barra inferior | En mobile, el `background-color` computado de `mobile-tab-bar` es exactamente `--chrome-raised` (sólido, sin `/95`), el del `header` es `--chrome`, y el tab activo pinta con `--accent-ink` | P1 |
-| DS-23 | Tus estrellas usan `rating` | En `/juegos/[id]/diario`, tu entrada 9/10 dibuja 5 estrellas `data-rating-tone="own"` y la llena tiene el `color` exacto de `--rating` | P1 |
+| DS-23 | Tus estrellas usan `rating` | En la tab Reseñas de `/juegos/[id]`, tu entrada 9/10 dibuja 5 estrellas `data-rating-tone="own"` y la llena tiene el `color` exacto de `--rating` | P1 |
 | DS-24 | Las estrellas de otro usuario usan `rating-muted` | La entrada 7/10 de userB, bajo "Otros usuarios", dibuja 5 estrellas `data-rating-tone="others"` con el `color` exacto de `--rating-muted`, distinto de `--rating` | P2 |
 
 ### 6.19 Navegación de 5 botones (`22-navigation.spec.ts`)
@@ -595,6 +603,21 @@ del mismo archivo (proyecto `authed`).
 | NAV-05 | Redirects de rutas viejas | `/juegos?fuente=steam&q=zelda` → `/biblioteca?fuente=steam&q=zelda`; `/diario?nuevo=1` → `/perfil/diario?nuevo=1` con el modal abierto; `/diario/amigos` → `/biblioteca/resenas`; `/diario/resumen` no se mueve | P0 |
 | NAV-06 | Configuración en el engranaje | La barra inferior no tiene Configuración; el engranaje del header de `/perfil` lleva a `/configuracion/conexiones` | P1 |
 | NAV-07 | Header de escritorio | Nav Biblioteca · Actividad · Perfil; "Registrar" abre el diálogo; el menú "Cuenta" tiene Perfil, Configuración y Cerrar sesión y cierra con Escape; Enter en el buscador lleva a `/buscar?q=` | P1 |
+
+### 6.20 Ficha de juego unificada (`23-game-page.spec.ts`)
+
+Ficha con tabs del epic #183 (issue #186): un solo hero, panel de acciones y tres tabs en la
+URL (Reseñas en `/juegos/[id]`, Trofeos en `/trofeos`, Guías e IA en `/guias`). Los IDs son
+`FICHA-` porque `GAME-0x` ya existen en §6.4. El caso "el chip del advisor abre la tab Trofeos y
+enfoca el trofeo" que listaba el issue es AI-10 (§6.7), actualizado.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| FICHA-01 | Juego fuera de tu biblioteca | userB abre la ficha de un juego que sólo tiene userA: se ve el hero y la tab Reseñas; la tab Trofeos explica que no está en su biblioteca y no muestra trofeos | P0 |
+| FICHA-02 | Redirects de las fichas viejas | `/juegos/[id]/diario` → `/juegos/[id]` (Reseñas) y `/juegos/[id]/enlaces` → `/juegos/[id]/guias` | P0 |
+| FICHA-03 | Tabs en la URL | → con el teclado recorre Reseñas → Trofeos → Guías e IA cambiando la URL; recargar conserva la tab | P1 |
+| FICHA-04 | Materializar un juego de catálogo | `/juegos/catalogo/[rawgId]` (RAWG mockeado) redirige a la ficha; abrirlo dos veces deja **una** fila `source = 'catalog'` y no vincula el juego a `user_games` | P0 |
+| FICHA-05 | Registrar desde el panel | Jugando / Playlist / Lista se ven deshabilitados con `aria-pressed="false"`; "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
 
 **Total: 141 casos** — 52 P0, 59 P1, 30 P2.
 

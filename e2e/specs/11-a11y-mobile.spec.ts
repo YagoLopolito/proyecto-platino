@@ -43,8 +43,9 @@ test.describe("Mobile", () => {
       np: 111,
     });
 
-    await page.goto(`/juegos/${gameId}`);
-    await expect(page.getByRole("heading", { name: /Trofeos\s+5/i })).toBeVisible();
+    // La tab con más contenido de la ficha (issue #186): la lista con filtros.
+    await page.goto(`/juegos/${gameId}/trofeos`);
+    await expect(page.getByRole("definition").filter({ hasText: "0/5" })).toBeVisible();
 
     const { scrollWidth, clientWidth } = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,

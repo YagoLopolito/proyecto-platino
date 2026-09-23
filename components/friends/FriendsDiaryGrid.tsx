@@ -69,7 +69,7 @@ export function FriendsDiaryGrid({
         return (
           <li key={entry.id} data-testid="friend-entry">
             <GamePoster
-              href={`/juegos/${entry.gameId}/diario`}
+              href={`/juegos/${entry.gameId}`}
               name={entry.gameName}
               imageUrl={entry.imageUrl}
               // El badge de platino no se puede derivar acá: sale de

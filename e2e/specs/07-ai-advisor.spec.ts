@@ -24,7 +24,7 @@ test.describe("Advisor con IA", () => {
       np: 301,
     });
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/guias`);
     // Visible incluso sin haber generado nunca un plan (issue del panel: el
     // aviso no puede depender de que exista un resultado).
     await expect(page.getByText(/Contenido generado por IA/i)).toBeVisible();
@@ -44,12 +44,9 @@ test.describe("Advisor con IA", () => {
       nameSuffix: "Advisor Dos",
       np: 302,
     });
-    await supabase
-      .from("games")
-      .update({ name: "[E2E-AI-FAIL] Advisor Dos" })
-      .eq("id", gameId);
+    await supabase.from("games").update({ name: "[E2E-AI-FAIL] Advisor Dos" }).eq("id", gameId);
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/guias`);
     await page.getByRole("button", { name: "Generar plan" }).click();
 
     // La página tiene un segundo role="alert" (el route-announcer de Next,
@@ -70,7 +67,7 @@ test.describe("Advisor con IA", () => {
       np: 303,
     });
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/guias`);
     await page.getByRole("button", { name: "Generar plan" }).click();
 
     // El plan de fixture (`lib/ai/mocks.ts`) trae un desafío
@@ -93,12 +90,14 @@ test.describe("Advisor con IA", () => {
       np: 306,
     });
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/guias`);
     await page.getByRole("button", { name: "Generar plan" }).click();
 
     // El plan de fixture (`lib/ai/mocks.ts`) trae un acumulable
     // `bajas_con_condicion` que no se puede farmear después.
-    await expect(page.getByRole("heading", { name: /Contadores a tener en cuenta/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Contadores a tener en cuenta/i }),
+    ).toBeVisible();
     await expect(page.getByText("Bajas con condición")).toBeVisible();
     await expect(page.getByText("[E2E] 40 enemigos con el bláster.")).toBeVisible();
     // El aviso de que hay que ir sumándolo durante la historia es la razón de
@@ -117,18 +116,19 @@ test.describe("Advisor con IA", () => {
       np: 304,
     });
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/guias`);
     await page.getByRole("button", { name: "Generar plan" }).click();
 
     const advisor = page.locator("#advisor");
-    const chip = advisor
-      .getByRole("button", { name: /Advisor Cuatro - Trofeo 1/ })
-      .first();
+    // Desde la ficha unificada (issue #186) el chip es un link a la tab
+    // Trofeos con `?trofeo=<id>`: el advisor y la lista ya no conviven.
+    const chip = advisor.getByRole("link", { name: /Advisor Cuatro - Trofeo 1/ }).first();
     await expect(chip).toBeVisible();
     await chip.click();
+    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/trofeos\\?trofeo=${trophyIds[0]}$`));
 
-    // El trofeo de la lista de arriba queda enfocado y con la ayuda ya pedida:
-    // el usuario no tiene que buscarlo ni volver a clickear "Cómo desbloquearlo".
+    // El trofeo de la lista queda enfocado y con la ayuda ya pedida: el
+    // usuario no tiene que buscarlo ni volver a clickear "Cómo desbloquearlo".
     const trophyRow = page.locator(`#trofeo-${trophyIds[0]}`);
     await expect(trophyRow.getByText(/\[E2E\] Ayuda mockeada/)).toBeVisible();
     await expect(trophyRow.getByRole("button", { name: "Ocultar ayuda" })).toBeVisible();
@@ -145,7 +145,7 @@ test.describe("Advisor con IA", () => {
       np: 305,
     });
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/guias`);
     await page.getByRole("button", { name: "Generar plan" }).click();
 
     const advisor = page.locator("#advisor");
@@ -153,8 +153,11 @@ test.describe("Advisor con IA", () => {
     await expect(advisor.getByText("[E2E] Es el más rápido de los que te faltan.")).toBeVisible();
     await expect(advisor.getByText("[E2E] Paso uno.")).toBeVisible();
 
-    // La tarjeta es un atajo al trofeo de la lista de arriba, igual que los chips.
-    await advisor.getByRole("button", { name: /Advisor Cinco - Trofeo 1/ }).first().click();
+    // La tarjeta es un atajo al trofeo en la tab Trofeos, igual que los chips.
+    await advisor
+      .getByRole("link", { name: /Advisor Cinco - Trofeo 1/ })
+      .first()
+      .click();
     await expect(
       page.locator(`#trofeo-${trophyIds[0]}`).getByText(/\[E2E\] Ayuda mockeada/),
     ).toBeVisible();
