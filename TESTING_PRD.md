@@ -668,7 +668,22 @@ privadas, escritura sólo del dueño), el editor (`/listas/nueva`, `/listas/[id]
 | LIST-05 | Lista ajena de sólo lectura | Otro usuario recibe 404 en `/listas/[id]/editar`, y con su sesión no puede cambiar el título ni agregar juegos | P0 |
 | LIST-06 | "Vos jugaste N de M" | Con un juego platinado, uno con entrada de diario y uno sin jugar, la ficha dice "Vos jugaste 2 de 3" | P1 |
 
-**Total: 159 casos** — 62 P0, 67 P1, 30 P2.
+### 6.24 Likes (`27-likes.spec.ts`)
+
+Likes del epic #183 (issue #190): `review_likes` y `list_likes`, públicos, sin likes a lo propio ni
+a una lista privada ajena (Server Action + RLS). El corazón es un toggle optimista con
+`aria-pressed`.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| LIKE-01 | Likear una reseña ajena | En la tab Reseñas de la ficha, "Me gusta la reseña de X" pasa a `aria-pressed="true"`, el contador dice 1 y sigue así al recargar | P0 |
+| LIKE-02 | Quitar el like | Volver a tocarlo lo deja en `aria-pressed="false"`, sin contador, y borra la fila | P1 |
+| LIKE-03 | No se likea lo propio | Sobre tu reseña y tu lista no hay corazón; con tu sesión la RLS rechaza el insert en `review_likes` y en `list_likes` | P0 |
+| LIKE-04 | Lista privada ajena | Con la sesión de userA, la RLS rechaza el like a una lista privada de userB | P0 |
+| LIKE-05 | Cascade | Borrar la reseña borra sus likes | P1 |
+| LIKE-06 | Likear una lista pública ajena | En `/listas/[id]`, "Me gusta la lista X" pasa a `aria-pressed="true"`, guarda la fila y sigue así al recargar | P1 |
+
+**Total: 165 casos** — 65 P0, 70 P1, 30 P2.
 
 ---
 

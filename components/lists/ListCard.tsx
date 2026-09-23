@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { GameArt } from "@/components/game/GameArt";
 import type { ListSummary } from "@/lib/lists/queries";
+import { LikeCount } from "@/components/likes/LikeButton";
 
 /**
  * Tarjeta de una lista: las primeras carátulas superpuestas (como las listas
  * de Letterboxd), el título y cuántos juegos tiene. Toda la tarjeta es el
  * link a la ficha de la lista.
  */
-export function ListCard({ list }: { list: ListSummary }) {
+export function ListCard({
+  list,
+  likeCount = 0,
+}: {
+  list: ListSummary;
+  /** Me gusta de la lista (#190). Sólo el contador: la tarjeta entera es un link. */
+  likeCount?: number;
+}) {
   const covers = [...list.covers, null, null, null, null].slice(0, 4);
 
   return (
@@ -42,6 +50,7 @@ export function ListCard({ list }: { list: ListSummary }) {
               Privada
             </>
           )}
+          <LikeCount count={likeCount} />
         </span>
       </span>
     </Link>

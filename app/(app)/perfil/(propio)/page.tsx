@@ -21,6 +21,7 @@ import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
 import { getNowPlaying } from "@/lib/now-playing/queries";
 import { getFavoriteGames } from "@/lib/profile/queries";
 import { getUserDiaryEntries } from "@/lib/diary/queries";
+import { getReviewLikes } from "@/lib/likes/queries";
 import { getFriends } from "@/lib/friends/queries";
 
 // Solo los tipos de PSN: los logros de Steam no tienen desglose ni puntos de
@@ -196,6 +197,11 @@ export default async function PerfilPage() {
   const progressPercent = psnAccount?.trophy_progress ?? computed.progressPercent;
   const isRealPsnData = psnCounts !== null && psnAccount?.trophy_level !== null;
   const diaryEntries = diaryOutcome.status === "ok" ? diaryOutcome.entries : [];
+  const reviewLikes = await getReviewLikes(
+    supabase,
+    user.id,
+    diaryEntries.slice(0, PROFILE_DIARY_PREVIEW_LIMIT).map((entry) => entry.id),
+  );
 
   return (
     <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
@@ -251,6 +257,7 @@ export default async function PerfilPage() {
         <DiaryPreviewSection
           entries={diaryEntries}
           ratingTone="own"
+          likes={reviewLikes}
           emptyMessage="Todavía no marcaste ninguna partida como terminada."
           action={
             <Link href="/perfil/diario">

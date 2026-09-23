@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPublicProfile, getFavoriteGames } from "@/lib/profile/queries";
 import { getUserDiaryEntries } from "@/lib/diary/queries";
+import { getReviewLikes } from "@/lib/likes/queries";
 import { profileLabel } from "@/lib/friends/constants";
 import { ProfileHeader, ProfileBadge } from "@/components/profile/ProfileHeader";
 import { ProfileStatStrip } from "@/components/profile/ProfileStatStrip";
@@ -71,6 +72,14 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
   }
 
   const name = profileLabel(profile);
+  const reviewLikes =
+    diaryOutcome.status === "ok"
+      ? await getReviewLikes(
+          supabase,
+          user.id,
+          diaryOutcome.entries.slice(0, PROFILE_DIARY_PREVIEW_LIMIT).map((entry) => entry.id),
+        )
+      : new Map();
   // En una variable aparte para que el narrowing sobreviva dentro de los
   // callbacks de más abajo (`profile.earned` es una propiedad opcional).
   const earned = profile.earned;
@@ -126,6 +135,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
           <DiaryPreviewSection
             entries={diaryOutcome.entries}
             ratingTone="others"
+            likes={reviewLikes}
             emptyMessage={`${name} todavía no marcó ninguna partida como terminada.`}
             action={
               <Link href="/biblioteca/resenas">

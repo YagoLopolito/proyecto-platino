@@ -4,6 +4,7 @@ import { getUserLists } from "@/lib/lists/queries";
 import { ListCard } from "@/components/lists/ListCard";
 import { NewListButton } from "@/components/lists/NewListButton";
 import { EmptyState } from "@/components/EmptyState";
+import { getListLikes, likeStateOf } from "@/lib/likes/queries";
 
 export const metadata = { title: "Mis listas" };
 
@@ -19,6 +20,11 @@ export default async function PerfilListasPage() {
   if (!user) redirect("/login");
 
   const lists = await getUserLists(supabase, user.id);
+  const likes = await getListLikes(
+    supabase,
+    user.id,
+    lists.map((list) => list.id),
+  );
 
   return (
     <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
@@ -46,7 +52,7 @@ export default async function PerfilListasPage() {
           >
             {lists.map((list) => (
               <li key={list.id}>
-                <ListCard list={list} />
+                <ListCard list={list} likeCount={likeStateOf(likes, list.id).count} />
               </li>
             ))}
           </ul>

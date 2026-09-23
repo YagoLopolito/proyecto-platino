@@ -65,6 +65,8 @@ export const ICON_NAMES = [
   "bolt",
   "playlist-add",
   "playlist-check",
+  "heart",
+  "heart-outline",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -90,6 +92,7 @@ const STROKE_ICONS = new Set<IconName>([
   "arrow-right",
   "plus",
   "logout",
+  "heart-outline",
 ]);
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -231,6 +234,12 @@ const PATHS: Record<IconName, ReactNode> = {
     <path d="M3 6h12v2H3V6Zm0 5h12v2H3v-2Zm0 5h8v2H3v-2Zm10.3 1.3 1.4-1.4 2.3 2.3 4.3-4.3 1.4 1.4-5.7 5.7-3.7-3.7Z" />
   ),
 
+  /* --- Likes (epic #183, issue #190) ------------------------------------ */
+  /** Ya le diste me gusta: el corazón relleno, en el token `like`. */
+  heart: (
+    <path d="M12 20.5 10.7 19.3C6 15.1 3 12.4 3 8.9 3 6.1 5.2 4 7.9 4c1.6 0 3.1.7 4.1 1.9C13 4.7 14.5 4 16.1 4 18.8 4 21 6.1 21 8.9c0 3.5-3 6.2-7.7 10.4L12 20.5Z" />
+  ),
+
   /* --- Chrome (trazo, ver STROKE_ICONS) --------------------------------- */
   /** Buscador. */
   search: (
@@ -257,6 +266,14 @@ const PATHS: Record<IconName, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
   /** Cerrar sesión. */
   logout: <path d="M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5M15 8l4 4-4 4M19 12H9" />,
+  /**
+   * Todavía no le diste me gusta: el mismo corazón que `heart`, en contorno.
+   * Es la única forma de contenido que tiene versión de trazo, porque el par
+   * relleno/contorno ES el estado del toggle (además de `aria-pressed`).
+   */
+  "heart-outline": (
+    <path d="M12 20.5 10.7 19.3C6 15.1 3 12.4 3 8.9 3 6.1 5.2 4 7.9 4c1.6 0 3.1.7 4.1 1.9C13 4.7 14.5 4 16.1 4 18.8 4 21 6.1 21 8.9c0 3.5-3 6.2-7.7 10.4L12 20.5Z" />
+  ),
 };
 
 /**

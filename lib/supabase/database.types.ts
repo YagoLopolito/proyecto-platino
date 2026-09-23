@@ -439,6 +439,39 @@ export type Database = {
           },
         ];
       };
+      list_likes: {
+        Row: {
+          created_at: string;
+          list_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          list_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          list_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "list_likes_list_id_fkey";
+            columns: ["list_id"];
+            isOneToOne: false;
+            referencedRelation: "user_lists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "list_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       now_playing: {
         Row: {
           end_reason: string | null;
@@ -544,6 +577,39 @@ export type Database = {
             foreignKeyName: "psn_accounts_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      review_likes: {
+        Row: {
+          created_at: string;
+          entry_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          entry_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          entry_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "review_likes_entry_id_fkey";
+            columns: ["entry_id"];
+            isOneToOne: false;
+            referencedRelation: "game_diary_entries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
           },

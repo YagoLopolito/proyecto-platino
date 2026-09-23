@@ -11,14 +11,18 @@ import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
 import { StarRatingInput, StarRatingDisplay } from "@/components/diary/StarRating";
 import { Icon } from "@/components/ui/Icon";
+import { LikeCount } from "@/components/likes/LikeButton";
 
 const initialState: DiaryActionState = { error: null, success: null };
 
 export default function EditDiaryEntryForm({
   gameId,
   entry,
+  likeCount = 0,
 }: {
   gameId: string;
+  /** Me gusta que recibió la reseña (#190). Es tuya: sólo el contador, sin toggle. */
+  likeCount?: number;
   entry: {
     id: string;
     playthrough_number: number;
@@ -62,6 +66,7 @@ export default function EditDiaryEntryForm({
                 100% completado
               </span>
             )}
+            <LikeCount count={likeCount} />
           </p>
           {entry.review && (
             <p className="whitespace-pre-line break-words type-review text-ink">{entry.review}</p>
