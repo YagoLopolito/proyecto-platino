@@ -617,7 +617,7 @@ enfoca el trofeo" que listaba el issue es AI-10 (§6.7), actualizado.
 | FICHA-02 | Redirects de las fichas viejas | `/juegos/[id]/diario` → `/juegos/[id]` (Reseñas) y `/juegos/[id]/enlaces` → `/juegos/[id]/guias` | P0 |
 | FICHA-03 | Tabs en la URL | → con el teclado recorre Reseñas → Trofeos → Guías e IA cambiando la URL; recargar conserva la tab | P1 |
 | FICHA-04 | Materializar un juego de catálogo | `/juegos/catalogo/[rawgId]` (RAWG mockeado) redirige a la ficha; abrirlo dos veces deja **una** fila `source = 'catalog'` y no vincula el juego a `user_games` | P0 |
-| FICHA-05 | Registrar desde el panel | Playlist / Lista se ven deshabilitados con `aria-pressed="false"` (Jugando se habilitó con #187, ver PLAY-02); "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
+| FICHA-05 | Registrar desde el panel | Lista se ve deshabilitada con `aria-pressed="false"` (Jugando y Playlist se habilitaron con #187 y #188, ver PLAY-02 y PLIST-01); "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
 
 ### 6.21 Jugando ahora (`24-now-playing.spec.ts`)
 
@@ -638,7 +638,22 @@ no existe todavía.
 | PLAY-06 | RLS de `now_playing` | userB no puede insertar ni cerrar una racha de userA con su propia sesión; sí puede leerla | P0 |
 | PLAY-07 | Sugerencia de la biblioteca | `/biblioteca` muestra "¿Empezaste X?" para un juego abierto hace poco; "Descartar" lo esconde y no vuelve al recargar | P1 |
 
-**Total: 148 casos** — 55 P0, 63 P1, 30 P2.
+### 6.22 Playlist (`25-playlist.spec.ts`)
+
+La Playlist del epic #183 (issue #188), el equivalente de la Watchlist de Letterboxd:
+`user_playlist` (pública, escritura sólo del dueño), el toggle optimista de la ficha, la
+pantalla `/perfil/playlist` con sus órdenes y la salida automática al empezar a jugar un juego
+o registrarlo como terminado.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| PLIST-01 | Agregar desde la ficha | El toggle "Playlist" pasa a `aria-pressed="true"` y el juego aparece en `/perfil/playlist` | P0 |
+| PLIST-02 | Quitar | Volver a tocar el toggle lo deja en `aria-pressed="false"` y el juego ya no está en `/perfil/playlist` | P1 |
+| PLIST-03 | Jugarlo lo saca de la Playlist | Marcar como jugando un juego de la Playlist avisa "Sacado de tu Playlist." y borra la fila | P0 |
+| PLIST-04 | Pública pero ajena | userB ve la Playlist de userA en `/perfil/[id]`; con su sesión no puede agregar ni borrar filas de userA | P0 |
+| PLIST-05 | Orden por tiempo estimado | `?orden=tiempo` ordena por `time_to_beat_minutes` ascendente, con los que no tienen dato al final | P1 |
+
+**Total: 153 casos** — 58 P0, 65 P1, 30 P2.
 
 ---
 

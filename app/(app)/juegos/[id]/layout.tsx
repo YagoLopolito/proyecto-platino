@@ -6,6 +6,7 @@ import { GameActionPanel } from "@/components/game/GameActionPanel";
 import { SwipeTabs } from "@/components/ui/SwipeTabs";
 import { getGameDiary, getGamePageBase, getGameTrophyProgress } from "@/lib/game-page/data";
 import { countFriendsPlaying, isPlayingGame } from "@/lib/now-playing/queries";
+import { countFriendsWithInPlaylist, isInPlaylist } from "@/lib/playlist/queries";
 
 /**
  * Ficha de juego unificada (epic #183, issue #186): una sola pantalla con
@@ -30,19 +31,22 @@ export default async function GameLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id: gameId } = await params;
-  const [base, progress, diary, [isPlaying, friendsPlaying]] = await Promise.all([
-    getGamePageBase(gameId),
-    getGameTrophyProgress(gameId),
-    getGameDiary(gameId),
-    // "Jugando ahora" (issue #187): tu racha abierta y la de tus amigos. Cuelga
-    // de la base (sesión) pero no de los trofeos ni del diario.
-    getGamePageBase(gameId).then(({ supabase, userId }) =>
-      Promise.all([
-        isPlayingGame(supabase, userId, gameId),
-        countFriendsPlaying(supabase, userId, gameId),
-      ]),
-    ),
-  ]);
+  const [base, progress, diary, [isPlaying, friendsPlaying, inPlaylist, friendsWithInPlaylist]] =
+    await Promise.all([
+      getGamePageBase(gameId),
+      getGameTrophyProgress(gameId),
+      getGameDiary(gameId),
+      // "Jugando ahora" (#187) y la Playlist (#188): lo tuyo y lo de tus amigos.
+      // Cuelga de la base (sesión) pero no de los trofeos ni del diario.
+      getGamePageBase(gameId).then(({ supabase, userId }) =>
+        Promise.all([
+          isPlayingGame(supabase, userId, gameId),
+          countFriendsPlaying(supabase, userId, gameId),
+          isInPlaylist(supabase, userId, gameId),
+          countFriendsWithInPlaylist(supabase, userId, gameId),
+        ]),
+      ),
+    ]);
 
   const summary = diary.status === "ok" ? diary.summary : null;
   // Las partidas vienen ordenadas de la primera a la última: la puntuación que
@@ -76,6 +80,8 @@ export default async function GameLayout({
               gameId={gameId}
               isPlaying={isPlaying}
               friendsPlaying={friendsPlaying}
+              inPlaylist={inPlaylist}
+              friendsWithInPlaylist={friendsWithInPlaylist}
               ownRating={ownRating}
               ownEntriesCount={summary?.ownEntries.length ?? 0}
               community={

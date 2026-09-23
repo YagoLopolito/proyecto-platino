@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { endNowPlaying } from "@/lib/now-playing/end";
+import { removeFromPlaylistIfPresent } from "@/lib/playlist/remove";
 import {
   getNowPlaying,
   getPlaySuggestion,
@@ -11,13 +12,18 @@ import {
   type PlaySuggestion,
 } from "@/lib/now-playing/queries";
 
-export type NowPlayingActionResult = { error: string | null };
+export type NowPlayingActionResult = {
+  error: string | null;
+  /** Empezar a jugarlo lo sacó de la Playlist (issue #188): la UI lo avisa. */
+  removedFromPlaylist?: boolean;
+};
 
 const gameIdSchema = z.string().uuid();
 
 /** Todo lo que muestra "Jugando ahora": perfil, biblioteca y la ficha. */
 function revalidateNowPlaying(gameId: string) {
-  revalidatePath("/perfil");
+  // "layout": el perfil propio tiene sub-tabs (la Playlist, #188).
+  revalidatePath("/perfil", "layout");
   revalidatePath("/biblioteca");
   revalidatePath(`/juegos/${gameId}`, "layout");
 }
@@ -38,6 +44,9 @@ async function requireUser() {
  * Además lo vincula a `user_games` si no estaba (mismo criterio que registrar
  * una partida): desde la ficha se puede marcar cualquier juego del catálogo, y
  * lo que estás jugando es parte de tu biblioteca.
+ *
+ * Y lo saca de la Playlist (#188): si lo estás jugando, ya no es un juego que
+ * "querés jugar".
  */
 export async function startPlaying(gameId: string): Promise<NowPlayingActionResult> {
   const parsed = gameIdSchema.safeParse(gameId);
@@ -56,15 +65,18 @@ export async function startPlaying(gameId: string): Promise<NowPlayingActionResu
     return { error: `No se pudo marcar como jugando: ${error.message}` };
   }
 
-  await supabase
-    .from("user_games")
-    .upsert(
-      { user_id: user.id, game_id: parsed.data },
-      { onConflict: "user_id,game_id", ignoreDuplicates: true },
-    );
+  const [, removedFromPlaylist] = await Promise.all([
+    supabase
+      .from("user_games")
+      .upsert(
+        { user_id: user.id, game_id: parsed.data },
+        { onConflict: "user_id,game_id", ignoreDuplicates: true },
+      ),
+    removeFromPlaylistIfPresent(supabase, user.id, parsed.data),
+  ]);
 
   revalidateNowPlaying(parsed.data);
-  return { error: null };
+  return { error: null, removedFromPlaylist };
 }
 
 /** "Dejé de jugarlo": cierra la racha abierta con `end_reason = 'manual'`. */

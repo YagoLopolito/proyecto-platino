@@ -90,6 +90,7 @@ function RegisterOptions({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<Step>("menu");
   const [context, setContext] = useState<RegisterContext | null>(null);
   const [markedGameId, setMarkedGameId] = useState<string | null>(null);
+  const [removedFromPlaylist, setRemovedFromPlaylist] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -117,6 +118,7 @@ function RegisterOptions({ onClose }: { onClose: () => void }) {
         return;
       }
       setMarkedGameId(gameId);
+      setRemovedFromPlaylist(Boolean(result.removedFromPlaylist));
       setStep("done");
     });
   }
@@ -132,6 +134,7 @@ function RegisterOptions({ onClose }: { onClose: () => void }) {
         <p role="status" className="flex items-center gap-2 type-body text-ink">
           <Icon name="check" className="h-5 w-5 text-success" />
           Listo, está en “Jugando ahora”.
+          {removedFromPlaylist && " Sacado de tu Playlist."}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={() => openGame(markedGameId)}>

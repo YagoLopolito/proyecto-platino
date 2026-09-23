@@ -63,6 +63,8 @@ export const ICON_NAMES = [
   "library",
   "plus-circle",
   "bolt",
+  "playlist-add",
+  "playlist-check",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -217,6 +219,16 @@ const PATHS: Record<IconName, ReactNode> = {
   /** Actividad: lo que pasó hace poco (reseñas de amigos, tus logros, likes). */
   bolt: (
     <path d="M13.6 2.2a.6.6 0 0 1 1 .5L13.4 10H19a.6.6 0 0 1 .5 1l-9.1 10.8a.6.6 0 0 1-1-.5l1.2-7.3H5a.6.6 0 0 1-.5-1l9.1-10.8Z" />
+  ),
+
+  /* --- Playlist (epic #183, issue #188) ---------------------------------- */
+  /** Agregar a la Playlist: la lista con un + (todavía no está). */
+  "playlist-add": (
+    <path d="M3 6h12v2H3V6Zm0 5h12v2H3v-2Zm0 5h8v2H3v-2Zm14-2v-3h2v3h3v2h-3v3h-2v-3h-3v-2h3Z" />
+  ),
+  /** Ya está en la Playlist: la misma lista con un tilde en vez del +. */
+  "playlist-check": (
+    <path d="M3 6h12v2H3V6Zm0 5h12v2H3v-2Zm0 5h8v2H3v-2Zm10.3 1.3 1.4-1.4 2.3 2.3 4.3-4.3 1.4 1.4-5.7 5.7-3.7-3.7Z" />
   ),
 
   /* --- Chrome (trazo, ver STROKE_ICONS) --------------------------------- */

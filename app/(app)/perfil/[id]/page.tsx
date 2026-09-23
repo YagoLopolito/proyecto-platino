@@ -9,6 +9,11 @@ import { ProfileStatStrip } from "@/components/profile/ProfileStatStrip";
 import { FavoriteGamesSection } from "@/components/profile/FavoriteGamesSection";
 import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
 import { getNowPlaying } from "@/lib/now-playing/queries";
+import { getPlaylist } from "@/lib/playlist/queries";
+import {
+  PlaylistSection,
+  PROFILE_PLAYLIST_PREVIEW_LIMIT,
+} from "@/components/playlist/PlaylistSection";
 import {
   DiaryPreviewSection,
   PROFILE_DIARY_PREVIEW_LIMIT,
@@ -46,18 +51,20 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
     redirect("/perfil");
   }
 
-  const [profile, favorites, nowPlaying, diaryOutcome, { data: friendRow }] = await Promise.all([
-    getPublicProfile(supabase, id),
-    getFavoriteGames(supabase, id),
-    getNowPlaying(supabase, id),
-    getUserDiaryEntries(supabase, id, PROFILE_DIARY_PREVIEW_LIMIT),
-    supabase
-      .from("friendships")
-      .select("friend_id")
-      .eq("user_id", user.id)
-      .eq("friend_id", id)
-      .maybeSingle(),
-  ]);
+  const [profile, favorites, nowPlaying, playlist, diaryOutcome, { data: friendRow }] =
+    await Promise.all([
+      getPublicProfile(supabase, id),
+      getFavoriteGames(supabase, id),
+      getNowPlaying(supabase, id),
+      getPlaylist(supabase, id),
+      getUserDiaryEntries(supabase, id, PROFILE_DIARY_PREVIEW_LIMIT),
+      supabase
+        .from("friendships")
+        .select("friend_id")
+        .eq("user_id", user.id)
+        .eq("friend_id", id)
+        .maybeSingle(),
+    ]);
 
   if (!profile) {
     notFound();
@@ -107,6 +114,11 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
         />
 
         <NowPlayingSection games={nowPlaying} />
+
+        <PlaylistSection
+          games={playlist.slice(0, PROFILE_PLAYLIST_PREVIEW_LIMIT)}
+          total={playlist.length}
+        />
 
         {diaryOutcome.status === "error" ? (
           <ErrorState message={`No se pudo cargar el diario: ${diaryOutcome.message}`} />
