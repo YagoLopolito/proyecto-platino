@@ -662,6 +662,60 @@ export type Database = {
           },
         ];
       };
+      system_list_items: {
+        Row: {
+          game_id: string;
+          list_slug: string;
+          position: number;
+        };
+        Insert: {
+          game_id: string;
+          list_slug: string;
+          position: number;
+        };
+        Update: {
+          game_id?: string;
+          list_slug?: string;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "system_list_items_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "system_list_items_list_slug_fkey";
+            columns: ["list_slug"];
+            isOneToOne: false;
+            referencedRelation: "system_lists";
+            referencedColumns: ["slug"];
+          },
+        ];
+      };
+      system_lists: {
+        Row: {
+          item_count: number;
+          refreshed_at: string;
+          release_year: number | null;
+          slug: string;
+        };
+        Insert: {
+          item_count?: number;
+          refreshed_at?: string;
+          release_year?: number | null;
+          slug: string;
+        };
+        Update: {
+          item_count?: number;
+          refreshed_at?: string;
+          release_year?: number | null;
+          slug?: string;
+        };
+        Relationships: [];
+      };
       trophies: {
         Row: {
           created_at: string;
@@ -1117,6 +1171,10 @@ export type Database = {
           silver: number;
           total: number;
         }[];
+      };
+      refresh_system_lists: {
+        Args: { p_max_items: number; p_min_items: number; p_min_ratings: number };
+        Returns: number;
       };
     };
     Enums: {

@@ -17,13 +17,16 @@ export type NavLink = {
   icon: IconName;
   /** Otros prefijos que cuentan como esta sección (la ficha de juego es Biblioteca). */
   alsoActiveOn?: string[];
+  /** Subrutas de un `alsoActiveOn` que son de otra sección (gana la excepción). */
+  notActiveOn?: string[];
 };
 
 const BIBLIOTECA: NavLink = {
   href: "/biblioteca",
   label: "Biblioteca",
   icon: "library",
-  alsoActiveOn: ["/juegos"],
+  // Las listas pregeneradas (#192) se descubren en Biblioteca › Listas.
+  alsoActiveOn: ["/juegos", "/listas/sistema"],
 };
 const BUSCAR: NavLink = { href: "/buscar", label: "Buscar", icon: "search" };
 const ACTIVIDAD: NavLink = { href: "/actividad", label: "Actividad", icon: "bolt" };
@@ -34,6 +37,7 @@ const PERFIL: NavLink = {
   // El diario y el resumen del año son sub-secciones del perfil propio, y las
   // listas (#189) se arman y se ven desde Perfil › Listas.
   alsoActiveOn: ["/diario", "/configuracion", "/listas"],
+  notActiveOn: ["/listas/sistema"],
 };
 
 /** Nav de texto del header de escritorio. */
@@ -57,6 +61,7 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
 
 /** Un link está activo en su ruta, en sus subrutas y en las que declara como propias. */
 export function isActiveLink(pathname: string, link: NavLink): boolean {
+  if (link.notActiveOn?.some((prefix) => matchesPrefix(pathname, prefix))) return false;
   return [link.href, ...(link.alsoActiveOn ?? [])].some((prefix) =>
     matchesPrefix(pathname, prefix),
   );
