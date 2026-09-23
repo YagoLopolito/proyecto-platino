@@ -93,9 +93,22 @@ export async function addCatalogGame(
     return { error: "Datos inválidos." };
   }
 
+  // Desde el issue #186 la fila puede existir aunque nadie la haya agregado:
+  // abrir la ficha de un juego de catálogo la materializa, y
+  // `external_catalog_id` es único. Se reusa en vez de chocar contra el índice.
+  const { data: existing } = parsed.data.confirmedDuplicateOfGameId
+    ? { data: null }
+    : await supabase
+        .from("games")
+        .select("id")
+        .eq("external_catalog_id", parsed.data.externalId)
+        .maybeSingle();
+
   let gameId: string;
   if (parsed.data.confirmedDuplicateOfGameId) {
     gameId = parsed.data.confirmedDuplicateOfGameId;
+  } else if (existing) {
+    gameId = existing.id;
   } else {
     const { data: inserted, error } = await supabase
       .from("games")

@@ -1,19 +1,17 @@
 /**
- * Puente entre el advisor con IA y la lista de trofeos de la misma página.
+ * Puente entre el advisor con IA y la lista de trofeos.
  *
- * Los dos son Client Components hermanos (los monta `page.tsx`, un Server
- * Component, así que no pueden compartir estado por props ni por un provider
- * sin volver cliente a la página entera). Un evento del DOM alcanza: el chip
- * del advisor lo dispara y `TrophyList` lo escucha, limpia sus filtros -- si
- * no, el trofeo podría estar oculto y no habría a dónde scrollear -- y marca
- * el trofeo como enfocado.
+ * Desde la ficha unificada (epic #183, issue #186) viven en tabs distintas:
+ * el advisor en "Guías e IA" y la lista en "Trofeos". Ya no alcanza con un
+ * evento del DOM entre dos componentes montados a la vez, así que el pedido de
+ * foco viaja en la URL: el chip del advisor linkea a la tab de trofeos con
+ * `?trofeo=<id>`, y `TrophyList` lo lee, limpia sus filtros -- si no, el trofeo
+ * podría estar oculto y no habría a dónde scrollear -- y marca el trofeo como
+ * enfocado. De paso, "este trofeo en esta ficha" pasa a ser un link que se
+ * puede compartir.
  */
-export const FOCUS_TROPHY_EVENT = "platino:focus-trophy";
+export const FOCUS_TROPHY_PARAM = "trofeo";
 
-export type FocusTrophyDetail = { trophyId: string };
-
-export function focusTrophy(trophyId: string) {
-  window.dispatchEvent(
-    new CustomEvent<FocusTrophyDetail>(FOCUS_TROPHY_EVENT, { detail: { trophyId } }),
-  );
+export function trophyFocusHref(gameId: string, trophyId: string): string {
+  return `/juegos/${gameId}/trofeos?${FOCUS_TROPHY_PARAM}=${encodeURIComponent(trophyId)}`;
 }

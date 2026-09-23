@@ -35,6 +35,10 @@ const nextConfig: NextConfig = {
       { source: "/juegos", destination: "/biblioteca", permanent: false },
       { source: "/diario", destination: "/perfil/diario", permanent: false },
       { source: "/diario/amigos", destination: "/biblioteca/resenas", permanent: false },
+      // Ficha de juego unificada (issue #186): la de diario y la de enlaces
+      // pasaron a ser tabs de `/juegos/[id]` (Reseñas es la default).
+      { source: "/juegos/:id/diario", destination: "/juegos/:id", permanent: false },
+      { source: "/juegos/:id/enlaces", destination: "/juegos/:id/guias", permanent: false },
     ];
   },
 

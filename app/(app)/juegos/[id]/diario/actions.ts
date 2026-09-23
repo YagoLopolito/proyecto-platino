@@ -82,8 +82,19 @@ export async function createDiaryEntry(
     return { error: `No se pudo guardar la entrada: ${error.message}` };
   }
 
-  revalidatePath(`/juegos/${gameId}`);
-  revalidatePath(`/juegos/${gameId}/diario`);
+  // Desde el epic #183 cualquier juego tiene ficha, esté o no en tu
+  // biblioteca. Abrirla no lo agrega (ver `materializeCatalogGame`), pero
+  // registrar una partida sí: es el mismo criterio que `addCatalogGame`. Si ya
+  // estaba vinculado, el upsert no hace nada.
+  await supabase
+    .from("user_games")
+    .upsert(
+      { user_id: user.id, game_id: gameId },
+      { onConflict: "user_id,game_id", ignoreDuplicates: true },
+    );
+
+  // La ficha es un layout con tres tabs: "layout" las revalida a todas.
+  revalidatePath(`/juegos/${gameId}`, "layout");
   return { error: null, success: "Entrada guardada en el diario." };
 }
 
@@ -130,8 +141,8 @@ export async function updateDiaryEntry(
     return { error: `No se pudo actualizar la entrada: ${error.message}` };
   }
 
-  revalidatePath(`/juegos/${gameId}`);
-  revalidatePath(`/juegos/${gameId}/diario`);
+  // La ficha es un layout con tres tabs: "layout" las revalida a todas.
+  revalidatePath(`/juegos/${gameId}`, "layout");
   return { error: null, success: "Entrada actualizada." };
 }
 
@@ -148,6 +159,6 @@ export async function deleteDiaryEntry(formData: FormData): Promise<void> {
 
   await supabase.from("game_diary_entries").delete().eq("id", entryId).eq("user_id", user.id);
 
-  revalidatePath(`/juegos/${gameId}`);
-  revalidatePath(`/juegos/${gameId}/diario`);
+  // La ficha es un layout con tres tabs: "layout" las revalida a todas.
+  revalidatePath(`/juegos/${gameId}`, "layout");
 }

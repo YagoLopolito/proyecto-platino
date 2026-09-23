@@ -3,7 +3,8 @@ import { seedGameWithTrophies } from "../helpers/seed";
 import { testGameTitle } from "../helpers/ids";
 
 /**
- * Detalle de juego (`/juegos/[id]`). Casos GAME-01 y GAME-07 de
+ * Detalle de juego (`/juegos/[id]`; los trofeos viven en la tab
+ * `/juegos/[id]/trofeos` desde la ficha unificada, issue #186). Casos GAME-01 y GAME-07 de
  * TESTING_PRD.md §6.4 (los P0). El resto del catálogo de trofeos se seedea
  * directo con service role (`seedGameWithTrophies`) en vez de pasar por el
  * sync mockeado: no hay nada de PSN que estos casos necesiten ejercitar.
@@ -20,8 +21,9 @@ test.describe("Detalle de juego", () => {
       np: 101,
     });
 
-    await page.goto(`/juegos/${gameId}`);
-    await expect(page.getByRole("heading", { name: /Trofeos\s+6/i })).toBeVisible();
+    await page.goto(`/juegos/${gameId}/trofeos`);
+    // La tira de progreso de la tab: 0 de 6.
+    await expect(page.getByRole("definition").filter({ hasText: "0/6" })).toBeVisible();
 
     for (let i = 1; i <= 6; i++) {
       await expect(page.getByText(`Trofeo ${i}`, { exact: false })).toBeVisible();
@@ -58,10 +60,10 @@ test.describe("Detalle de juego", () => {
     const context = await browser.newContext({ storageState: "e2e/.auth/user-b.json" });
     const page = await context.newPage();
     try {
-      await page.goto(`/juegos/${gameId}`);
+      await page.goto(`/juegos/${gameId}/trofeos`);
       // El % de completitud de userB tiene que ser 0/4: si se filtraran mal
       // los trofeos ajenos, acá aparecería el progreso de userA. Los dos
-      // números viven en celdas separadas de la tira de stats del encabezado.
+      // números viven en celdas separadas de la tira de stats de la tab.
       const stats = page.getByRole("definition");
       await expect(stats.filter({ hasText: "0/4" })).toBeVisible();
       await expect(stats.filter({ hasText: "0%" }).first()).toBeVisible();
@@ -93,7 +95,9 @@ test.describe("Detalle de juego", () => {
     const context = await browser.newContext({ storageState: "e2e/.auth/user-b.json" });
     const page = await context.newPage();
     try {
-      await page.goto(`/juegos/${gameId}/diario`);
+      // userB no tiene el juego en su biblioteca: desde la ficha unificada
+      // (issue #186) igual la puede abrir, que es justo lo que se prueba.
+      await page.goto(`/juegos/${gameId}`);
       await expect(page.getByRole("heading", { name: testGameTitle("Cache Ajeno") })).toBeVisible();
 
       // `background_url` se escribe siempre que se haya intentado buscarlo

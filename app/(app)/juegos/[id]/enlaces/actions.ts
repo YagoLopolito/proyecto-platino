@@ -29,7 +29,7 @@ export async function findExternalGuides(
 
   try {
     const result = await populateExternalGuidesForGame(gameId, gameName);
-    revalidatePath(`/juegos/${gameId}/enlaces`);
+    revalidatePath(`/juegos/${gameId}`, "layout");
     return result;
   } catch (cause) {
     console.error("findExternalGuides failed:", cause);

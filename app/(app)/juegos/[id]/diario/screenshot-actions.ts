@@ -62,7 +62,7 @@ export async function registerScreenshots(input: {
     return { error: `No se pudo guardar la captura: ${error.message}` };
   }
 
-  revalidatePath(`/juegos/${gameId}/diario`);
+  revalidatePath(`/juegos/${gameId}`, "layout");
   return {
     error: null,
     success: items.length === 1 ? "Captura subida." : `${items.length} capturas subidas.`,
@@ -92,7 +92,7 @@ export async function updateScreenshotCaption(input: {
     return { error: `No se pudo guardar el texto: ${error.message}` };
   }
 
-  revalidatePath(`/juegos/${input.gameId}/diario`);
+  revalidatePath(`/juegos/${input.gameId}`, "layout");
   return { error: null, success: "Texto actualizado." };
 }
 
@@ -131,7 +131,7 @@ export async function deleteScreenshot(input: {
 
   await supabase.storage.from(SCREENSHOTS_BUCKET).remove([deleted.storage_path]);
 
-  revalidatePath(`/juegos/${input.gameId}/diario`);
+  revalidatePath(`/juegos/${input.gameId}`, "layout");
   return { error: null, success: "Captura borrada." };
 }
 

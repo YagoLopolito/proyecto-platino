@@ -60,7 +60,7 @@ export function DiaryPreviewSection({
           {entries.slice(0, PROFILE_DIARY_PREVIEW_LIMIT).map((entry) => (
             <li key={entry.id} data-testid="profile-diary-entry">
               <GamePoster
-                href={`/juegos/${entry.gameId}/diario`}
+                href={`/juegos/${entry.gameId}`}
                 name={entry.gameName}
                 imageUrl={entry.imageUrl}
                 isPlatinum={entry.isPlatinum}

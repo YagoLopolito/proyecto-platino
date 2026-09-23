@@ -212,7 +212,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
               return (
                 <li key={entry.id} data-testid="diary-entry">
                   <GamePoster
-                    href={`/juegos/${entry.gameId}/diario`}
+                    href={`/juegos/${entry.gameId}`}
                     name={entry.gameName}
                     imageUrl={entry.imageUrl}
                     isPlatinum={entry.isPlatinum}

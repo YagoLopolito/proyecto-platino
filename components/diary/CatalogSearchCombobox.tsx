@@ -58,7 +58,7 @@ export default function CatalogSearchCombobox() {
   // estado -- por eso va en un effect y no ajustado durante el render.
   useEffect(() => {
     if (addState.success && addState.gameId) {
-      router.push(`/juegos/${addState.gameId}/diario`);
+      router.push(`/juegos/${addState.gameId}`);
     }
   }, [addState, router]);
 
@@ -105,7 +105,7 @@ export default function CatalogSearchCombobox() {
   }, [query]);
 
   function selectLibraryGame(gameId: string) {
-    router.push(`/juegos/${gameId}/diario`);
+    router.push(`/juegos/${gameId}`);
   }
 
   // Mientras el query es más corto que el mínimo no se muestra nada de la

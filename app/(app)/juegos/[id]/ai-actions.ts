@@ -153,7 +153,7 @@ export async function generateAiPlan(
       status: "ok",
     });
 
-    revalidatePath(`/juegos/${gameId}`);
+    revalidatePath(`/juegos/${gameId}`, "layout");
     return { plan, error: null };
   } catch (cause) {
     console.error("generateAiPlan failed:", cause);

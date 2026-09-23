@@ -3,7 +3,9 @@
 import { useActionState, type ReactNode } from "react";
 import { generateAiPlan, type AiPlanActionState } from "./ai-actions";
 import { TrophyTypeIcon, type TrophyType, trophyTypeLabel } from "@/components/TrophyTypeIcon";
-import { focusTrophy } from "./focusTrophy";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { trophyFocusHref } from "./focusTrophy";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import type { AiGamePlan } from "@/lib/ai";
 
@@ -21,20 +23,29 @@ function findTrophy(trophies: AdvisorTrophy[], trophyId: string) {
   return trophies.find((t) => t.id === trophyId);
 }
 
+/**
+ * Link a un trofeo en la tab Trofeos, con la ayuda de "cómo desbloquearlo" ya
+ * abierta (ver `focusTrophy.ts`). El id del juego sale de la ruta: el advisor
+ * siempre vive dentro de `/juegos/[id]`.
+ */
+function useTrophyHref() {
+  const { id: gameId } = useParams<{ id: string }>();
+  return (trophyId: string) => trophyFocusHref(gameId, trophyId);
+}
+
 /** Chip de trofeo: nombre + tipo, tachado/atenuado si ya se obtuvo, con la
  * descripción como tooltip nativo al hacer hover. Al clickearlo lleva al
- * trofeo en la lista de arriba y le abre la ayuda de "cómo desbloquearlo"
- * (ver `focusTrophy.ts`). */
+ * trofeo en la tab Trofeos y le abre la ayuda de "cómo desbloquearlo". */
 function TrophyChip({ trophies, trophyId }: { trophies: AdvisorTrophy[]; trophyId: string }) {
+  const trophyHref = useTrophyHref();
   const trophy = findTrophy(trophies, trophyId);
   if (!trophy) {
     return <span className="type-caption text-ink-muted">{trophyId}</span>;
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => focusTrophy(trophy.id)}
+    <Link
+      href={trophyHref(trophy.id)}
       title={`${trophy.description ?? "Sin descripción cargada."}
 
 Clic para ver cómo desbloquearlo.`}
@@ -48,7 +59,7 @@ Clic para ver cómo desbloquearlo.`}
       {trophy.name}
       <span className="text-ink-faint">({trophyTypeLabel(trophy.type)})</span>
       {trophy.obtained && <Icon name="check" className="h-3 w-3 shrink-0" />}
-    </button>
+    </Link>
   );
 }
 
@@ -100,6 +111,7 @@ function resolveNextTrophy(
 
 /** Tarjeta destacada arriba del plan: qué trofeo encarar ahora y cómo. */
 function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTrophy[] }) {
+  const trophyHref = useTrophyHref();
   const next = resolveNextTrophy(plan, trophies);
 
   if (!next) {
@@ -117,9 +129,8 @@ function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: Adviso
         <Icon name="trophy" className="h-3.5 w-3.5" />
         Siguiente trofeo
       </h4>
-      <button
-        type="button"
-        onClick={() => focusTrophy(next.trophy.id)}
+      <Link
+        href={trophyHref(next.trophy.id)}
         className="flex w-full items-center gap-2 rounded-chip border border-success/40 bg-background p-2 text-left transition-colors hover:border-success focus:outline-none focus-visible:ring-2 focus-visible:ring-success/40"
       >
         <TrophyTypeIcon type={next.trophy.type} className="h-5 w-5 shrink-0" />
@@ -129,7 +140,7 @@ function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: Adviso
             {next.trophy.description ?? "Sin descripción cargada."}
           </span>
         </span>
-      </button>
+      </Link>
       {next.porQue && <p className="mt-2 type-caption text-success">{next.porQue}</p>}
       {next.pasos.length > 0 ? (
         <ol className="mt-2 list-decimal space-y-1 pl-5 type-caption text-ink">
