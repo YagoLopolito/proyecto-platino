@@ -49,7 +49,7 @@ export default function EditDiaryEntryForm({
             <span>
               Partida #{entry.playthrough_number} · {entry.finished_on}
             </span>
-            <StarRatingDisplay rating={entry.rating} />
+            <StarRatingDisplay rating={entry.rating} tone="own" />
             {entry.platinum_earned_at && (
               <span className="inline-flex items-center gap-1 rounded-chip border border-trophy-platinum/50 bg-trophy-platinum/10 px-1.5 py-0.5 type-caption text-trophy-platinum">
                 <Icon name="trophy" className="h-3 w-3" />

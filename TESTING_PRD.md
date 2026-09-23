@@ -546,7 +546,7 @@ llama a IGDB.
 
 ### 6.18 Sistema de diseño (`21-design-system.spec.ts`)
 
-Fases 1 a 5 del remake visual (issue #176). Lo que se verifica no es "cómo se ve" sino que las
+Fases 1 a 5 del remake visual (issue #176) y la paleta refinada del epic #183 (issue #184, DS-21..DS-24). Lo que se verifica no es "cómo se ve" sino que las
 piezas del sistema **se apliquen de verdad**: los dos bugs que motivaron la fase eran de ese
 tipo y ninguno se veía leyendo el diff (la fuente cargada no la usaba nadie porque `body` la
 pisaba con Arial; los tokens de `globals.css` estaban definidos y con 0 usos). Un test que
@@ -574,6 +574,10 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-18 | Las instrucciones de Conexiones van plegadas | En la tarjeta de PSN el campo NPSSO es visible de entrada, el link a playstation.com está oculto detrás de "Cómo conseguir el NPSSO" y aparece al abrirlo | P1 |
 | DS-19 | El chip de estado de una conexión pinta con su token semántico | El `color` computado de `connection-status` es exactamente `--success` / `--warning` / `--ink-muted` según su `data-status` | P2 |
 | DS-20 | La pantalla offline usa un ícono del set | `/offline` muestra `[data-icon="offline"]` y no contiene 📡 | P2 |
+| DS-21 | Tokens de la paleta refinada (#184) | `--chrome`, `--chrome-raised`, `--rating`, `--rating-muted` y `--like` tienen valor, y `--rating` resuelve exactamente al mismo color que `--accent-ink` (y no al oro) | P1 |
+| DS-22 | Chrome del header y de la barra inferior | En mobile, el `background-color` computado de `mobile-tab-bar` es exactamente `--chrome-raised` (sólido, sin `/95`), el del `header` es `--chrome`, y el tab activo pinta con `--accent-ink` | P1 |
+| DS-23 | Tus estrellas usan `rating` | En `/juegos/[id]/diario`, tu entrada 9/10 dibuja 5 estrellas `data-rating-tone="own"` y la llena tiene el `color` exacto de `--rating` | P1 |
+| DS-24 | Las estrellas de otro usuario usan `rating-muted` | La entrada 7/10 de userB, bajo "Otros usuarios", dibuja 5 estrellas `data-rating-tone="others"` con el `color` exacto de `--rating-muted`, distinto de `--rating` | P2 |
 
 **Total: 141 casos** — 52 P0, 59 P1, 30 P2.
 

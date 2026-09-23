@@ -9,84 +9,140 @@
  * La estructura está copiada de Letterboxd (issue #176): pocos escalones y con
  * un rol explícito cada uno, en vez de los doce grises de Tailwind elegidos a
  * ojo pantalla por pantalla. Los colores son los de la marca, no los de
- * Letterboxd: negros azulados, acento PSN, oro de trofeo.
+ * Letterboxd: grises azulados, acento PSN, oro de trofeo.
  *
  * Regla: NINGÚN componente usa un color literal de Tailwind (los grises, los
  * azules ni los verdes de su paleta). Todo pasa por un token de acá. Si hace falta un
  * color que no existe, se agrega como token con su rol, no se hardcodea.
  */
 :root {
-  /* --- Superficies: tres niveles, todas con el mismo tinte azulado. ------ */
-  /* Fondo de la página. Nada va más oscuro que esto. */
-  --background: #0a0e17;
+  /*
+   * --- Chrome y superficies: seis escalones del mismo gris azulado. -------
+   *
+   * Paleta refinada en el epic #183 (issue #184). Antes el fondo era casi
+   * negro (#0a0e17) y los escalones crecían de a saltos distintos, así que
+   * `surface` y `surface-raised` se confundían en las filas con hairline.
+   * Ahora los seis salen del mismo tono (OKLCH h=255, C=0.024) con la
+   * luminosidad a pasos iguales de 0.03 -- 0.025 entre los dos de chrome --,
+   * y el fondo es un gris azulado profundo, no negro: como Letterboxd, que se
+   * reconoce por la paleta aunque falte el logo.
+   */
+  /*
+   * Barra superior (header). Lo único más oscuro que el fondo: enmarca la
+   * pantalla sin competir con ella, como el negro del header de Letterboxd.
+   */
+  --chrome: #050c15;
+  /*
+   * Barra inferior de tabs en mobile. Un escalón sobre `chrome` para que la
+   * barra se lea como algo que flota sobre la página y no como un agujero.
+   */
+  --chrome-raised: #09111b;
+  /* Fondo de la página. Todo el contenido arranca de acá. */
+  --background: #0f1721;
   /* Tarjetas, filas, cualquier cosa que se separe del fondo. */
-  --surface: #10151f;
+  --surface: #151e28;
   /* Un escalón más arriba: modales, popovers, lo que flota sobre una tarjeta. */
-  --surface-raised: #161d2a;
+  --surface-raised: #1c2530;
   /* Estado hover/activo de una superficie interactiva. */
-  --surface-hover: #1e2636;
+  --surface-hover: #232c37;
 
   /* --- Tinta: tres niveles, no seis. ------------------------------------ */
   /* Texto principal: títulos y cuerpo. */
   --ink: #e7ebf3;
   /* Metadatos, texto secundario, descripciones. */
-  --ink-muted: #98a0b4;
+  --ink-muted: #9aa3b6;
   /*
    * Versalitas, etiquetas de stat, deshabilitado. Nunca para texto de lectura.
-   * Es el nivel más bajo que sigue pasando AA (4.63:1) sobre la superficie más
+   * Es el nivel más bajo que sigue pasando AA (4.83:1) sobre la superficie más
    * clara del tema: las versalitas son de 11px, o sea texto chico, y el umbral
    * que les corresponde es 4.5:1 y no el 3:1 de texto grande.
    */
-  --ink-faint: #858ea6;
+  --ink-faint: #8e97ad;
 
   /* --- Hairlines: dos. -------------------------------------------------- */
   /* Separadores y bordes de tarjeta: se intuye, no se lee. */
-  --border: #232b3d;
+  --border: #2a3342;
   /*
    * Bordes de controles interactivos (input, botón), que sí tienen que verse.
    * WCAG 1.4.11 (non-text contrast) les pide 3:1 contra el fondo adyacente:
-   * queda en 3.33:1 sobre la superficie más clara.
+   * queda en 3.71:1 sobre la superficie más clara.
    */
-  --border-strong: #687694;
+  --border-strong: #76839e;
 
   /* --- Acentos ---------------------------------------------------------- */
   /*
-   * El azul PSN tiene DOS tokens porque tiene dos trabajos con umbrales de
-   * contraste opuestos, y confundirlos es el bug de accesibilidad clásico:
+   * El azul PSN es EL color de acción, y el único: tab activo, botón +,
+   * links, botón primario, tu propio rating. Como el verde de Letterboxd,
+   * que sólo aparece donde se puede hacer algo. El oro de trofeo NO es un
+   * segundo acento: es el color del platino y del rating de la comunidad.
+   *
+   * Tiene DOS tokens porque tiene dos trabajos con umbrales de contraste
+   * opuestos, y confundirlos es el bug de accesibilidad clásico:
    *
    * - `--accent` es un RELLENO (botón primario, barra de progreso, chip
    *   activo). Lo que tiene que contrastar es el texto blanco que va encima
-   *   (4.95:1 AA), no el token contra el fondo.
+   *   (4.61:1 AA). Como gráfico sobre superficie llega justo a 3.06:1.
    * - `--accent-ink` es el acento como TEXTO o ícono sobre una superficie
-   *   oscura (link, tab activa). Ahí el umbral es 4.5:1 contra la superficie,
-   *   y `--accent` solo llega a 3.06:1: no alcanza.
+   *   oscura (link, tab activo). Ahí el umbral es 4.5:1 contra la superficie,
+   *   y `--accent` no alcanza.
+   *
+   * Más luminoso que el #0070d1 anterior: sobre el fondo gris azulado nuevo,
+   * aquel se hundía y dejaba de leerse como "acá se toca".
    */
-  --accent: #0070d1;
+  --accent: #2273dc;
   /*
    * El hover del relleno va más OSCURO, no más claro: aclarándolo, el blanco
-   * encima cae a 3.43:1 y falla. Es exactamente el bug que ya se había
-   * corregido una vez (ver ACCESSIBILITY.md, `Button` primary hover).
+   * encima cae por debajo de 4.5:1 y falla. Es exactamente el bug que ya se
+   * había corregido una vez (ver ACCESSIBILITY.md, `Button` primary hover).
+   * Blanco encima: 6.73:1.
    */
-  --accent-hover: #005cab;
-  /* El acento como texto/ícono sobre superficie oscura: 5.35:1 AA. */
-  --accent-ink: #4c9df2;
+  --accent-hover: #1259b5;
+  /* El acento como texto/ícono sobre cualquier superficie: 5.76:1 en el peor caso. */
+  --accent-ink: #5eaaf7;
   /*
-   * Rosa del botón ○ (Circle) de PlayStation, para distinguir "noob" de
-   * "Platino". Sólo para display grande y rellenos: como texto chico no llega
-   * a AA (3.35:1), y ese es su único uso hoy (el logo del header).
+   * Rosa del botón ○ (Circle) de PlayStation. Sólo para display grande y
+   * rellenos -- como texto chico no llega a AA (3.12:1) -- y como base del
+   * `--like`. Nunca un segundo color de acción.
    */
   --accent-2: #e6007a;
+
+  /* --- Rating y like ---------------------------------------------------- */
+  /*
+   * Tres colores de estrella, cada uno con su rol:
+   *
+   * - `--rating`: TU puntuación (el selector, tu diario, tus reseñas). Es el
+   *   color de acción, como las estrellas verdes de Letterboxd: lo que vos
+   *   hiciste se pinta con el color de hacer cosas. Alias de `--accent-ink`
+   *   a propósito, para que no puedan divergir.
+   * - `--rating-muted`: la puntuación de OTRO en una lista o un feed. Gris,
+   *   como las estrellas de la actividad de Letterboxd: se lee, no llama.
+   *   Como ícono pide 3:1 (WCAG 1.4.11) y está en 4.83:1.
+   * - La puntuación de la COMUNIDAD (el promedio, el histograma) va en
+   *   `--trophy-gold`: es el mismo oro del platino, el "sello" de la app.
+   */
+  --rating: var(--accent-ink);
+  --rating-muted: #8e97ad;
+  /*
+   * El corazón de los likes (reseñas y listas). Derivado de `--accent-2`
+   * pero más claro: el ○ puro queda en 3.12:1 y un ícono de 16px sobre la
+   * superficie más clara necesita margen. 4.89:1 en el peor caso.
+   */
+  --like: #ff5c9d;
 
   /* --- Semánticos ------------------------------------------------------- */
   /* Logro obtenido, 100% de completitud, conexión sana. */
   --success: #34d399;
   /* Error, destructivo, token vencido. */
-  --danger: #f87171;
+  --danger: #ff8080;
   /* Requiere atención, pero no está roto. */
   --warning: #fbbf24;
 
   /* --- Trofeos ---------------------------------------------------------- */
-  --trophy-bronze: #cd7f32;
+  /*
+   * El bronce se aclaró un punto (era #cd7f32) al subir el fondo: con las
+   * superficies nuevas quedaba por debajo de 4.5:1 como texto.
+   */
+  --trophy-bronze: #d68a44;
   --trophy-silver: #c0c0c0;
   --trophy-gold: #ffd700;
   --trophy-platinum: #b9e1ff;
@@ -95,7 +151,7 @@
    * `achievement` es "sin desglose", y va en un gris neutro a propósito, para
    * que nadie lo lea como un quinto color de trofeo.
    */
-  --trophy-neutral: #98a0b4;
+  --trophy-neutral: #9aa3b6;
 
   /* --- Rareza de trofeo ------------------------------------------------- */
   /*
@@ -109,7 +165,7 @@
    * sería ruido.
    */
   --rarity-ultra: #e879f9;
-  --rarity-very: #fb7185;
+  --rarity-very: #ff8095;
   --rarity-rare: #60c4f5;
 
   /* --- Tipografía ------------------------------------------------------- */
@@ -133,6 +189,8 @@
 }
 
 @theme inline {
+  --color-chrome: var(--chrome);
+  --color-chrome-raised: var(--chrome-raised);
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
@@ -149,6 +207,10 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
   --color-accent-2: var(--accent-2);
+
+  --color-rating: var(--rating);
+  --color-rating-muted: var(--rating-muted);
+  --color-like: var(--like);
 
   --color-success: var(--success);
   --color-danger: var(--danger);

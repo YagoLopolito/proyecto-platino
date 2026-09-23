@@ -4,7 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Sistema de diseño: tokens, escala tipográfica y set de íconos.
- * Casos DS-01..DS-20 de TESTING_PRD.md §6.18 (fases 1 a 5 del issue #176).
+ * Casos DS-01..DS-20 de TESTING_PRD.md §6.18 (fases 1 a 5 del issue #176) y
+ * DS-21..DS-24 (paleta refinada del epic #183, issue #184).
  *
  * Por qué se testea algo "visual": lo que se verifica acá no es cómo se ve,
  * sino que las piezas del sistema **existan y se apliquen de verdad**. Los dos
@@ -491,7 +492,7 @@ test.describe("Sistema de diseño", () => {
       const token = getComputedStyle(probe).color;
       probe.remove();
       const s = getComputedStyle(el);
-      const inactive = getComputedStyle(el.parentElement!.querySelector('a:not([aria-current])')!);
+      const inactive = getComputedStyle(el.parentElement!.querySelector("a:not([aria-current])")!);
       return {
         color: s.color,
         token,
@@ -594,5 +595,159 @@ test.describe("Sistema de diseño", () => {
     await expect(main.locator('[data-icon="offline"]')).toBeVisible();
     await expect(main).not.toContainText("📡");
     await context.close();
+  });
+
+  /**
+   * Paleta refinada (epic #183, issue #184). Mismo criterio que el resto del
+   * archivo: se compara el estilo computado contra el valor del token, no la
+   * clase. Un `bg-background/95` que "se ve casi igual" que `chrome-raised`
+   * pasaría una review visual y no este test.
+   */
+  test("DS-21: los tokens nuevos de la paleta están definidos y `rating` es el color de acción", async ({
+    page,
+  }) => {
+    await page.goto("/perfil");
+
+    const tokens = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      const resolve = (name: string) => {
+        const probe = document.createElement("div");
+        probe.style.color = root.getPropertyValue(name).trim();
+        document.body.appendChild(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color;
+      };
+      const names = ["--chrome", "--chrome-raised", "--rating", "--rating-muted", "--like"];
+      return {
+        raw: Object.fromEntries(names.map((n) => [n, root.getPropertyValue(n).trim()])),
+        rating: resolve("--rating"),
+        accentInk: resolve("--accent-ink"),
+        gold: resolve("--trophy-gold"),
+      };
+    });
+
+    for (const [name, value] of Object.entries(tokens.raw)) {
+      expect(value, `el token ${name} no tiene valor`).not.toBe("");
+    }
+    // Tu puntuación se pinta con el color de acción, no con el oro: el oro
+    // quedó para el platino y el promedio de la comunidad.
+    expect(tokens.rating).toBe(tokens.accentInk);
+    expect(tokens.rating).not.toBe(tokens.gold);
+  });
+
+  test("DS-22: el header va en `chrome` y la barra inferior en `chrome-raised`, con el activo en `accent-ink`", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/perfil");
+
+    const bar = page.getByTestId("mobile-tab-bar");
+    await expect(bar).toBeVisible();
+
+    const colors = await bar.evaluate((el) => {
+      const root = getComputedStyle(document.documentElement);
+      const resolveBg = (name: string) => {
+        const probe = document.createElement("div");
+        probe.style.backgroundColor = root.getPropertyValue(name).trim();
+        document.body.appendChild(probe);
+        const color = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return color;
+      };
+      const probe = document.createElement("div");
+      probe.style.color = root.getPropertyValue("--accent-ink").trim();
+      document.body.appendChild(probe);
+      const accentInk = getComputedStyle(probe).color;
+      probe.remove();
+      const active = el.querySelector('a[aria-current="page"]');
+      return {
+        bar: getComputedStyle(el).backgroundColor,
+        chromeRaised: resolveBg("--chrome-raised"),
+        header: getComputedStyle(document.querySelector("header")!).backgroundColor,
+        chrome: resolveBg("--chrome"),
+        active: active ? getComputedStyle(active).color : null,
+        accentInk,
+      };
+    });
+
+    // Sólido y exacto: antes era `background/95` con blur, o sea el color de
+    // la página por descarte y no un color de chrome.
+    expect(colors.bar).toBe(colors.chromeRaised);
+    expect(colors.header).toBe(colors.chrome);
+    expect(colors.chrome).not.toBe(colors.chromeRaised);
+    expect(colors.active).toBe(colors.accentInk);
+  });
+
+  /** El `color` computado de la primera estrella llena dentro de `scope`. */
+  async function filledStarColor(scope: import("@playwright/test").Locator) {
+    return scope.evaluate((el) => {
+      // La estrella llena es el segundo ícono de cada `[data-rating-tone]`
+      // (el primero es el contorno apagado de base).
+      const star = el.querySelector('[data-rating-tone] span [data-icon="star"]');
+      return star ? getComputedStyle(star).color : null;
+    });
+  }
+
+  async function tokenColor(page: import("@playwright/test").Page, name: string) {
+    return page.evaluate((token) => {
+      const probe = document.createElement("div");
+      probe.style.color = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+      document.body.appendChild(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    }, name);
+  }
+
+  test("DS-23: tus propias estrellas pintan con `rating`", async ({ page, supabase, users }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Diseno Rating Propio",
+      np: 2111,
+    });
+    await seedDiaryEntry(supabase, users.userA.id, gameId, "[E2E] Rating propio");
+
+    await page.goto(`/juegos/${gameId}/diario`);
+
+    const own = page.getByLabel("9/10").first();
+    await expect(own).toBeVisible();
+    await expect(own.locator('[data-rating-tone="own"]')).toHaveCount(5);
+    expect(await filledStarColor(own)).toBe(await tokenColor(page, "--rating"));
+  });
+
+  test("DS-24: las estrellas de otro usuario pintan con `rating-muted`", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Diseno Rating Ajeno",
+      np: 2112,
+    });
+    // Sólo userB puntuó el juego: en la ficha de userA aparece bajo "Otros
+    // usuarios", que es un feed y no su propia puntuación.
+    await supabase.from("game_diary_entries").upsert(
+      {
+        user_id: users.userB.id,
+        game_id: gameId,
+        playthrough_number: 1,
+        rating: 7,
+        review: "[E2E] Rating ajeno",
+        finished_on: "2026-05-05",
+      },
+      { onConflict: "user_id,game_id,playthrough_number" },
+    );
+
+    await page.goto(`/juegos/${gameId}/diario`);
+
+    const others = page.getByLabel("7/10").first();
+    await expect(others).toBeVisible();
+    await expect(others.locator('[data-rating-tone="others"]')).toHaveCount(5);
+    const color = await filledStarColor(others);
+    expect(color).toBe(await tokenColor(page, "--rating-muted"));
+    // Y no se confunde con el color de acción: lo de otro se lee, no llama.
+    expect(color).not.toBe(await tokenColor(page, "--rating"));
   });
 });

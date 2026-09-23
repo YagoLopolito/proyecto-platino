@@ -137,7 +137,7 @@ export default async function GameDiaryPage({ params }: { params: Promise<{ id: 
                     <span>
                       Partida #{entry.playthrough_number} · {entry.finished_on}
                     </span>
-                    <StarRatingDisplay rating={entry.rating} />
+                    <StarRatingDisplay rating={entry.rating} tone="others" />
                     {entry.platinum_earned_at && (
                       <Icon
                         name="trophy"

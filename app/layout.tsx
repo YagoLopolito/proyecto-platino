@@ -55,8 +55,10 @@ export const viewport: Viewport = {
   // gestos; lo que se ancle a un borde compensa con `env(safe-area-inset-*)`
   // (utilidades `pt-safe`/`pb-safe` en globals.css).
   viewportFit: "cover",
-  // El color de la barra de estado / de la ventana de la app instalada.
-  themeColor: "#0a0e17",
+  // El color de la barra de estado / de la ventana de la app instalada: el
+  // mismo `--chrome` del header, así la barra del sistema y la de la app se
+  // leen como una sola franja.
+  themeColor: "#050c15",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
