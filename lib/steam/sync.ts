@@ -4,6 +4,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { findCoverUrl, findSteamCoverUrlByAppId } from "@/lib/covers";
 import { mapWithConcurrency } from "@/lib/psn/concurrency";
 import { reconcileCompletedDiaryEntry } from "@/lib/diary/platinum";
+import { endNowPlaying } from "@/lib/now-playing/end";
 import { fetchGameAchievements } from "./achievements";
 import { getSteamCallCount } from "./client";
 import { SteamApiError, SteamProfilePrivateError } from "./errors";
@@ -238,6 +239,17 @@ async function syncTitle(
           `[steam-sync] no se pudo actualizar el diario al 100% (${game.name}):`,
           cause,
         );
+      }
+
+      // El 100% saca el juego de "Jugando ahora" (issue #187), igual que el
+      // platino en PSN.
+      try {
+        const { error } = await endNowPlaying(supabase, userId, row.id, "completion", {
+          achievedAt: completedAt,
+        });
+        if (error) throw new Error(error);
+      } catch (cause) {
+        console.error(`[steam-sync] no se pudo cerrar "jugando ahora" (${game.name}):`, cause);
       }
     }
   }

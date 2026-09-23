@@ -1,0 +1,127 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import { endNowPlaying } from "@/lib/now-playing/end";
+import {
+  getNowPlaying,
+  getPlaySuggestion,
+  type NowPlayingGame,
+  type PlaySuggestion,
+} from "@/lib/now-playing/queries";
+
+export type NowPlayingActionResult = { error: string | null };
+
+const gameIdSchema = z.string().uuid();
+
+/** Todo lo que muestra "Jugando ahora": perfil, biblioteca y la ficha. */
+function revalidateNowPlaying(gameId: string) {
+  revalidatePath("/perfil");
+  revalidatePath("/biblioteca");
+  revalidatePath(`/juegos/${gameId}`, "layout");
+}
+
+async function requireUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return { supabase, user };
+}
+
+/**
+ * Marca un juego como "jugando ahora" (issue #187). Doble capa, como el resto
+ * del contenido de usuario: la action sólo escribe filas del usuario de la
+ * sesión, y la RLS de `now_playing` exige `user_id = auth.uid()`.
+ *
+ * Además lo vincula a `user_games` si no estaba (mismo criterio que registrar
+ * una partida): desde la ficha se puede marcar cualquier juego del catálogo, y
+ * lo que estás jugando es parte de tu biblioteca.
+ */
+export async function startPlaying(gameId: string): Promise<NowPlayingActionResult> {
+  const parsed = gameIdSchema.safeParse(gameId);
+  if (!parsed.success) return { error: "Falta el juego." };
+
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Tenés que iniciar sesión." };
+
+  const { error } = await supabase
+    .from("now_playing")
+    .insert({ user_id: user.id, game_id: parsed.data });
+
+  if (error) {
+    // El unique parcial de rachas abiertas: ya lo estás jugando.
+    if (error.code === "23505") return { error: "Ya lo estás jugando." };
+    return { error: `No se pudo marcar como jugando: ${error.message}` };
+  }
+
+  await supabase
+    .from("user_games")
+    .upsert(
+      { user_id: user.id, game_id: parsed.data },
+      { onConflict: "user_id,game_id", ignoreDuplicates: true },
+    );
+
+  revalidateNowPlaying(parsed.data);
+  return { error: null };
+}
+
+/** "Dejé de jugarlo": cierra la racha abierta con `end_reason = 'manual'`. */
+export async function stopPlaying(gameId: string): Promise<NowPlayingActionResult> {
+  const parsed = gameIdSchema.safeParse(gameId);
+  if (!parsed.success) return { error: "Falta el juego." };
+
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Tenés que iniciar sesión." };
+
+  const { error } = await endNowPlaying(supabase, user.id, parsed.data, "manual");
+  if (error) return { error: `No se pudo actualizar: ${error}` };
+
+  revalidateNowPlaying(parsed.data);
+  return { error: null };
+}
+
+/**
+ * "Descartar" en el banner de sugerencia de la biblioteca. Guarda el momento
+ * del descarte: el juego se vuelve a sugerir recién cuando el sync traiga un
+ * `last_played_at` posterior (una sesión nueva).
+ */
+export async function dismissPlaySuggestion(gameId: string): Promise<NowPlayingActionResult> {
+  const parsed = gameIdSchema.safeParse(gameId);
+  if (!parsed.success) return { error: "Falta el juego." };
+
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Tenés que iniciar sesión." };
+
+  const { error } = await supabase
+    .from("user_games")
+    .update({ play_suggestion_dismissed_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq("game_id", parsed.data);
+  if (error) return { error: `No se pudo descartar: ${error.message}` };
+
+  revalidatePath("/biblioteca");
+  return { error: null };
+}
+
+export type RegisterContext =
+  | { status: "ok"; suggestion: PlaySuggestion | null; playing: NowPlayingGame[] }
+  | { status: "error"; message: string };
+
+/**
+ * Lo que necesita el menú del + al abrirse: el juego a sugerir ("¿Estás
+ * jugando X?") y los que ya estás jugando (para preseleccionarlos al registrar
+ * uno terminado). Se pide al abrir y no en el layout: el + está en todas las
+ * pantallas y no tiene sentido pagar estas consultas en cada navegación.
+ */
+export async function getRegisterContext(): Promise<RegisterContext> {
+  const { supabase, user } = await requireUser();
+  if (!user) return { status: "error", message: "Tenés que iniciar sesión." };
+
+  const [suggestion, playing] = await Promise.all([
+    getPlaySuggestion(supabase, user.id),
+    getNowPlaying(supabase, user.id),
+  ]);
+  return { status: "ok", suggestion, playing };
+}

@@ -85,14 +85,14 @@ test.describe("Navegación en mobile", () => {
     const dialog = page.getByRole("dialog", { name: "Registrar" });
     await expect(dialog).toBeVisible();
     await expect(page).toHaveURL(/\/biblioteca$/);
-    // La única opción que ya existe es registrar un terminado; las de
-    // "Jugando ahora" llegan con #187 y están deshabilitadas.
+    // Registrar un terminado y "Jugando ahora" (#187). La sugerencia del
+    // último juego abierto la cubre PLAY-01.
     await expect(
       dialog.getByRole("button", { name: /Registrar un juego terminado/ }),
     ).toBeEnabled();
     await expect(
       dialog.getByRole("button", { name: /Marcar un juego como jugando/ }),
-    ).toBeDisabled();
+    ).toBeEnabled();
 
     await dialog.getByRole("button", { name: "Cerrar" }).click();
     await expect(dialog).toBeHidden();

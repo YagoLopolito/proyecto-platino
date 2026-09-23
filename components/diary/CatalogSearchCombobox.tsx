@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { GameArt } from "@/components/game/GameArt";
 import { useRouter } from "next/navigation";
 import { searchCatalog, addCatalogGame, type AddCatalogGameState } from "@/lib/catalog/actions";
@@ -41,9 +41,21 @@ function ResultCover({ url, name }: { url: string | null; name: string }) {
  * juegos ya existentes en la biblioteca con resultados de lib/catalog
  * (RAWG vía lib/covers). Busca sola (debounce) a partir de MIN_QUERY_LENGTH
  * caracteres, sin botón. Al elegir un juego, lo da de alta (si hace falta) y
- * redirige a su diario.
+ * redirige a su ficha.
+ *
+ * Con `onSelectGame` (el "Marcar como jugando" del +, issue #187) no navega:
+ * le pasa el `games.id` elegido al caller, ya dado de alta si venía del
+ * catálogo.
  */
-export default function CatalogSearchCombobox() {
+export default function CatalogSearchCombobox({
+  onSelectGame,
+  selectLabel = "Elegir",
+  inputId = "catalog-query",
+}: {
+  onSelectGame?: (gameId: string) => void;
+  selectLabel?: string;
+  inputId?: string;
+} = {}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CombinedSearchResult[]>([]);
@@ -56,11 +68,18 @@ export default function CatalogSearchCombobox() {
 
   // Navegación real (efecto imperativo del browser), no sincronización de
   // estado -- por eso va en un effect y no ajustado durante el render.
+  // Cada resultado del alta se atiende una sola vez: el effect también corre
+  // si cambia la identidad de `onSelectGame`, y marcar dos veces el mismo
+  // juego como jugando choca con el unique.
+  const handledAddState = useRef<AddCatalogGameState | null>(null);
   useEffect(() => {
+    if (handledAddState.current === addState) return;
+    handledAddState.current = addState;
     if (addState.success && addState.gameId) {
-      router.push(`/juegos/${addState.gameId}`);
+      if (onSelectGame) onSelectGame(addState.gameId);
+      else router.push(`/juegos/${addState.gameId}`);
     }
-  }, [addState, router]);
+  }, [addState, router, onSelectGame]);
 
   // Búsqueda automática con debounce: pedido a la Server Action (efecto
   // externo), no sincronización de estado -- los setState pasan dentro del
@@ -105,7 +124,8 @@ export default function CatalogSearchCombobox() {
   }, [query]);
 
   function selectLibraryGame(gameId: string) {
-    router.push(`/juegos/${gameId}`);
+    if (onSelectGame) onSelectGame(gameId);
+    else router.push(`/juegos/${gameId}`);
   }
 
   // Mientras el query es más corto que el mínimo no se muestra nada de la
@@ -119,9 +139,9 @@ export default function CatalogSearchCombobox() {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <Label htmlFor="catalog-query">Buscar juego</Label>
+        <Label htmlFor={inputId}>Buscar juego</Label>
         <Input
-          id="catalog-query"
+          id={inputId}
           type="search"
           autoComplete="off"
           value={query}
@@ -183,7 +203,7 @@ export default function CatalogSearchCombobox() {
                     className="w-full shrink-0 sm:w-auto"
                     onClick={() => selectLibraryGame(result.gameId!)}
                   >
-                    Elegir
+                    {selectLabel}
                   </Button>
                 )}
 

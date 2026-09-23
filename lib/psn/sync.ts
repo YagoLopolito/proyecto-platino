@@ -4,6 +4,7 @@ import type { Database } from "@/lib/supabase/database.types";
 import { findCoverUrl } from "@/lib/covers";
 import { normalizeName } from "@/lib/catalog/dedup";
 import { reconcilePlatinumDiaryEntry } from "@/lib/diary/platinum";
+import { endNowPlaying } from "@/lib/now-playing/end";
 import { getAuthorizationFromNpsso, getPsnAvatarUrl, getPsnTrophySummary } from "./auth";
 import { mapWithConcurrency } from "./concurrency";
 import { decryptSecret } from "./crypto";
@@ -233,6 +234,17 @@ async function syncTitle(
         `[psn-sync] no se pudo actualizar el diario por platino (${title.name}):`,
         cause,
       );
+    }
+
+    // El platino también saca el juego de "Jugando ahora" (issue #187). Mismo
+    // criterio: un extra, con su propio try/catch.
+    try {
+      const { error } = await endNowPlaying(supabase, userId, gameId, "platinum", {
+        achievedAt: platinum.earnedAt,
+      });
+      if (error) throw new Error(error);
+    } catch (cause) {
+      console.error(`[psn-sync] no se pudo cerrar "jugando ahora" (${title.name}):`, cause);
     }
   }
 

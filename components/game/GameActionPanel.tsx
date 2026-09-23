@@ -1,29 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import AddDiaryEntryForm from "@/components/diary/AddDiaryEntryForm";
 import { GameScore } from "@/components/diary/GameScore";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
 import { Modal } from "@/components/Modal";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { FormError } from "@/components/FormError";
+import { startPlaying, stopPlaying } from "@/lib/now-playing/actions";
 
 /**
  * Toggle de la barra de acciones (Jugando / Playlist / Lista). `aria-pressed`
- * es el estado visible para un lector de pantalla.
+ * es el estado visible para un lector de pantalla; a la vista, el activo va en
+ * `accent-ink` con el ícono relleno de fondo, como el resto de los activos.
  *
- * Los tres llegan con sus sub-issues (#187 Jugando ahora, #188 Playlist, #189
- * Listas): hasta entonces van deshabilitados y con la aclaración, para que la
- * ficha ya tenga su forma final y nadie piense que el botón "no hace nada".
+ * Sin `onClick` va deshabilitado con la aclaración en `hint`: Playlist (#188)
+ * y Lista (#189) llegan con sus sub-issues, y así la ficha ya tiene su forma
+ * final y nadie piensa que el botón "no hace nada".
  */
-function ActionToggle({ icon, label, hint }: { icon: IconName; label: string; hint: string }) {
+function ActionToggle({
+  icon,
+  label,
+  hint,
+  pressed = false,
+  pending = false,
+  onClick,
+}: {
+  icon: IconName;
+  label: string;
+  hint?: string;
+  pressed?: boolean;
+  pending?: boolean;
+  onClick?: () => void;
+}) {
   return (
     <button
       type="button"
-      aria-pressed={false}
-      disabled
+      aria-pressed={pressed}
+      disabled={!onClick || pending}
       title={hint}
-      className="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-2 py-2 type-caption text-ink-faint disabled:cursor-not-allowed"
+      onClick={onClick}
+      className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 rounded-chip px-2 py-2 type-caption transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink disabled:cursor-not-allowed ${
+        !onClick
+          ? "text-ink-faint"
+          : pressed
+            ? "font-semibold text-accent-ink hover:bg-surface-hover"
+            : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+      }`}
     >
       <Icon name={icon} className="h-6 w-6" />
       {label}
@@ -47,11 +71,17 @@ const DIALOG_TITLE = "Registrar o puntuar";
  */
 export function GameActionPanel({
   gameId,
+  isPlaying,
+  friendsPlaying,
   ownRating,
   ownEntriesCount,
   community,
 }: {
   gameId: string;
+  /** Tenés una racha abierta de "Jugando ahora" de este juego. */
+  isPlaying: boolean;
+  /** Cuántas de las personas que seguís lo están jugando ahora. */
+  friendsPlaying: number;
   /** Tu última puntuación (escala 0-10), si tenés alguna. */
   ownRating: number | null;
   ownEntriesCount: number;
@@ -63,6 +93,18 @@ export function GameActionPanel({
   } | null;
 }) {
   const [dialog, setDialog] = useState<"sheet" | "modal" | null>(null);
+  const [playingError, setPlayingError] = useState<string | null>(null);
+  const [playingPending, startPlayingTransition] = useTransition();
+
+  // El estado que se ve es el del server (la action revalida la ficha): no se
+  // lleva una copia optimista que pueda quedar desfasada si la escritura falla.
+  function togglePlaying() {
+    setPlayingError(null);
+    startPlayingTransition(async () => {
+      const result = isPlaying ? await stopPlaying(gameId) : await startPlaying(gameId);
+      if (result.error) setPlayingError(result.error);
+    });
+  }
   const close = () => setDialog(null);
   const totalVotes = community?.distribution.reduce((sum, count) => sum + count, 0) ?? 0;
   const maxBucket = Math.max(1, ...(community?.distribution ?? [0]));
@@ -75,10 +117,28 @@ export function GameActionPanel({
       aria-label="Acciones"
       className="space-y-4 rounded-card border border-border bg-surface-raised p-3"
     >
-      <div className="flex divide-x divide-border">
-        <ActionToggle icon="gamepad" label="Jugando" hint="Llega con “Jugando ahora” (#187)." />
-        <ActionToggle icon="clock" label="Playlist" hint="Llega con la Playlist (#188)." />
-        <ActionToggle icon="list" label="Lista" hint="Llega con las listas (#189)." />
+      <div className="space-y-1.5">
+        <div className="flex gap-1">
+          <ActionToggle
+            icon="gamepad"
+            label="Jugando"
+            hint={isPlaying ? "Dejé de jugarlo" : "Marcar como jugando"}
+            pressed={isPlaying}
+            pending={playingPending}
+            onClick={togglePlaying}
+          />
+          <ActionToggle icon="clock" label="Playlist" hint="Llega con la Playlist (#188)." />
+          <ActionToggle icon="list" label="Lista" hint="Llega con las listas (#189)." />
+        </div>
+        <FormError>{playingError}</FormError>
+        {friendsPlaying > 0 && (
+          <p className="flex items-center justify-center gap-1.5 type-caption text-ink-muted">
+            <Icon name="users" className="h-3.5 w-3.5 text-ink-faint" />
+            {friendsPlaying === 1
+              ? "1 amigo lo está jugando"
+              : `${friendsPlaying} amigos lo están jugando`}
+          </p>
+        )}
       </div>
 
       {ownRating !== null && (
