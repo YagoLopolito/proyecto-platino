@@ -10,15 +10,14 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { FormError } from "@/components/FormError";
 import { startPlaying, stopPlaying } from "@/lib/now-playing/actions";
 import { addToPlaylist, removeFromPlaylist } from "@/lib/playlist/actions";
+import { AddToListPanel } from "@/components/lists/AddToListPanel";
 
 /**
  * Toggle de la barra de acciones (Jugando / Playlist / Lista). `aria-pressed`
  * es el estado visible para un lector de pantalla; a la vista, el activo va en
  * `accent-ink` con el ícono relleno de fondo, como el resto de los activos.
  *
- * Sin `onClick` va deshabilitado con la aclaración en `hint`: Lista (#189)
- * llega con su sub-issue, y así la ficha ya tiene su forma final y nadie
- * piensa que el botón "no hace nada".
+ * Sin `onClick` va deshabilitado, con la aclaración en `hint`.
  */
 function ActionToggle({
   icon,
@@ -57,6 +56,7 @@ function ActionToggle({
 }
 
 const DIALOG_TITLE = "Registrar o puntuar";
+const LIST_DIALOG_TITLE = "Agregar a una lista";
 
 /**
  * Panel de acciones de la ficha de juego (epic #183, issue #186), el de la
@@ -76,6 +76,7 @@ export function GameActionPanel({
   friendsPlaying,
   inPlaylist,
   friendsWithInPlaylist,
+  inOwnLists,
   ownRating,
   ownEntriesCount,
   community,
@@ -89,6 +90,8 @@ export function GameActionPanel({
   inPlaylist: boolean;
   /** En la Playlist de cuántas de las personas que seguís está. */
   friendsWithInPlaylist: number;
+  /** En cuántas de tus listas está (#189). */
+  inOwnLists: number;
   /** Tu última puntuación (escala 0-10), si tenés alguna. */
   ownRating: number | null;
   ownEntriesCount: number;
@@ -100,6 +103,13 @@ export function GameActionPanel({
   } | null;
 }) {
   const [dialog, setDialog] = useState<"sheet" | "modal" | null>(null);
+  // "Agregar a una lista" (#189): hoja en mobile, modal en escritorio, igual
+  // que "Registrar o puntuar". Acá hay un solo disparador (el toggle), así que
+  // el breakpoint se decide al tocarlo.
+  const [listDialog, setListDialog] = useState<"sheet" | "modal" | null>(null);
+  const openListDialog = () =>
+    setListDialog(window.matchMedia("(min-width: 640px)").matches ? "modal" : "sheet");
+  const closeListDialog = () => setListDialog(null);
   const [playingError, setPlayingError] = useState<string | null>(null);
   const [playingPending, startPlayingTransition] = useTransition();
   /** Aviso de un efecto colateral, como "Sacado de tu Playlist" (#188). */
@@ -164,7 +174,13 @@ export function GameActionPanel({
             pressed={optimisticInPlaylist}
             onClick={togglePlaylist}
           />
-          <ActionToggle icon="list" label="Lista" hint="Llega con las listas (#189)." />
+          <ActionToggle
+            icon="list"
+            label="Lista"
+            hint="Agregar a una lista"
+            pressed={inOwnLists > 0}
+            onClick={openListDialog}
+          />
         </div>
         <FormError>{playingError ?? playlistError}</FormError>
         {notice && (
@@ -253,6 +269,16 @@ export function GameActionPanel({
         </div>
       )}
 
+      <BottomSheet
+        open={listDialog === "sheet"}
+        onClose={closeListDialog}
+        title={LIST_DIALOG_TITLE}
+      >
+        <AddToListPanel gameId={gameId} onDone={closeListDialog} />
+      </BottomSheet>
+      <Modal open={listDialog === "modal"} onClose={closeListDialog} title={LIST_DIALOG_TITLE}>
+        <AddToListPanel gameId={gameId} onDone={closeListDialog} />
+      </Modal>
       <BottomSheet open={dialog === "sheet"} onClose={close} title={DIALOG_TITLE}>
         <AddDiaryEntryForm gameId={gameId} />
       </BottomSheet>

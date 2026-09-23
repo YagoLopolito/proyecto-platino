@@ -31,8 +31,9 @@ const PERFIL: NavLink = {
   href: "/perfil",
   label: "Perfil",
   icon: "user",
-  // El diario y el resumen del año son sub-secciones del perfil propio.
-  alsoActiveOn: ["/diario", "/configuracion"],
+  // El diario y el resumen del año son sub-secciones del perfil propio, y las
+  // listas (#189) se arman y se ven desde Perfil › Listas.
+  alsoActiveOn: ["/diario", "/configuracion", "/listas"],
 };
 
 /** Nav de texto del header de escritorio. */
@@ -69,6 +70,7 @@ export function isActiveLink(pathname: string, link: NavLink): boolean {
  */
 export function sectionTitle(pathname: string): string | null {
   if (matchesPrefix(pathname, "/configuracion")) return "Configuración";
+  if (matchesPrefix(pathname, "/listas")) return "Listas";
   if (matchesPrefix(pathname, "/juegos")) return null;
   for (const link of [BIBLIOTECA, BUSCAR, ACTIVIDAD, PERFIL]) {
     if (isActiveLink(pathname, link)) return link.label;

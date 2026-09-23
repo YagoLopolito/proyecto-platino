@@ -11,6 +11,8 @@ import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
 
 const addInitialState: AddCatalogGameState = { error: null, success: null };
+
+export type PickedGame = { name: string; coverUrl: string | null };
 const DEBOUNCE_MS = 300;
 
 /** Carátula del resultado, con placeholder cuando el juego no tiene imagen. */
@@ -52,7 +54,12 @@ export default function CatalogSearchCombobox({
   selectLabel = "Elegir",
   inputId = "catalog-query",
 }: {
-  onSelectGame?: (gameId: string) => void;
+  /**
+   * El juego elegido, ya dado de alta si venía de RAWG. Lleva nombre y
+   * carátula para quien tiene que mostrarlo sin volver a pedirlo (el editor de
+   * listas, #189).
+   */
+  onSelectGame?: (gameId: string, game: PickedGame) => void;
   selectLabel?: string;
   inputId?: string;
 } = {}) {
@@ -72,11 +79,14 @@ export default function CatalogSearchCombobox({
   // si cambia la identidad de `onSelectGame`, y marcar dos veces el mismo
   // juego como jugando choca con el unique.
   const handledAddState = useRef<AddCatalogGameState | null>(null);
+  // El resultado de catálogo que se mandó a dar de alta: la action devuelve
+  // sólo el id, y quien elige necesita también el nombre y la carátula.
+  const submittedPick = useRef<PickedGame>({ name: "", coverUrl: null });
   useEffect(() => {
     if (handledAddState.current === addState) return;
     handledAddState.current = addState;
     if (addState.success && addState.gameId) {
-      if (onSelectGame) onSelectGame(addState.gameId);
+      if (onSelectGame) onSelectGame(addState.gameId, submittedPick.current);
       else router.push(`/juegos/${addState.gameId}`);
     }
   }, [addState, router, onSelectGame]);
@@ -123,9 +133,14 @@ export default function CatalogSearchCombobox({
     };
   }, [query]);
 
-  function selectLibraryGame(gameId: string) {
-    if (onSelectGame) onSelectGame(gameId);
+  function selectLibraryGame(result: CombinedSearchResult) {
+    const gameId = result.gameId!;
+    if (onSelectGame) onSelectGame(gameId, { name: result.name, coverUrl: result.coverUrl });
     else router.push(`/juegos/${gameId}`);
+  }
+
+  function rememberPick(result: CombinedSearchResult) {
+    submittedPick.current = { name: result.name, coverUrl: result.coverUrl };
   }
 
   // Mientras el query es más corto que el mínimo no se muestra nada de la
@@ -201,7 +216,7 @@ export default function CatalogSearchCombobox({
                     type="button"
                     variant="secondary"
                     className="w-full shrink-0 sm:w-auto"
-                    onClick={() => selectLibraryGame(result.gameId!)}
+                    onClick={() => selectLibraryGame(result)}
                   >
                     {selectLabel}
                   </Button>
@@ -228,7 +243,11 @@ export default function CatalogSearchCombobox({
                         ¿Es el mismo juego que &quot;{result.possibleDuplicateOf.name}&quot;?
                       </p>
                       <div className="flex gap-2">
-                        <form action={addAction} className="flex-1 sm:flex-none">
+                        <form
+                          action={addAction}
+                          onSubmit={() => rememberPick(result)}
+                          className="flex-1 sm:flex-none"
+                        >
                           <input type="hidden" name="externalId" value={result.externalId} />
                           <input type="hidden" name="name" value={result.name} />
                           <input type="hidden" name="coverUrl" value={result.coverUrl ?? ""} />
@@ -241,7 +260,11 @@ export default function CatalogSearchCombobox({
                             Sí, es el mismo
                           </Button>
                         </form>
-                        <form action={addAction} className="flex-1 sm:flex-none">
+                        <form
+                          action={addAction}
+                          onSubmit={() => rememberPick(result)}
+                          className="flex-1 sm:flex-none"
+                        >
                           <input type="hidden" name="externalId" value={result.externalId} />
                           <input type="hidden" name="name" value={result.name} />
                           <input type="hidden" name="coverUrl" value={result.coverUrl ?? ""} />
@@ -259,7 +282,7 @@ export default function CatalogSearchCombobox({
                   )}
 
                 {result.source === "catalog" && !result.possibleDuplicateOf && (
-                  <form action={addAction}>
+                  <form action={addAction} onSubmit={() => rememberPick(result)}>
                     <input type="hidden" name="externalId" value={result.externalId} />
                     <input type="hidden" name="name" value={result.name} />
                     <input type="hidden" name="coverUrl" value={result.coverUrl ?? ""} />

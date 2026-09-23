@@ -617,7 +617,7 @@ enfoca el trofeo" que listaba el issue es AI-10 (§6.7), actualizado.
 | FICHA-02 | Redirects de las fichas viejas | `/juegos/[id]/diario` → `/juegos/[id]` (Reseñas) y `/juegos/[id]/enlaces` → `/juegos/[id]/guias` | P0 |
 | FICHA-03 | Tabs en la URL | → con el teclado recorre Reseñas → Trofeos → Guías e IA cambiando la URL; recargar conserva la tab | P1 |
 | FICHA-04 | Materializar un juego de catálogo | `/juegos/catalogo/[rawgId]` (RAWG mockeado) redirige a la ficha; abrirlo dos veces deja **una** fila `source = 'catalog'` y no vincula el juego a `user_games` | P0 |
-| FICHA-05 | Registrar desde el panel | Lista se ve deshabilitada con `aria-pressed="false"` (Jugando y Playlist se habilitaron con #187 y #188, ver PLAY-02 y PLIST-01); "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
+| FICHA-05 | Registrar desde el panel | Jugando, Playlist y Lista arrancan con `aria-pressed="false"` (cada uno con su caso: PLAY-02, PLIST-01, LIST-03); "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
 
 ### 6.21 Jugando ahora (`24-now-playing.spec.ts`)
 
@@ -653,7 +653,22 @@ o registrarlo como terminado.
 | PLIST-04 | Pública pero ajena | userB ve la Playlist de userA en `/perfil/[id]`; con su sesión no puede agregar ni borrar filas de userA | P0 |
 | PLIST-05 | Orden por tiempo estimado | `?orden=tiempo` ordena por `time_to_beat_minutes` ascendente, con los que no tienen dato al final | P1 |
 
-**Total: 153 casos** — 58 P0, 65 P1, 30 P2.
+### 6.23 Listas (`26-lists.spec.ts`)
+
+Listas de usuario del epic #183 (issue #189): `user_lists` + `user_list_items` (públicas o
+privadas, escritura sólo del dueño), el editor (`/listas/nueva`, `/listas/[id]/editar`), la ficha
+(`/listas/[id]`) y "Agregar a una lista" desde la ficha del juego.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| LIST-01 | Crear una lista con 3 juegos | Desde `/listas/nueva`, con título y tres juegos agregados con el buscador, "Guardar lista" abre la ficha de la lista con los tres juegos y la lista aparece en Perfil › Listas | P0 |
+| LIST-02 | Reordenar y editar nota | En `/listas/[id]/editar`, "Bajar" cambia el orden y la nota se guarda: la base queda con las posiciones nuevas y la vista "Detalle" muestra la nota | P1 |
+| LIST-03 | Agregar a una lista desde la ficha | El toggle "Lista" abre "Agregar a una lista"; tocar una lista la marca (`aria-pressed="true"`) y agrega el juego al final | P0 |
+| LIST-04 | Lista privada | Otro usuario recibe 404 en `/listas/[id]` y su sesión no la lee (RLS) | P0 |
+| LIST-05 | Lista ajena de sólo lectura | Otro usuario recibe 404 en `/listas/[id]/editar`, y con su sesión no puede cambiar el título ni agregar juegos | P0 |
+| LIST-06 | "Vos jugaste N de M" | Con un juego platinado, uno con entrada de diario y uno sin jugar, la ficha dice "Vos jugaste 2 de 3" | P1 |
+
+**Total: 159 casos** — 62 P0, 67 P1, 30 P2.
 
 ---
 

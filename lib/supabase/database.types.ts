@@ -833,6 +833,83 @@ export type Database = {
           },
         ];
       };
+      user_list_items: {
+        Row: {
+          game_id: string;
+          list_id: string;
+          note: string | null;
+          position: number;
+        };
+        Insert: {
+          game_id: string;
+          list_id: string;
+          note?: string | null;
+          position: number;
+        };
+        Update: {
+          game_id?: string;
+          list_id?: string;
+          note?: string | null;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_list_items_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_list_items_list_id_fkey";
+            columns: ["list_id"];
+            isOneToOne: false;
+            referencedRelation: "user_lists";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_lists: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          is_ranked: boolean;
+          title: string;
+          updated_at: string;
+          user_id: string;
+          visibility: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          is_ranked?: boolean;
+          title: string;
+          updated_at?: string;
+          user_id: string;
+          visibility?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          is_ranked?: boolean;
+          title?: string;
+          updated_at?: string;
+          user_id?: string;
+          visibility?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_lists_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_playlist: {
         Row: {
           added_at: string;
