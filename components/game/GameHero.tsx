@@ -107,8 +107,8 @@ export function GameHero({
         <div className="min-w-0 space-y-2 self-end lg:self-start lg:pt-2">
           {/* El nombre del juego es el texto editorial de la pantalla: va en
               la serif (`type-display`). Los metadatos son chrome, en versalitas. */}
-          <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-2 break-words">
-            <span className="type-display text-ink">{game.name}</span>
+          <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-2 break-words type-display text-ink">
+            <span>{game.name}</span>
             {badges}
           </h1>
           {meta.length > 0 && <p className="type-overline text-ink-faint">{meta.join(" · ")}</p>}

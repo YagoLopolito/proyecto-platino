@@ -57,8 +57,10 @@ export default function TrophyItem({
 
   // Abrir la ayuda cuando llega el foco desde el advisor se resuelve durante el
   // render comparando contra el token ya visto, no con un setState dentro de un
-  // useEffect (regla `react-hooks/set-state-in-effect`, ver CLAUDE.md).
-  const [seenFocusToken, setSeenFocusToken] = useState(focusToken);
+  // useEffect (regla `react-hooks/set-state-in-effect`, ver CLAUDE.md). Arranca
+  // en null y no en `focusToken`: cuando el foco llega por la URL (`?trofeo=`)
+  // el ítem ya se monta con el token puesto, y eso también tiene que abrirla.
+  const [seenFocusToken, setSeenFocusToken] = useState<number | null>(null);
   if (focusToken !== seenFocusToken) {
     setSeenFocusToken(focusToken);
     if (focusToken !== null) setOpen(true);
