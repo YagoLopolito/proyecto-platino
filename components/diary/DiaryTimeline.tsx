@@ -229,7 +229,7 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
                     }
                     caption={
                       <span className="flex flex-wrap items-center justify-between gap-x-1.5">
-                        <StarRatingDisplay rating={entry.rating} />
+                        <StarRatingDisplay rating={entry.rating} tone="own" />
                         <span className="flex items-center gap-1 text-ink-faint">
                           {entry.review && (
                             <Icon name="note" className="h-3 w-3" label="Tiene reseña" />

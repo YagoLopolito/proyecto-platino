@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { GamePoster } from "@/components/game/GamePoster";
 import { PosterGrid } from "@/components/game/PosterGrid";
-import { StarRatingDisplay } from "@/components/diary/StarRating";
+import { StarRatingDisplay, type RatingTone } from "@/components/diary/StarRating";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { EmptyState } from "@/components/EmptyState";
 import type { DiaryTimelineEntry } from "@/lib/diary/queries";
@@ -41,8 +41,11 @@ export function DiaryPreviewSection({
   action,
   emptyMessage,
   title = "Últimas reseñas",
+  ratingTone,
 }: {
   entries: DiaryTimelineEntry[];
+  /** `own` en el perfil propio, `others` en el de otro usuario (ver `StarRating`). */
+  ratingTone: RatingTone;
   action?: ReactNode;
   emptyMessage: string;
   title?: string;
@@ -66,7 +69,7 @@ export function DiaryPreviewSection({
                 caption={
                   <span className="block space-y-0.5">
                     <span className="flex flex-wrap items-center justify-between gap-x-1.5">
-                      <StarRatingDisplay rating={entry.rating} />
+                      <StarRatingDisplay rating={entry.rating} tone={ratingTone} />
                       <span className="text-ink-faint">{shortDate(entry.finishedOn)}</span>
                     </span>
                     {entry.review && (

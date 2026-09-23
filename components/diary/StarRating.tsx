@@ -13,8 +13,28 @@ function toStars(rating: number | null): number {
 }
 
 /**
- * Una estrella: el contorno apagado de base y, encima, la misma forma en oro
- * recortada al ancho que corresponda (0%, 50% o 100%).
+ * De quién es la puntuación, que decide el color de las estrellas (issue #184):
+ *
+ * - `own`: la tuya (selector, tu diario, tus reseñas) -> `rating`, el color de
+ *   acción, como las estrellas verdes de Letterboxd.
+ * - `others`: la de otro usuario en un feed o una lista -> `rating-muted`, gris,
+ *   se lee sin llamar la atención.
+ * - `community`: el promedio de la comunidad -> el oro del platino.
+ *
+ * Es obligatorio a propósito: con un default, el próximo feed nuevo heredaría
+ * el color de acción sin que nadie lo decida.
+ */
+export type RatingTone = "own" | "others" | "community";
+
+const TONE_CLASS: Record<RatingTone, string> = {
+  own: "text-rating",
+  others: "text-rating-muted",
+  community: "text-trophy-gold",
+};
+
+/**
+ * Una estrella: el contorno apagado de base y, encima, la misma forma en el
+ * color del tono, recortada al ancho que corresponda (0%, 50% o 100%).
  *
  * El recorte va en el contenedor y el ícono de adentro conserva el ancho
  * completo: así la media estrella es exactamente la mitad izquierda de la
@@ -22,16 +42,16 @@ function toStars(rating: number | null): number {
  * dibuja con su propio ancho -- las cinco estrellas no alineaban entre
  * dispositivos y el color venía del emoji, no del tema.
  */
-function Star({ fill, size }: { fill: 0 | 0.5 | 1; size: string }) {
+function Star({ fill, size, tone }: { fill: 0 | 0.5 | 1; size: string; tone: RatingTone }) {
   return (
-    <span className={`relative block ${size}`} aria-hidden="true">
+    <span className={`relative block ${size}`} data-rating-tone={tone} aria-hidden="true">
       <Icon name="star" className={`${size} text-ink-faint/40`} />
       {fill > 0 && (
         <span
           className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden"
           style={{ width: fill === 0.5 ? "50%" : "100%" }}
         >
-          <Icon name="star" className={`${size} text-trophy-gold`} />
+          <Icon name="star" className={`${size} ${TONE_CLASS[tone]}`} />
         </span>
       )}
     </span>
@@ -76,7 +96,7 @@ export function StarRatingInput({
             onClick={() => setStars(stars === starIndex ? starIndex - 0.5 : starIndex)}
             className="flex h-11 w-11 items-center justify-center transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink sm:h-8 sm:w-8"
           >
-            <Star fill={fill} size="h-7 w-7 sm:h-6 sm:w-6" />
+            <Star fill={fill} size="h-7 w-7 sm:h-6 sm:w-6" tone="own" />
           </button>
         );
       })}
@@ -94,13 +114,13 @@ export function StarRatingInput({
 }
 
 /** Muestra un rating (escala 0-10) como estrellas de solo lectura. */
-export function StarRatingDisplay({ rating }: { rating: number | null }) {
+export function StarRatingDisplay({ rating, tone }: { rating: number | null; tone: RatingTone }) {
   if (rating === null) return null;
   const stars = toStars(rating);
   return (
     <span className="inline-flex items-center gap-0.5 align-middle" aria-label={`${rating}/10`}>
       {Array.from({ length: MAX_STARS }, (_, i) => (
-        <Star key={i + 1} fill={fillFor(stars, i + 1)} size="h-3.5 w-3.5" />
+        <Star key={i + 1} fill={fillFor(stars, i + 1)} size="h-3.5 w-3.5" tone={tone} />
       ))}
     </span>
   );

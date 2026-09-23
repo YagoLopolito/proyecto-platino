@@ -240,6 +240,7 @@ export default async function PerfilPage() {
 
         <DiaryPreviewSection
           entries={diaryEntries}
+          ratingTone="own"
           emptyMessage="Todavía no marcaste ninguna partida como terminada."
           action={
             <Link href="/diario">

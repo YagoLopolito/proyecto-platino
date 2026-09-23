@@ -283,3 +283,94 @@ header también, y Configuración lo gana con `ConfigTabs`).
 
 - El lint que prohíbe los colores literales (fase 6) es lo que evita que esta
   auditoría vuelva a desactualizarse: hasta entonces, la regla es convención.
+
+## Paleta refinada (epic #183, issue #184)
+
+El epic #183 copia la navegación de Letterboxd, y eso multiplica las barras de chrome, las
+estrellas y los likes por toda la app. Antes de que eso pase, la paleta se reajustó y **se
+volvió a auditar entera**: subir el fondo de un casi-negro a un gris azulado mueve el ratio
+de cada token contra cada superficie, así que los valores de las tablas de arriba (fases 1-5)
+quedan como historia y **los que valen son los de esta sección**.
+
+Umbrales, igual que siempre: **4.5:1** texto normal, **3:1** texto grande y gráficos /
+bordes de controles (WCAG 1.4.11). Cada token se midió contra **seis** fondos -- las cuatro
+superficies más `chrome` y `chrome-raised` -- y se reporta el **peor** caso, que en todos es
+`--surface-hover` (`#232c37`, la más clara).
+
+### Superficies y chrome
+
+Los seis salen del mismo tono (OKLCH h=255, C=0.024) a pasos iguales de luminosidad:
+
+| Token | Valor | L (OKLCH) | Rol |
+|---|---|---|---|
+| `--chrome` | `#050c15` | 0.150 | header |
+| `--chrome-raised` | `#09111b` | 0.175 | barra inferior de mobile |
+| `--background` | `#0f1721` | 0.200 | fondo de página (antes `#0a0e17`, casi negro) |
+| `--surface` | `#151e28` | 0.230 | tarjetas, filas, campos |
+| `--surface-raised` | `#1c2530` | 0.260 | modales, popovers |
+| `--surface-hover` | `#232c37` | 0.290 | hover / activo |
+
+El problema que se arregló: entre `surface` y `surface-raised` había menos distancia que entre
+los otros escalones, y en las filas con hairline se perdía cuál era cuál. Ahora el paso es
+parejo en luminosidad percibida (OKLCH), no en hex.
+
+### Tokens: valor y peor caso
+
+| Token | Antes | Ahora | Peor ratio | Umbral | Nota |
+|---|---|---|---|---|---|
+| `--ink` | `#e7ebf3` | `#e7ebf3` | 11.82:1 | 4.5 | sin cambios |
+| `--ink-muted` | `#98a0b4` | `#9aa3b6` | 5.57:1 | 4.5 | |
+| `--ink-faint` | `#858ea6` | `#8e97ad` | 4.83:1 | 4.5 | con las superficies nuevas el viejo caía a 4.32:1 |
+| `--border-strong` | `#687694` | `#76839e` | 3.71:1 | 3 (1.4.11) | el viejo quedaba en 3.10:1, sin margen |
+| `--border` | `#232b3d` | `#2a3342` | 1.12:1 | — | hairline decorativo a propósito |
+| `--accent` (gráfico) | `#0070d1` | `#2273dc` | 3.06:1 | 3 (1.4.11) | el viejo caía a 2.85:1 sobre las superficies nuevas |
+| blanco sobre `--accent` | 4.95:1 | | 4.61:1 | 4.5 | texto del botón primario |
+| blanco sobre `--accent-hover` | 6.73:1 | `#1259b5` | 6.73:1 | 4.5 | el hover sigue yendo más oscuro |
+| `--accent-ink` | `#4c9df2` | `#5eaaf7` | 5.76:1 | 4.5 | |
+| `--accent-2` | `#e6007a` | `#e6007a` | 3.12:1 | 3 | sólo display grande y base del like |
+| `--rating` | — | = `--accent-ink` | 5.76:1 | 3 (ícono) | nuevo |
+| `--rating-muted` | — | `#8e97ad` | 4.83:1 | 3 (ícono) | nuevo |
+| `--like` | — | `#ff5c9d` | 4.89:1 | 3 (ícono) | nuevo; el ○ puro daría 3.12:1, sin margen |
+| `--success` | `#34d399` | `#34d399` | 7.35:1 | 4.5 | |
+| `--danger` | `#f87171` | `#ff8080` | 5.82:1 | 4.5 | ver `danger/10` abajo |
+| `--warning` | `#fbbf24` | `#fbbf24` | 8.46:1 | 4.5 | |
+| `--trophy-bronze` | `#cd7f32` | `#d68a44` | 5.10:1 | 4.5 | el viejo caía a 4.49:1 |
+| `--trophy-silver` | `#c0c0c0` | `#c0c0c0` | 7.76:1 | 4.5 | |
+| `--trophy-gold` | `#ffd700` | `#ffd700` | 10.07:1 | 4.5 | rating de la comunidad y platino |
+| `--trophy-platinum` | `#b9e1ff` | `#b9e1ff` | 10.27:1 | 4.5 | |
+| `--trophy-neutral` | `#98a0b4` | `#9aa3b6` | 5.57:1 | 4.5 | acompaña a `ink-muted` |
+| `--rarity-ultra` | `#e879f9` | `#e879f9` | 5.74:1 | 4.5 | |
+| `--rarity-very` | `#fb7185` | `#ff8095` | 5.90:1 | 4.5 | ver `/10` abajo |
+| `--rarity-rare` | `#60c4f5` | `#60c4f5` | 7.20:1 | 4.5 | |
+
+### Combinaciones (texto de un token sobre su propio fondo en baja opacidad)
+
+| Combinación | Peor ratio | Umbral |
+|---|---|---|
+| `text-accent-ink` sobre `bg-accent/15` (activo de `ToggleChip`, `SegmentedControl`) | 4.94:1 | 4.5 |
+| `text-success` sobre `bg-success/10` | 5.99:1 | 4.5 |
+| `text-warning` sobre `bg-warning/10` | 6.80:1 | 4.5 |
+| `text-danger` sobre `bg-danger/10` | 4.99:1 | 4.5 |
+| `text-danger` sobre `bg-danger/5` | 5.40:1 | 4.5 |
+| `text-trophy-platinum` sobre `bg-trophy-platinum/10` | 7.93:1 | 4.5 |
+| `text-rarity-ultra` sobre `bg-rarity-ultra/10` | 4.87:1 | 4.5 |
+| `text-rarity-very` sobre `bg-rarity-very/10` | 5.04:1 | 4.5 |
+| `text-rarity-rare` sobre `bg-rarity-rare/10` | 5.89:1 | 4.5 |
+| `text-ink` sobre `bg-accent/10` (trofeo enfocado desde el advisor) | 10.73:1 | 4.5 |
+| `border-border-strong` sobre `bg-surface` (inputs, chips de perfil) | 4.41:1 | 3 (1.4.11) |
+| `bg-accent` sobre `bg-chrome-raised` (el futuro botón + de la barra) | 4.11:1 | 3 (1.4.11) |
+
+`danger` y `rarity-very` se aclararon **por** estas combinaciones: con los valores viejos y
+las superficies nuevas, el chip sobre su `/10` caía a 4.36:1 y 4.47:1 -- fallaban por
+centésimas. El `/15` del activo sigue sin poder subir a `/20` (4.71:1 hoy, pero sin margen
+para el próximo ajuste de superficies).
+
+### Qué quedó justo, y por qué alcanza
+
+- **`--accent` como gráfico (3.06:1)** es el mismo ratio que tenía el `#0070d1` sobre las
+  superficies viejas. No se puede subir sin romper el otro lado: para que el blanco encima
+  pase 4.5:1, el azul no puede ser más luminoso que esto. Donde el acento es gráfico sobre
+  una superficie clara (la barra de `ProgressBar`, la regla lateral de una sección del
+  advisor), siempre va acompañado de un número o un título que dice lo mismo (1.4.1).
+- **`--accent-2` (3.12:1)** queda sólo para display grande. Por eso el like tiene su propio
+  token más claro y no usa el ○ directo.

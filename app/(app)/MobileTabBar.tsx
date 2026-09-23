@@ -36,7 +36,9 @@ export default function MobileTabBar() {
       data-testid="mobile-tab-bar"
       // `pb-safe` para que los tabs no queden bajo la barra de gestos del
       // iPhone, y `fixed` + el spacer del layout para que no tape contenido.
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-safe backdrop-blur sm:hidden"
+      // `chrome-raised` sólido (issue #184): la barra es chrome, no contenido,
+      // y antes caía en `background/95` por descarte.
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-chrome-raised pb-safe sm:hidden"
     >
       <ul className="flex items-stretch">
         {NAV_LINKS.map((link) => {

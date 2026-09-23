@@ -66,7 +66,7 @@ export function GameDiarySection({
                 <span className="text-ink-muted">
                   Partida #{entry.playthroughNumber} · {entry.finishedOn}
                 </span>
-                <StarRatingDisplay rating={entry.rating} />
+                <StarRatingDisplay rating={entry.rating} tone="own" />
                 {entry.platinumEarnedAt && (
                   <span className="inline-flex items-center gap-1 rounded-chip border border-trophy-platinum/50 bg-trophy-platinum/10 px-1.5 py-0.5 type-caption text-trophy-platinum">
                     <Icon name="trophy" className="h-3 w-3" />

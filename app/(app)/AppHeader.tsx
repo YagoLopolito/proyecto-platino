@@ -14,7 +14,7 @@ export default function AppHeader() {
     // `pt-safe` para despejar el notch (el viewport es `viewport-fit=cover`).
     // No es `sticky`: la ficha de juego tiene su propia barra `sticky top-0` y
     // las dos se pisarían. En mobile el acceso rápido lo da la barra inferior.
-    <header className="border-b border-border bg-background pt-safe">
+    <header className="border-b border-border bg-chrome pt-safe">
       {/*
        * En mobile el header es una sola fila (logo + cerrar sesión): la
        * navegación vive en la barra inferior (`MobileTabBar`), como en una app

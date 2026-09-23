@@ -116,7 +116,7 @@ export default async function DiarySummaryPage({
                     {entry.gameName}
                   </Link>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-ink-faint">
-                    <StarRatingDisplay rating={entry.rating} />
+                    <StarRatingDisplay rating={entry.rating} tone="own" />
                     <span>{entry.finishedOn}</span>
                     {entry.isPlatinum && (
                       <span className="inline-flex items-center gap-1 text-trophy-platinum">
@@ -174,11 +174,13 @@ export default async function DiarySummaryPage({
                   <li key={stars} className="flex items-center gap-2 type-meta text-ink-faint">
                     <span className="flex w-10 shrink-0 items-center gap-1 tabular-nums">
                       {stars}
-                      <Icon name="star" className="h-3 w-3 text-trophy-gold" />
+                      {/* Tus propias puntuaciones: `rating`, no el oro de la
+                          comunidad (issue #184). */}
+                      <Icon name="star" className="h-3 w-3 text-rating" />
                     </span>
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-hover">
                       <div
-                        className="h-full bg-trophy-gold"
+                        className="h-full bg-rating"
                         style={{ width: `${Math.round((count / max) * 100)}%` }}
                       />
                     </div>

@@ -115,15 +115,25 @@ detalle por fase; acá va lo que define el producto.
 - **Tema**: dark mode únicamente, sin modo claro ni dependencia de `prefers-color-scheme`.
 - **Tokens, no paleta de Tailwind.** `app/globals.css` es la única fuente de verdad, con pocos
   escalones y un rol explícito cada uno:
-  - Superficies (3 + fondo): `background` / `surface` / `surface-raised` / `surface-hover`,
-    negros azulados.
+  - Chrome (2): `chrome` (header) y `chrome-raised` (barra inferior de mobile), lo único más
+    oscuro que el fondo.
+  - Superficies (3 + fondo): `background` / `surface` / `surface-raised` / `surface-hover`.
+    Desde el epic #183 (issue #184) los seis escalones — chrome incluido — son **un solo gris
+    azulado profundo** (OKLCH h=255, C=0.024) con la luminosidad a pasos iguales; el fondo ya
+    no es casi negro.
   - Tinta (3): `ink` / `ink-muted` / `ink-faint`.
   - Hairlines (2): `border` (separar) / `border-strong` (bordes de controles, ≥3:1).
   - Acentos: `accent` (azul PSN como relleno), `accent-ink` (el mismo azul como texto o ícono
     sobre superficie oscura — son dos tokens porque tienen umbrales de contraste opuestos),
-    `accent-hover`, `accent-2` (rosa ○, sólo display y rellenos).
+    `accent-hover`, `accent-2` (rosa ○, sólo display grande y base del like). El azul es **el
+    único color de acción** (tab activo, botón +, links, botón primario, tu rating), como el
+    verde de Letterboxd; el oro de trofeo no es un segundo acento.
+  - Rating y like: `rating` (tu puntuación; alias de `accent-ink`), `rating-muted` (la de otro
+    usuario en un feed o una lista, gris) y el oro de trofeo para la de la comunidad
+    (promedio, histograma). `like` es el corazón de reseñas y listas, un rosa derivado de
+    `accent-2`.
   - Semánticos: `success` (100% / logro obtenido / conexión sana), `warning`, `danger`.
-  - Trofeos: Bronce `#CD7F32`, Plata `#C0C0C0`, Oro `#FFD700`, Platino `#B9E1FF` (tono frío
+  - Trofeos: Bronce `#D68A44` (era `#CD7F32`, se aclaró al subir el fondo), Plata `#C0C0C0`, Oro `#FFD700`, Platino `#B9E1FF` (tono frío
     característico del platino de PSN, no blanco plano), más `trophy-neutral` para el
     `achievement` de Steam, que es "sin desglose" y no un quinto color.
   - Rareza (3 + 1): `rarity-ultra` / `rarity-very` / `rarity-rare`; "común" va con `ink-muted`.
@@ -138,7 +148,7 @@ detalle por fase; acá va lo que define el producto.
   (`type-display`, `type-title`, `type-subtitle`, `type-body`, `type-review`, `type-meta`,
   `type-caption`, `type-overline`, `type-stat`) y se elige por el rol del texto, nunca
   combinando `text-sm font-semibold` a mano. Contraste AA mínimo, auditado por token contra las
-  cuatro superficies en `ACCESSIBILITY.md`.
+  cuatro superficies y los dos chrome en `ACCESSIBILITY.md`.
 - **Iconografía: set SVG propio** (`components/ui/Icon.tsx`, 24×24, `currentColor`), nunca
   emojis: se dibujan distinto en cada sistema y no toman el color del tema. Los íconos de
   trofeo por tipo (`TrophyTypeIcon`) siguen aparte porque lo que los distingue es su color

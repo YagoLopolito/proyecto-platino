@@ -108,6 +108,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
         ) : (
           <DiaryPreviewSection
             entries={diaryOutcome.entries}
+            ratingTone="others"
             emptyMessage={`${name} todavía no marcó ninguna partida como terminada.`}
             action={
               <Link href="/diario/amigos">

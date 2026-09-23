@@ -33,7 +33,7 @@ export function GameScore({
 
   return (
     <span className={`inline-flex items-center gap-1.5 type-meta text-ink-muted ${className}`}>
-      <StarRatingDisplay rating={average} />
+      <StarRatingDisplay rating={average} tone="community" />
       <span>
         {(average / 2).toFixed(1)}/5 · {count} valoraciones
       </span>

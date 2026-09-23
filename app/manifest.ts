@@ -27,8 +27,10 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#0a0e17",
-    theme_color: "#0a0e17",
+    // Splash = `--background`; barra del sistema = `--chrome` (el header),
+    // para que la ventana instalada y la barra superior sean una sola franja.
+    background_color: "#0f1721",
+    theme_color: "#050c15",
     lang: "es",
     dir: "ltr",
     categories: ["games", "entertainment", "utilities"],

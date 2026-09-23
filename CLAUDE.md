@@ -249,7 +249,13 @@ prefijo (`--ink`, `--accent`), y el mapeo a la utilidad de Tailwind en `@theme i
 autorreferencia que sólo funciona por orden de cascada entre dos bloques `:root`, y se rompe
 sin aviso si Tailwind cambia dónde emite el suyo.
 
+- **Chrome** (2): `chrome` (el header) y `chrome-raised` (la barra inferior de mobile). Lo
+  único más oscuro que el fondo; antes las barras caían en `background` por descarte.
 - **Superficies** (3 + fondo): `background` / `surface` / `surface-raised` / `surface-hover`.
+  Desde #184 los seis escalones (chrome incluido) son el mismo gris azulado (OKLCH h=255,
+  C=0.024) a pasos iguales de luminosidad, y el fondo dejó de ser casi negro. Si se retoca
+  uno, se retocan los seis con el mismo paso: el problema que se arregló era justamente que
+  `surface` y `surface-raised` no se distinguían en las filas con hairline.
 - **Tinta** (3): `ink` (texto principal) / `ink-muted` (metadatos) / `ink-faint` (versalitas y
   deshabilitado; **nunca** para texto de lectura).
 - **Hairlines** (2): `border` es el separador sutil, `border-strong` el borde de un control
@@ -258,7 +264,15 @@ sin aviso si Tailwind cambia dónde emite el suyo.
   texto o ícono** sobre superficie oscura — son dos tokens porque tienen umbrales de contraste
   opuestos y confundirlos es el bug de accesibilidad clásico. `accent-hover` va más **oscuro**
   que `accent`, no más claro: es el hover de un relleno con texto blanco encima. `accent-2`
-  (rosa ○) sólo para display grande y rellenos.
+  (rosa ○) sólo para display grande y como base del like. **El azul es el único color de
+  acción** (tab activo, botón +, links, primario, tu rating), como el verde de Letterboxd.
+- **Rating y like** (#184): tres colores de estrella según **de quién** es la puntuación.
+  `rating` es la tuya (alias de `accent-ink`: lo que hiciste va en el color de hacer cosas),
+  `rating-muted` la de otro en un feed o una lista, y el promedio de la comunidad va en
+  `trophy-gold`, el oro del platino. `StarRatingDisplay` pide `tone` (`own` / `others` /
+  `community`) **obligatorio**, sin default: un feed nuevo no puede heredar el color de acción
+  sin que nadie lo decida. `like` es el corazón (reseñas y listas), rosa derivado de
+  `accent-2` pero más claro, porque el ○ puro no llega con margen a 3:1 como ícono chico.
 - **Semánticos**: `success` (100% / logro obtenido), `danger`, `warning`.
 - **Trofeos**: los cuatro de PSN más `trophy-neutral` para el `achievement` de Steam, que es
   "sin desglose" y no un quinto color.
@@ -269,8 +283,8 @@ sin aviso si Tailwind cambia dónde emite el suyo.
 - **Radios** (3): `rounded-chip` (pills, badges), `rounded-card` (tarjetas, carátulas, inputs)
   y `rounded-full`, que es **sólo para avatares**.
 
-Cada token nuevo se audita contra las **cuatro** superficies y se reporta el peor caso, no el
-mejor: ver `ACCESSIBILITY.md`. Un token que sólo pasa AA sobre el fondo más oscuro falla
+Cada token nuevo se audita contra las **cuatro** superficies (más los dos `chrome`) y se
+reporta el peor caso, no el mejor: ver `ACCESSIBILITY.md`. Un token que sólo pasa AA sobre el fondo más oscuro falla
 apenas se lo usa dentro de una tarjeta en hover, y para entonces ya lo heredó media app.
 
 ### Tipografía: dos familias con roles
@@ -983,6 +997,11 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     subpantallas, `/juegos/[id]/diario`, `GameHero`, `StarRating`, con las reseñas en la
     serif de lectura). Faltan las fases 5-6 (perfil/configuración/chrome, barrido final con
     el lint que prohíbe los colores literales). Ver el issue para el detalle por pantalla.
+
+12. Platinoob como Letterboxd (epic #183): navegación de 5 tabs, listas, playlist, jugando
+    ahora, estudios (IGDB), actividad y perfil nuevo, en 14 sub-issues (#184-#197). 🔄
+    **#184 completo**: paleta refinada (chrome, superficies a pasos parejos, `rating` /
+    `rating-muted` / `like`). Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

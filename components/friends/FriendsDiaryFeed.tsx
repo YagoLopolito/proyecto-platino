@@ -104,7 +104,7 @@ export function FriendsDiaryFeed({
                   </span>
                   <span>{formatDate(entry.finishedOn)}</span>
                   {entry.platform && <span>{entry.platform}</span>}
-                  <StarRatingDisplay rating={entry.rating} />
+                  <StarRatingDisplay rating={entry.rating} tone="others" />
                 </p>
                 {entry.review && (
                   <p className="line-clamp-3 whitespace-pre-line break-words type-review text-ink-muted">
