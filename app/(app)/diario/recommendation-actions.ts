@@ -94,7 +94,7 @@ export async function generateRecommendations(
       status: "ok",
     });
 
-    revalidatePath("/diario");
+    revalidatePath("/perfil/diario");
     return { recommendations, error: null };
   } catch (cause) {
     console.error("generateRecommendations failed:", cause);

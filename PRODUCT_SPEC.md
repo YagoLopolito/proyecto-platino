@@ -162,8 +162,10 @@ detalle por fase; acá va lo que define el producto.
 - **Anchos de contenedor, dos**: `max-w-5xl` para listados y fichas (biblioteca, diario,
   perfil, ficha de juego, header) y `max-w-2xl` para formularios (Configuración; auth va en
   `max-w-sm` dentro de la misma familia).
-- **Mobile primero**: navegación por barra inferior de tabs debajo de `sm`, header con la nav
-  en escritorio; la app es instalable como PWA (ver `CLAUDE.md`).
+- **Mobile primero**: barra inferior de 5 botones debajo de `sm` (Biblioteca, Buscar, +,
+  Actividad, Perfil), con las sub-secciones en tabs deslizables que son rutas; en escritorio,
+  header con nav, buscador, "Registrar" y menú de cuenta. Configuración vive en el engranaje
+  del perfil. La app es instalable como PWA (ver `CLAUDE.md`, "Navegación de 5 botones").
 
 ## 8. Seguridad y privacidad (refuerza `CLAUDE.md`)
 

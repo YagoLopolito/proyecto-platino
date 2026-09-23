@@ -17,7 +17,7 @@ export function FriendsStrip({ friends }: { friends: FriendProfile[] }) {
       <SectionHeader
         title={`Amigos · ${friends.length}`}
         action={
-          <Link href="/diario/amigos">
+          <Link href="/biblioteca/resenas">
             <SectionAction>Ver actividad</SectionAction>
           </Link>
         }
@@ -29,7 +29,7 @@ export function FriendsStrip({ friends }: { friends: FriendProfile[] }) {
           description="Se agregan desde el diario, y desde acá vas a poder ver su perfil."
           action={
             <Link
-              href="/diario/amigos"
+              href="/biblioteca/resenas"
               className="type-meta font-medium text-accent-ink hover:underline"
             >
               Buscar gente

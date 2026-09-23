@@ -200,7 +200,7 @@ export default async function JuegosPage({
               {(["todos", ...SOURCE_FILTERS] as SourceFilter[]).map((value) => (
                 <Link
                   key={value}
-                  href={value === "todos" ? "/juegos" : `/juegos?fuente=${value}`}
+                  href={value === "todos" ? "/biblioteca" : `/biblioteca?fuente=${value}`}
                   aria-current={fuente === value ? "page" : undefined}
                   className={`flex min-h-10 items-center justify-center whitespace-nowrap rounded-chip px-3 type-caption font-medium transition-colors sm:min-h-9 ${
                     fuente === value
@@ -225,7 +225,7 @@ export default async function JuegosPage({
             icon="gamepad"
             title={`No tenés juegos de ${SOURCE_LABEL[fuente]} sincronizados. Sincronizá esa cuenta desde Configuración › Conexiones.`}
             action={
-              <Link href="/juegos" className="text-accent-ink hover:underline">
+              <Link href="/biblioteca" className="text-accent-ink hover:underline">
                 Ver todos los juegos
               </Link>
             }

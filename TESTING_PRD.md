@@ -432,14 +432,14 @@ ninguna API externa.
 | A11Y-04 | Imágenes con `alt` | Carátulas e íconos de trofeo con texto alternativo | P2 |
 | A11Y-05 | Jerarquía de headings | Un solo `h1` por página | P2 |
 | A11Y-06 | Contraste WCAG AA | `@axe-core/playwright` sin violaciones serias en las 5 rutas principales | P1 |
-| MOB-01 | Barra inferior de navegación | En mobile la barra de tabs navega entre secciones y marca la activa con `aria-current` | P1 |
+| MOB-01 | Barra inferior de navegación | En mobile la barra de tabs navega entre secciones (Biblioteca → Actividad → Perfil) y marca la activa con `aria-current` | P1 |
 | MOB-02 | La barra no tapa contenido | El spacer del layout reserva al menos el alto de la barra `fixed` | P1 |
 | MOB-03 | Una sola nav visible | La nav del header queda oculta en mobile; la visible es la de abajo | P2 |
 | MOB-04 | Biblioteca en grilla de carátulas | Cada juego es un póster con su barra de progreso y link a la ficha | P1 |
 | MOB-05 | Filtros plegados en mobile | En la biblioteca el buscador se ve siempre y el orden/los filtros viven detrás de "Filtros", con el globito de cuántos hay puestos | P2 |
 | MOB-06 | Una sola acción de cerrar sesión | En mobile el header no la repite: vive al final del perfil | P2 |
 | MOB-07 | Top 5 en una sola fila | La grilla de favoritos declara cinco columnas en mobile | P2 |
-| PWA-01 | Manifest instalable | `display: standalone`, `start_url`, íconos 192/512 y uno `maskable` | P1 |
+| PWA-01 | Manifest instalable | `display: standalone`, `start_url` en `/biblioteca`, íconos 192/512 y uno `maskable` | P1 |
 | PWA-02 | Service worker sin caché larga | `/sw.js` responde con `max-age=0` (si no, un SW nuevo no llega a los celulares) | P1 |
 | PWA-03 | Build id en vivo | `/api/version` devuelve el build id con `no-store`: es lo que dispara el aviso de actualizar | P1 |
 | PWA-04 | Pantalla de offline pública | `/offline` carga sin sesión (el SW la precachea antes de que haya usuario) | P2 |
@@ -570,7 +570,7 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-14 | Las acciones de `/diario` usan íconos, no emojis | La fila de acciones muestra `[data-icon]` (chart/camera/trophy/check) y no contiene 📊 📷 🏆 ✓ | P2 |
 | DS-15 | El nombre del juego en la ficha de diario va en la serif | El `font-family` computado del `h1` de `GameHero` resuelve a Newsreader | P1 |
 | DS-16 | El tab activo del header se marca con acento, peso y `aria-current` | El link activo de la nav "Principal" tiene `aria-current="page"`, su `color` es exactamente `--accent-ink`, pesa más que los inactivos y va en versalitas | P1 |
-| DS-17 | La barra inferior de mobile usa íconos del set | `mobile-tab-bar` contiene exactamente 4 `[data-icon]`: gamepad, book, user, settings | P2 |
+| DS-17 | La barra inferior de mobile usa íconos del set | `mobile-tab-bar` contiene exactamente 5 `[data-icon]`: library, search, plus-circle, bolt, user (epic #183) | P2 |
 | DS-18 | Las instrucciones de Conexiones van plegadas | En la tarjeta de PSN el campo NPSSO es visible de entrada, el link a playstation.com está oculto detrás de "Cómo conseguir el NPSSO" y aparece al abrirlo | P1 |
 | DS-19 | El chip de estado de una conexión pinta con su token semántico | El `color` computado de `connection-status` es exactamente `--success` / `--warning` / `--ink-muted` según su `data-status` | P2 |
 | DS-20 | La pantalla offline usa un ícono del set | `/offline` muestra `[data-icon="offline"]` y no contiene 📡 | P2 |
@@ -578,6 +578,23 @@ mira el estilo computado los agarra; uno que mira clases de Tailwind, no.
 | DS-22 | Chrome del header y de la barra inferior | En mobile, el `background-color` computado de `mobile-tab-bar` es exactamente `--chrome-raised` (sólido, sin `/95`), el del `header` es `--chrome`, y el tab activo pinta con `--accent-ink` | P1 |
 | DS-23 | Tus estrellas usan `rating` | En `/juegos/[id]/diario`, tu entrada 9/10 dibuja 5 estrellas `data-rating-tone="own"` y la llena tiene el `color` exacto de `--rating` | P1 |
 | DS-24 | Las estrellas de otro usuario usan `rating-muted` | La entrada 7/10 de userB, bajo "Otros usuarios", dibuja 5 estrellas `data-rating-tone="others"` con el `color` exacto de `--rating-muted`, distinto de `--rating` | P2 |
+
+### 6.19 Navegación de 5 botones (`22-navigation.spec.ts`)
+
+Shell de navegación del epic #183 (issue #185): barra inferior de 5 botones en mobile, header
+con buscador / Registrar / menú de cuenta en escritorio, tabs deslizables por sub-sección y
+redirects de las rutas viejas. Los casos de mobile corren con el Pixel 7 vía `test.use` dentro
+del mismo archivo (proyecto `authed`).
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| NAV-01 | Barra inferior de 5 botones | `mobile-tab-bar` tiene, en orden, Biblioteca, Buscar, Registrar, Actividad y Perfil, nombrados por `aria-label` (sin texto visible) | P1 |
+| NAV-02 | El activo se mueve al navegar | En `/biblioteca` el botón Biblioteca tiene `aria-current="page"`; al tocar Buscar pasa a Buscar y Biblioteca lo pierde | P1 |
+| NAV-03 | El + abre un diálogo | El botón Registrar tiene `aria-haspopup="dialog"`, abre el diálogo "Registrar" sin cambiar la URL, con "Registrar un juego terminado" habilitado y las opciones de "Jugando ahora" deshabilitadas | P1 |
+| NAV-04 | Tabs deslizables | En mobile, un swipe a la izquierda en `/actividad` lleva a `/actividad/vos` y uno a la derecha vuelve; un gesto corto no navega. En escritorio, →, Inicio y ← (con vuelta) cambian de tab, de URL y de foco | P1 |
+| NAV-05 | Redirects de rutas viejas | `/juegos?fuente=steam&q=zelda` → `/biblioteca?fuente=steam&q=zelda`; `/diario?nuevo=1` → `/perfil/diario?nuevo=1` con el modal abierto; `/diario/amigos` → `/biblioteca/resenas`; `/diario/resumen` no se mueve | P0 |
+| NAV-06 | Configuración en el engranaje | La barra inferior no tiene Configuración; el engranaje del header de `/perfil` lleva a `/configuracion/conexiones` | P1 |
+| NAV-07 | Header de escritorio | Nav Biblioteca · Actividad · Perfil; "Registrar" abre el diálogo; el menú "Cuenta" tiene Perfil, Configuración y Cerrar sesión y cierra con Escape; Enter en el buscador lleva a `/buscar?q=` | P1 |
 
 **Total: 141 casos** — 52 P0, 59 P1, 30 P2.
 

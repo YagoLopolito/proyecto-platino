@@ -109,7 +109,8 @@ export async function addFriend(
     return { error: `No se pudo agregar: ${error.message}`, success: null };
   }
 
-  revalidatePath("/diario");
+  revalidatePath("/perfil/diario");
+  revalidatePath("/biblioteca/resenas");
   return { error: null, success: "Amigo agregado." };
 }
 
@@ -141,6 +142,7 @@ export async function removeFriend(
     return { error: `No se pudo eliminar: ${error.message}`, success: null };
   }
 
-  revalidatePath("/diario");
+  revalidatePath("/perfil/diario");
+  revalidatePath("/biblioteca/resenas");
   return { error: null, success: "Amigo eliminado." };
 }

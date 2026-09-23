@@ -16,6 +16,28 @@ const nextConfig: NextConfig = {
   // build mantiene el cache-busting de los assets con hash.
   ...(process.env.VERCEL_GIT_COMMIT_SHA ? { generateBuildId: async () => buildId } : {}),
 
+  /*
+   * Rutas viejas de la navegación de 4 tabs (epic #183, issue #185). Van acá y
+   * no como `redirect()` dentro de una página porque Next pasa la query string
+   * sola al destino: `/juegos?fuente=steam&q=zelda` llega a
+   * `/biblioteca?fuente=steam&q=zelda` y `/diario?nuevo=1` sigue abriendo el
+   * modal, sin copiar parámetros a mano. Corren antes del middleware.
+   *
+   * No son permanentes (307, no 308): la estructura todavía se está armando
+   * sub-issue por sub-issue, y un 308 queda cacheado en el navegador.
+   *
+   * `/juegos/[id]` NO se redirige: la ficha de juego sigue viviendo ahí.
+   * `/diario/resumen` y `/diario/capturas` tampoco: se linkean desde el diario
+   * del perfil.
+   */
+  async redirects() {
+    return [
+      { source: "/juegos", destination: "/biblioteca", permanent: false },
+      { source: "/diario", destination: "/perfil/diario", permanent: false },
+      { source: "/diario/amigos", destination: "/biblioteca/resenas", permanent: false },
+    ];
+  },
+
   async headers() {
     return [
       {

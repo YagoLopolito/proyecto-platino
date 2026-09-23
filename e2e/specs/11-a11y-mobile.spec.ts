@@ -9,7 +9,14 @@ import { seedGameWithTrophies } from "../helpers/seed";
  * puede depender de lo que dejó otro.
  */
 
-const CORE_ROUTES = ["/juegos", "/diario", "/perfil", "/configuracion/conexiones"];
+const CORE_ROUTES = [
+  "/biblioteca",
+  "/buscar",
+  "/actividad",
+  "/perfil",
+  "/perfil/diario",
+  "/configuracion/conexiones",
+];
 
 test.describe("Mobile", () => {
   for (const route of CORE_ROUTES) {
@@ -52,13 +59,13 @@ test.describe("Mobile", () => {
   });
 
   test("MOB-01: la barra inferior navega entre secciones", async ({ page }) => {
-    await page.goto("/juegos");
+    await page.goto("/biblioteca");
 
     const tabBar = page.getByTestId("mobile-tab-bar");
-    await tabBar.getByRole("link", { name: "Diario" }).click();
-    await expect(page).toHaveURL(/\/diario$/);
+    await tabBar.getByRole("link", { name: "Actividad" }).click();
+    await expect(page).toHaveURL(/\/actividad$/);
     // El tab activo se marca con aria-current, no sólo con color.
-    await expect(tabBar.getByRole("link", { name: "Diario" })).toHaveAttribute(
+    await expect(tabBar.getByRole("link", { name: "Actividad" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -105,7 +112,7 @@ test.describe("Mobile", () => {
       })),
     );
 
-    await page.goto("/juegos");
+    await page.goto("/biblioteca");
     const poster = page.getByTestId("game-card").filter({ hasText: "Mobile Grilla" });
     await expect(poster).toBeVisible();
     // La barra de progreso sobre la carátula es la que reemplaza al detalle
@@ -131,7 +138,7 @@ test.describe("Mobile", () => {
       np: 114,
     });
 
-    await page.goto("/juegos");
+    await page.goto("/biblioteca");
 
     // El buscador se ve siempre: es lo que se usa con una biblioteca grande.
     await expect(page.getByRole("searchbox", { name: /Buscar juego/i })).toBeVisible();
@@ -148,7 +155,7 @@ test.describe("Mobile", () => {
   });
 
   test("MOB-06: en mobile 'Cerrar sesión' aparece una sola vez, en el perfil", async ({ page }) => {
-    await page.goto("/juegos");
+    await page.goto("/biblioteca");
     // El header de escritorio lo esconde en mobile: la acción vive al final
     // del perfil, que está a un tap en la barra inferior.
     await expect(page.getByRole("button", { name: /cerrar sesión/i })).toBeHidden();
@@ -178,7 +185,7 @@ test.describe("Mobile", () => {
   });
 
   test("MOB-03: la nav de escritorio no se duplica en mobile", async ({ page }) => {
-    await page.goto("/juegos");
+    await page.goto("/biblioteca");
     // El header tiene su propia nav, oculta por CSS en mobile: la que se ve es
     // sólo la de abajo.
     await expect(page.getByRole("navigation", { name: "Principal" })).toBeHidden();
@@ -193,7 +200,7 @@ test.describe("PWA", () => {
 
     const manifest = await response.json();
     expect(manifest.display).toBe("standalone");
-    expect(manifest.start_url).toBe("/juegos");
+    expect(manifest.start_url).toBe("/biblioteca");
     expect(manifest.short_name).toBe("Platinoob");
 
     // Android necesita 192 y 512, y una maskable para no recortar el ícono.

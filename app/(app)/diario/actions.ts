@@ -37,7 +37,7 @@ export async function importPlatinumsToDiary(
       created: platinums.created + completed.created,
       linked: platinums.linked + completed.linked,
     };
-    revalidatePath("/diario");
+    revalidatePath("/perfil/diario");
     revalidatePath("/diario/resumen");
 
     if (result.created === 0 && result.linked === 0) {

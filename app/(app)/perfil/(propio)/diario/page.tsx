@@ -83,7 +83,7 @@ export default async function DiaryPage({
           <SectionHeader
             title="Jugados por amigos"
             action={
-              <Link href="/diario/amigos">
+              <Link href="/biblioteca/resenas">
                 <SectionAction>Ver todo</SectionAction>
               </Link>
             }
