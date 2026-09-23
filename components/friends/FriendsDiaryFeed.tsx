@@ -6,6 +6,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { profileLabel } from "@/lib/friends/constants";
 import type { FriendDiaryEntry, FriendProfile } from "@/lib/friends/queries";
+import { LikeButton } from "@/components/likes/LikeButton";
+import { likeStateOf, type LikeState } from "@/lib/likes/state";
 
 const MONTH_NAMES = [
   "enero",
@@ -45,9 +47,12 @@ function formatDate(finishedOn: string): string {
 export function FriendsDiaryFeed({
   friends,
   entries,
+  likes,
 }: {
   friends: FriendProfile[];
   entries: FriendDiaryEntry[];
+  /** Me gusta de cada reseña (#190). Sin esto el feed va sin corazones. */
+  likes?: Map<string, LikeState>;
 }) {
   if (friends.length === 0) {
     return (
@@ -69,11 +74,14 @@ export function FriendsDiaryFeed({
     <ul className="divide-y divide-border">
       {entries.map((entry) => {
         const author = profileLabel(entry.author);
+        const like = likes ? likeStateOf(likes, entry.id) : null;
+        // El corazón va al lado del link y no adentro: la fila entera es un
+        // link al juego, y un botón dentro de un link es HTML inválido.
         return (
-          <li key={entry.id}>
+          <li key={entry.id} className="flex items-start gap-2">
             <Link
               href={`/juegos/${entry.gameId}`}
-              className="group flex items-start gap-3 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+              className="group flex min-w-0 flex-1 items-start gap-3 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
             >
               <span className="relative block h-16 w-12 shrink-0 overflow-hidden rounded-chip border border-border bg-surface">
                 {entry.imageUrl ? (
@@ -113,6 +121,17 @@ export function FriendsDiaryFeed({
                 )}
               </div>
             </Link>
+            {like && (
+              <div className="shrink-0 pt-3">
+                <LikeButton
+                  kind="review"
+                  targetId={entry.id}
+                  liked={like.liked}
+                  count={like.count}
+                  label={`Me gusta la reseña de ${author}`}
+                />
+              </div>
+            )}
           </li>
         );
       })}

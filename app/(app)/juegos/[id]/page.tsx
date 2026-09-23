@@ -8,6 +8,8 @@ import { Icon } from "@/components/ui/Icon";
 import { getFriends } from "@/lib/friends/queries";
 import { profileLabel } from "@/lib/friends/constants";
 import { getGamePageBase } from "@/lib/game-page/data";
+import { getReviewLikes, likeStateOf, type LikeState } from "@/lib/likes/queries";
+import { LikeButton } from "@/components/likes/LikeButton";
 
 type ReviewEntry = {
   id: string;
@@ -58,12 +60,19 @@ export default async function GameReviewsTab({ params }: { params: Promise<{ id:
   // Nombres de quien reseñó: `public_profiles` expone sólo lo público de cada
   // cuenta (ver la sección de amigos de CLAUDE.md).
   const authorIds = [...new Set([...fromFriends, ...fromOthers].map((entry) => entry.user_id))];
-  const { data: profiles } = authorIds.length
-    ? await supabase
-        .from("public_profiles")
-        .select("id, display_name, psn_online_id")
-        .in("id", authorIds)
-    : { data: [] };
+  const [{ data: profiles }, likes] = await Promise.all([
+    authorIds.length
+      ? supabase
+          .from("public_profiles")
+          .select("id, display_name, psn_online_id")
+          .in("id", authorIds)
+      : Promise.resolve({ data: [] }),
+    getReviewLikes(
+      supabase,
+      userId,
+      entries.map((entry) => entry.id),
+    ),
+  ]);
   const nameById = new Map(
     (profiles ?? []).map((profile) => [
       profile.id,
@@ -79,13 +88,18 @@ export default async function GameReviewsTab({ params }: { params: Promise<{ id:
         <section className="space-y-2">
           <SectionHeader title="Tus partidas" />
           {own.map((entry) => (
-            <EditDiaryEntryForm key={entry.id} gameId={gameId} entry={entry} />
+            <EditDiaryEntryForm
+              key={entry.id}
+              gameId={gameId}
+              entry={entry}
+              likeCount={likeStateOf(likes, entry.id).count}
+            />
           ))}
         </section>
       )}
 
       {!error && fromFriends.length > 0 && (
-        <ReviewList title="De tus amigos" entries={fromFriends} nameById={nameById} />
+        <ReviewList title="De tus amigos" entries={fromFriends} nameById={nameById} likes={likes} />
       )}
 
       {!error && fromOthers.length > 0 && (
@@ -93,6 +107,7 @@ export default async function GameReviewsTab({ params }: { params: Promise<{ id:
           title={fromFriends.length > 0 ? "Del resto de la comunidad" : "De la comunidad"}
           entries={fromOthers}
           nameById={nameById}
+          likes={likes}
         />
       )}
 
@@ -112,46 +127,61 @@ function ReviewList({
   title,
   entries,
   nameById,
+  likes,
 }: {
   title: string;
   entries: ReviewEntry[];
   nameById: Map<string | null, string>;
+  likes: Map<string, LikeState>;
 }) {
   return (
     <section className="space-y-2">
       <SectionHeader title={title} />
       <ul>
-        {entries.map((entry) => (
-          <li key={entry.id} className="border-t border-border py-3 first:border-t-0">
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-ink-muted">
-              <Link
-                href={`/perfil/${entry.user_id}`}
-                className="font-semibold text-ink hover:text-accent-ink hover:underline"
-              >
-                {nameById.get(entry.user_id) ?? "Usuario sin nombre"}
-              </Link>
-              <StarRatingDisplay rating={entry.rating} tone="others" />
-              <span>
-                Partida #{entry.playthrough_number} · {entry.finished_on}
-              </span>
-              {entry.platinum_earned_at && (
-                <Icon name="trophy" className="h-4 w-4 text-trophy-platinum" label="Platinado" />
-              )}
-              {entry.completed_at && (
-                <Icon
-                  name="completed"
-                  className="h-4 w-4 text-success"
-                  label="Completado al 100%"
-                />
-              )}
-            </p>
-            {entry.review && (
-              <p className="mt-1.5 whitespace-pre-line break-words type-review text-ink">
-                {entry.review}
+        {entries.map((entry) => {
+          const author = nameById.get(entry.user_id) ?? "Usuario sin nombre";
+          const like = likeStateOf(likes, entry.id);
+          return (
+            <li key={entry.id} className="border-t border-border py-3 first:border-t-0">
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-ink-muted">
+                <Link
+                  href={`/perfil/${entry.user_id}`}
+                  className="font-semibold text-ink hover:text-accent-ink hover:underline"
+                >
+                  {author}
+                </Link>
+                <StarRatingDisplay rating={entry.rating} tone="others" />
+                <span>
+                  Partida #{entry.playthrough_number} · {entry.finished_on}
+                </span>
+                {entry.platinum_earned_at && (
+                  <Icon name="trophy" className="h-4 w-4 text-trophy-platinum" label="Platinado" />
+                )}
+                {entry.completed_at && (
+                  <Icon
+                    name="completed"
+                    className="h-4 w-4 text-success"
+                    label="Completado al 100%"
+                  />
+                )}
               </p>
-            )}
-          </li>
-        ))}
+              {entry.review && (
+                <p className="mt-1.5 whitespace-pre-line break-words type-review text-ink">
+                  {entry.review}
+                </p>
+              )}
+              <div className="mt-1.5">
+                <LikeButton
+                  kind="review"
+                  targetId={entry.id}
+                  liked={like.liked}
+                  count={like.count}
+                  label={`Me gusta la reseña de ${author}`}
+                />
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

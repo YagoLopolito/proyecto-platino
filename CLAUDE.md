@@ -804,6 +804,32 @@ son #190.
   es un botón en escritorio y un botón flotante en mobile (`NewListButton`), también en
   Biblioteca › Listas mientras esa pantalla sigue en placeholder.
 
+## Likes (epic #183, issue #190)
+
+La única interacción social del epic: me gusta en **reseñas** y en **listas**. No hay like a
+juegos (para eso están el rating y el Top 5) ni comentarios.
+
+- **`review_likes`** (`user_id + entry_id → game_diary_entries`) y **`list_likes`**
+  (`user_id + list_id → user_lists`), PK compuesta; migración `20260924000000_likes.sql`. Dos
+  tablas y no una polimórfica, para tener FKs reales y `on delete cascade`: borrar la reseña o
+  la lista se lleva sus likes.
+- RLS: los likes de reseñas se leen siempre; los de una lista, sólo si la lista es visible para
+  quien mira. Insert/delete sólo a tu nombre, y **el insert exige que el objetivo sea ajeno**
+  (y, en listas, público). La Server Action lo valida también, con mensaje: doble capa.
+- **Sin contadores denormalizados**: `lib/likes/queries.ts` (`getReviewLikes`, `getListLikes`)
+  cuenta las filas de los ids que la pantalla ya tiene. `lib/likes/state.ts` (puro) tiene el
+  tipo `LikeState` y `likeStateOf`.
+- `lib/likes/actions.ts`: `setReviewLike` / `setListLike` reciben el **estado deseado**, no un
+  toggle: el corazón es optimista y dos toques rápidos tienen que terminar en lo que se ve.
+- `components/likes/LikeButton.tsx`: `LikeButton` (toggle con `aria-pressed` y label "Me gusta
+  la reseña de X" / "Me gusta la lista X", ícono `heart` / `heart-outline` en el token `like`)
+  y `LikeCount` (sólo el contador). El valor confirmado vive en estado local y se resincroniza
+  con las props durante el render: no depende de que la revalidación llegue a la pantalla.
+- Dónde: filas de reseña de la ficha (las tuyas sólo con contador), el feed de Biblioteca ›
+  Reseñas (el corazón va **al lado** del link de la fila: un botón dentro de un link es HTML
+  inválido), la ficha de una lista (la propia sólo con contador) y, sólo como contador, las
+  carátulas de "Últimas reseñas" del perfil y las `ListCard`.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -820,6 +846,7 @@ son #190.
 - `now_playing` — rachas de "Jugando ahora" (inicio, fin y motivo), públicas. Ver la sección de arriba.
 - `user_playlist` — los juegos que el usuario quiere jugar, públicos. Ver la sección de Playlist.
 - `user_lists` / `user_list_items` — listas de juegos, públicas o privadas. Ver la sección de Listas.
+- `review_likes` / `list_likes` — me gusta en reseñas y listas. Ver la sección de Likes.
 - `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
 
 ## Letterbox: diario de partidas (`game_diary_entries`, `game_scores`)
@@ -1209,7 +1236,8 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     ficha). **#188 completo**: Playlist (`user_playlist`, toggle optimista en la ficha,
     `/perfil/playlist` con órdenes, salida automática al jugar o terminar). **#189 completo**:
     listas (`user_lists` / `user_list_items`, editor, ficha con "Vos jugaste N de M" y
-    "Agregar a una lista"). Ver el epic para el orden y las decisiones ya tomadas.
+    "Agregar a una lista"). **#190 completo**: likes en reseñas y listas (`review_likes` /
+    `list_likes`, corazón optimista). Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

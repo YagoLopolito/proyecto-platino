@@ -10,6 +10,8 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { buttonClassName } from "@/components/Button";
 import { FriendAvatar } from "@/components/friends/FriendAvatar";
 import { Icon } from "@/components/ui/Icon";
+import { LikeButton, LikeCount } from "@/components/likes/LikeButton";
+import { getListLikes, likeStateOf } from "@/lib/likes/queries";
 
 export const metadata = { title: "Lista" };
 
@@ -47,11 +49,15 @@ export default async function ListPage({
 
   const isOwner = list.ownerId === user.id;
   const total = list.items.length;
-  const played = await countPlayed(
-    supabase,
-    user.id,
-    list.items.map((item) => item.gameId),
-  );
+  const [played, likes] = await Promise.all([
+    countPlayed(
+      supabase,
+      user.id,
+      list.items.map((item) => item.gameId),
+    ),
+    getListLikes(supabase, user.id, [list.id]),
+  ]);
+  const like = likeStateOf(likes, list.id);
   const authorHref = isOwner ? "/perfil" : `/perfil/${list.ownerId}`;
   const updated = new Date(list.updatedAt).toLocaleDateString("es-AR", {
     day: "numeric",
@@ -108,11 +114,25 @@ export default async function ListPage({
               {list.description}
             </p>
           )}
-          {isOwner && (
-            <Link href={`/listas/${list.id}/editar`} className={buttonClassName("secondary")}>
-              Editar lista
-            </Link>
-          )}
+          {/* No se likea lo propio (#190): sobre tu lista, sólo el contador. */}
+          <div className="flex flex-wrap items-center gap-4">
+            {isOwner ? (
+              <>
+                <Link href={`/listas/${list.id}/editar`} className={buttonClassName("secondary")}>
+                  Editar lista
+                </Link>
+                <LikeCount count={like.count} />
+              </>
+            ) : (
+              <LikeButton
+                kind="list"
+                targetId={list.id}
+                liked={like.liked}
+                count={like.count}
+                label={`Me gusta la lista ${list.title}`}
+              />
+            )}
+          </div>
         </header>
 
         {total > 0 && (

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getFriendsDiaryFeed } from "@/lib/friends/queries";
+import { getReviewLikes } from "@/lib/likes/queries";
 import { FriendsDiaryFeed } from "@/components/friends/FriendsDiaryFeed";
 import AddFriendModal from "@/components/friends/AddFriendModal";
 import { ErrorState } from "@/components/ErrorState";
@@ -22,6 +23,14 @@ export default async function FriendsActivityPage() {
   }
 
   const outcome = await getFriendsDiaryFeed(supabase, user.id);
+  const likes =
+    outcome.status === "ok"
+      ? await getReviewLikes(
+          supabase,
+          user.id,
+          outcome.entries.map((entry) => entry.id),
+        )
+      : new Map();
 
   return (
     <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
@@ -47,7 +56,7 @@ export default async function FriendsActivityPage() {
         {outcome.status === "error" ? (
           <ErrorState message={`No se pudo cargar la actividad: ${outcome.message}`} />
         ) : (
-          <FriendsDiaryFeed friends={outcome.friends} entries={outcome.entries} />
+          <FriendsDiaryFeed friends={outcome.friends} entries={outcome.entries} likes={likes} />
         )}
       </div>
     </div>

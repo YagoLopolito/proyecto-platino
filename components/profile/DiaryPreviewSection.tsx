@@ -5,6 +5,8 @@ import { StarRatingDisplay, type RatingTone } from "@/components/diary/StarRatin
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { EmptyState } from "@/components/EmptyState";
 import type { DiaryTimelineEntry } from "@/lib/diary/queries";
+import { LikeCount } from "@/components/likes/LikeButton";
+import { likeStateOf, type LikeState } from "@/lib/likes/state";
 
 /** Cuántas entradas de diario muestra la vista previa de un perfil. */
 export const PROFILE_DIARY_PREVIEW_LIMIT = 6;
@@ -42,8 +44,14 @@ export function DiaryPreviewSection({
   emptyMessage,
   title = "Últimas reseñas",
   ratingTone,
+  likes,
 }: {
   entries: DiaryTimelineEntry[];
+  /**
+   * Me gusta de cada reseña (#190). Sólo el contador: la carátula entera es un
+   * link a la ficha, y el corazón que se toca vive en la tab Reseñas.
+   */
+  likes?: Map<string, LikeState>;
   /** `own` en el perfil propio, `others` en el de otro usuario (ver `StarRating`). */
   ratingTone: RatingTone;
   action?: ReactNode;
@@ -70,7 +78,10 @@ export function DiaryPreviewSection({
                   <span className="block space-y-0.5">
                     <span className="flex flex-wrap items-center justify-between gap-x-1.5">
                       <StarRatingDisplay rating={entry.rating} tone={ratingTone} />
-                      <span className="text-ink-faint">{shortDate(entry.finishedOn)}</span>
+                      <span className="flex items-center gap-1.5 text-ink-faint">
+                        {likes && <LikeCount count={likeStateOf(likes, entry.id).count} />}
+                        {shortDate(entry.finishedOn)}
+                      </span>
                     </span>
                     {entry.review && (
                       <span className="line-clamp-2 text-[11px] leading-snug text-ink-faint">
