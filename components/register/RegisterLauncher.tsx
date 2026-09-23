@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import CatalogSearchCombobox from "@/components/diary/CatalogSearchCombobox";
+import { Button } from "@/components/Button";
+import { FormError } from "@/components/FormError";
+import { GameArt } from "@/components/game/GameArt";
 import { Modal } from "@/components/Modal";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Icon, type IconName } from "@/components/ui/Icon";
+import { getRegisterContext, startPlaying, type RegisterContext } from "@/lib/now-playing/actions";
 
-/**
- * Una opción del menú de registrar. Las que todavía no existen se muestran
- * deshabilitadas con la aclaración, en vez de esconderlas: así el menú ya
- * tiene la forma final y nadie piensa que el + "no hace nada".
- */
+/** Una opción del menú de registrar. */
 function Option({
   icon,
   title,
@@ -21,28 +22,20 @@ function Option({
   icon: IconName;
   title: string;
   hint: string;
-  onClick?: () => void;
+  onClick: () => void;
 }) {
-  const disabled = !onClick;
   return (
     <li>
       <button
         type="button"
         onClick={onClick}
-        disabled={disabled}
-        className="flex min-h-14 w-full items-center gap-3 rounded-card px-3 py-2 text-left transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        className="flex min-h-14 w-full items-center gap-3 rounded-card px-3 py-2 text-left transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
       >
-        <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-hover ${
-            disabled ? "text-ink-faint" : "text-accent-ink"
-          }`}
-        >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-hover text-accent-ink">
           <Icon name={icon} className="h-5 w-5" />
         </span>
         <span className="min-w-0">
-          <span className={`block type-subtitle ${disabled ? "text-ink-muted" : "text-ink"}`}>
-            {title}
-          </span>
+          <span className="block type-subtitle text-ink">{title}</span>
           <span className="block type-caption text-ink-faint">{hint}</span>
         </span>
       </button>
@@ -50,52 +43,213 @@ function Option({
   );
 }
 
+/** Carátula chica para las filas del menú. */
+function MiniCover({ url }: { url: string | null }) {
+  const placeholder = <span className="block h-full w-full bg-surface-hover" />;
+  return (
+    <span className="relative block aspect-[3/4] w-12 shrink-0 overflow-hidden rounded-chip border border-border bg-surface">
+      {url ? (
+        <GameArt src={url} alt="" sizes="48px" className="object-cover" fallback={placeholder} />
+      ) : (
+        placeholder
+      )}
+    </span>
+  );
+}
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-11 items-center gap-1.5 type-meta text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+    >
+      <Icon name="arrow-left" className="h-4 w-4" />
+      Volver
+    </button>
+  );
+}
+
+type Step = "menu" | "playing" | "finished" | "done";
+
 /**
- * El contenido del +: las tres acciones de registrar. Mismo contenido en la
- * hoja de mobile y en el modal de escritorio.
+ * El contenido del +: las tres acciones de registrar (epic #183, issue #187).
+ * Mismo contenido en la hoja de mobile y en el modal de escritorio.
  *
- * "Jugando ahora" es del sub-issue #187; hasta entonces las dos primeras
- * opciones quedan deshabilitadas. "Registrar un juego terminado" ya existe: es
- * el buscador de "Marcar como terminado" del diario, reusado tal cual.
+ * 1. "¿Estás jugando X?": el último juego que abriste según el sync, si hay
+ *    uno que tenga sentido sugerir (ver `getPlaySuggestion`).
+ * 2. Marcar otro juego como jugando: el buscador de biblioteca + catálogo.
+ * 3. Registrar un juego terminado: arranca con los que estás jugando a mano,
+ *    y debajo el mismo buscador.
+ *
+ * El contexto (sugerencia y "jugando ahora") se pide al abrir el menú y no en
+ * el layout: el + vive en todas las pantallas.
  */
-function RegisterOptions() {
-  const [step, setStep] = useState<"menu" | "finished">("menu");
+function RegisterOptions({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>("menu");
+  const [context, setContext] = useState<RegisterContext | null>(null);
+  const [markedGameId, setMarkedGameId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  // Pedido a una Server Action (efecto externo): el setState ocurre en el
+  // callback de la promesa, no sincrónicamente dentro del effect.
+  useEffect(() => {
+    let cancelled = false;
+    getRegisterContext().then((result) => {
+      if (!cancelled) setContext(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const suggestion = context?.status === "ok" ? context.suggestion : null;
+  const playing = context?.status === "ok" ? context.playing : [];
+
+  function markPlaying(gameId: string) {
+    setError(null);
+    startTransition(async () => {
+      const result = await startPlaying(gameId);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setMarkedGameId(gameId);
+      setStep("done");
+    });
+  }
+
+  function openGame(gameId: string) {
+    onClose();
+    router.push(`/juegos/${gameId}`);
+  }
+
+  if (step === "done" && markedGameId) {
+    return (
+      <div className="space-y-4">
+        <p role="status" className="flex items-center gap-2 type-body text-ink">
+          <Icon name="check" className="h-5 w-5 text-success" />
+          Listo, está en “Jugando ahora”.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={() => openGame(markedGameId)}>
+            Ver ficha del juego
+          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cerrar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "playing") {
+    return (
+      <div className="space-y-3">
+        <BackButton onClick={() => setStep("menu")} />
+        <p className="type-body text-ink-muted">
+          Buscá el juego que estás jugando. Si no está en tu biblioteca, lo agregamos desde el
+          catálogo.
+        </p>
+        <CatalogSearchCombobox
+          inputId="register-playing-query"
+          selectLabel="Estoy jugando este"
+          onSelectGame={markPlaying}
+        />
+        <FormError>{error}</FormError>
+      </div>
+    );
+  }
 
   if (step === "finished") {
     return (
-      <div className="space-y-3">
-        <button
-          type="button"
-          onClick={() => setStep("menu")}
-          className="flex min-h-11 items-center gap-1.5 type-meta text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
-        >
-          <Icon name="arrow-left" className="h-4 w-4" />
-          Volver
-        </button>
+      <div className="space-y-4">
+        <BackButton onClick={() => setStep("menu")} />
+        {playing.length > 0 && (
+          <section className="space-y-2" aria-labelledby="register-playing-heading">
+            <h3 id="register-playing-heading" className="type-overline text-ink-faint">
+              Estás jugando
+            </h3>
+            <ul className="-mx-3 space-y-1">
+              {playing.map((game) => (
+                <li key={game.id}>
+                  <button
+                    type="button"
+                    onClick={() => openGame(game.id)}
+                    className="flex min-h-14 w-full items-center gap-3 rounded-card px-3 py-2 text-left transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                  >
+                    <MiniCover url={game.imageUrl} />
+                    <span className="min-w-0">
+                      <span className="block truncate type-subtitle text-ink">{game.name}</span>
+                      <span className="block type-caption text-ink-faint">
+                        Registrarlo como terminado
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <p className="type-body text-ink-muted">
-          Buscá el juego que terminaste. Si no está en tu biblioteca, lo agregamos desde el
-          catálogo.
+          {playing.length > 0 ? "¿Es otro? Buscalo." : "Buscá el juego que terminaste."} Si no está
+          en tu biblioteca, lo agregamos desde el catálogo.
         </p>
-        <CatalogSearchCombobox />
+        <CatalogSearchCombobox inputId="register-finished-query" />
       </div>
     );
   }
 
   return (
-    <ul className="-mx-3 space-y-1">
-      <Option
-        icon="gamepad"
-        title="¿Estás jugando algo?"
-        hint="Llega con “Jugando ahora”: te va a sugerir el último juego que abriste."
-      />
-      <Option icon="plus" title="Marcar un juego como jugando" hint="Llega con “Jugando ahora”." />
-      <Option
-        icon="check"
-        title="Registrar un juego terminado"
-        hint="Con tu puntuación y tu reseña, en el diario."
-        onClick={() => setStep("finished")}
-      />
-    </ul>
+    <div className="space-y-4">
+      {suggestion && (
+        <section
+          aria-labelledby="register-suggestion-heading"
+          className="flex gap-3 rounded-card border border-border bg-surface p-3"
+        >
+          <MiniCover url={suggestion.imageUrl} />
+          <div className="min-w-0 space-y-2">
+            <h3 id="register-suggestion-heading" className="type-subtitle text-ink">
+              ¿Estás jugando {suggestion.name}?
+            </h3>
+            <p className="type-caption text-ink-faint">
+              Lo abriste por última vez el{" "}
+              {new Date(suggestion.lastPlayedAt).toLocaleDateString("es-AR", {
+                day: "numeric",
+                month: "long",
+              })}
+              .
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" disabled={pending} onClick={() => markPlaying(suggestion.id)}>
+                Sí, lo estoy jugando
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setStep("playing")}>
+                No, es otro
+              </Button>
+            </div>
+            <FormError>{error}</FormError>
+          </div>
+        </section>
+      )}
+
+      <ul className="-mx-3 space-y-1">
+        <Option
+          icon="gamepad"
+          title="Marcar un juego como jugando"
+          hint="Aparece en tu perfil y en la ficha del juego."
+          onClick={() => setStep("playing")}
+        />
+        <Option
+          icon="check"
+          title="Registrar un juego terminado"
+          hint="Con tu puntuación y tu reseña, en el diario."
+          onClick={() => setStep("finished")}
+        />
+      </ul>
+    </div>
   );
 }
 
@@ -142,11 +296,11 @@ export function RegisterLauncher({ variant }: { variant: "tab" | "header" }) {
       {trigger}
       {variant === "tab" ? (
         <BottomSheet open={open} onClose={close} title={TITLE}>
-          <RegisterOptions />
+          <RegisterOptions onClose={close} />
         </BottomSheet>
       ) : (
         <Modal open={open} onClose={close} title={TITLE}>
-          <RegisterOptions />
+          <RegisterOptions onClose={close} />
         </Modal>
       )}
     </>

@@ -5,6 +5,7 @@ import { GameHero } from "@/components/game/GameHero";
 import { GameActionPanel } from "@/components/game/GameActionPanel";
 import { SwipeTabs } from "@/components/ui/SwipeTabs";
 import { getGameDiary, getGamePageBase, getGameTrophyProgress } from "@/lib/game-page/data";
+import { countFriendsPlaying, isPlayingGame } from "@/lib/now-playing/queries";
 
 /**
  * Ficha de juego unificada (epic #183, issue #186): una sola pantalla con
@@ -29,10 +30,18 @@ export default async function GameLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id: gameId } = await params;
-  const [base, progress, diary] = await Promise.all([
+  const [base, progress, diary, [isPlaying, friendsPlaying]] = await Promise.all([
     getGamePageBase(gameId),
     getGameTrophyProgress(gameId),
     getGameDiary(gameId),
+    // "Jugando ahora" (issue #187): tu racha abierta y la de tus amigos. Cuelga
+    // de la base (sesión) pero no de los trofeos ni del diario.
+    getGamePageBase(gameId).then(({ supabase, userId }) =>
+      Promise.all([
+        isPlayingGame(supabase, userId, gameId),
+        countFriendsPlaying(supabase, userId, gameId),
+      ]),
+    ),
   ]);
 
   const summary = diary.status === "ok" ? diary.summary : null;
@@ -65,6 +74,8 @@ export default async function GameLayout({
           aside={
             <GameActionPanel
               gameId={gameId}
+              isPlaying={isPlaying}
+              friendsPlaying={friendsPlaying}
               ownRating={ownRating}
               ownEntriesCount={summary?.ownEntries.length ?? 0}
               community={

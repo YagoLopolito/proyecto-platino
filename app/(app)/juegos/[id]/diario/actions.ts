@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { endNowPlaying } from "@/lib/now-playing/end";
 
 export type DiaryActionState = { error: string | null; success?: string | null };
 
@@ -93,8 +94,18 @@ export async function createDiaryEntry(
       { onConflict: "user_id,game_id", ignoreDuplicates: true },
     );
 
+  // Registrar la partida es terminarla: sale de "Jugando ahora" (issue #187).
+  // Si falla no se le avisa al usuario -- la entrada ya se guardó, que es lo
+  // que pidió --, se loguea.
+  const ended = await endNowPlaying(supabase, user.id, gameId, "diary_entry");
+  if (ended.error) {
+    console.error(`[diario] no se pudo cerrar "jugando ahora" (${gameId}):`, ended.error);
+  }
+
   // La ficha es un layout con tres tabs: "layout" las revalida a todas.
   revalidatePath(`/juegos/${gameId}`, "layout");
+  revalidatePath("/perfil");
+  revalidatePath("/biblioteca");
   return { error: null, success: "Entrada guardada en el diario." };
 }
 

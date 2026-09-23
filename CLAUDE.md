@@ -620,9 +620,8 @@ Configuración).
   activo es una píldora de `surface-hover` detrás del ícono + ícono en `accent-ink` +
   `aria-current`. El **+ es un `<button>` con `aria-haspopup="dialog"`**, no un link: abre
   `RegisterLauncher` (`components/register/`) en una `BottomSheet`
-  (`components/ui/BottomSheet.tsx`). Hoy sólo "Registrar un juego terminado" está activo
-  (reusa `CatalogSearchCombobox`); las dos de "Jugando ahora" quedan deshabilitadas con la
-  aclaración hasta #187.
+  (`components/ui/BottomSheet.tsx`), con las tres opciones de "Jugando ahora" (#187, ver esa
+  sección).
 - **Header mobile**: barra en `chrome` con el título de la sección en `type-title` (un `<p>`,
   no un `h1`: el `h1` es de la pantalla) y, **sólo en el perfil propio**, el engranaje a la
   izquierda hacia `/configuracion`. En la ficha de un juego, el logo.
@@ -683,8 +682,8 @@ su hero, y sólo abrían juegos de tu `user_games`.
   `addCatalogGame` dejaba). En E2E, `fetchGameDetails` responde un fixture para los ids `E2E-…`.
 - **Registrar una partida sí vincula** el juego a `user_games` (`createDiaryEntry`), mismo
   criterio que `addCatalogGame`.
-- **Panel de acciones**: Jugando / Playlist / Lista van deshabilitados con `aria-pressed` y la
-  aclaración hasta sus sub-issues (#187-#189); "Registrar o puntuar" abre `AddDiaryEntryForm`
+- **Panel de acciones**: Jugando (#187) · Playlist · Lista, con `aria-pressed`; Playlist y Lista
+  van deshabilitados con la aclaración hasta sus sub-issues (#188-#189); "Registrar o puntuar" abre `AddDiaryEntryForm`
   en una `BottomSheet` en mobile y en un `Modal` en escritorio; debajo, tu puntuación (`rating`)
   y el score de la comunidad con su histograma (oro).
 - **El foco de trofeo viaja en la URL**: el advisor y la lista ya no conviven, así que los chips
@@ -695,6 +694,45 @@ su hero, y sólo abrían juegos de tu `user_games`.
   `/juegos/[id]/guias` (`redirects()` de `next.config.ts`). Sus Server Actions quedaron en esas
   carpetas. `GameBreadcrumb` y `GameDiarySection` se borraron: las tabs y el panel los
   reemplazan.
+
+## Jugando ahora (epic #183, issue #187)
+
+El + deja de ser sólo "marcar como terminado": también dice **qué estás jugando**, y eso se
+ve en tu perfil (y en el de otros), arriba de la biblioteca y en la ficha del juego.
+
+- **`now_playing`** (migración `20260923010000_now_playing.sql`): una fila por **racha**
+  (`started_at`, `ended_at`, `end_reason` en `manual` / `platinum` / `completion` /
+  `diary_entry`). Terminar no borra: queda el historial para "jugando desde…" y la actividad
+  (#195). El unique es **parcial** (`(user_id, game_id) where ended_at is null`): un juego no
+  puede estar abierto dos veces, pero sí rejugarse. RLS: select `using (true)` (se muestra en
+  perfiles públicos, como el diario), insert/update sólo el dueño, **sin delete**.
+- Todo pasa por `lib/now-playing/`: `queries.ts` (server-only: `getNowPlaying`,
+  `isPlayingGame`, `countFriendsPlaying`, `getPlaySuggestion`), `end.ts` (`endNowPlaying`) y
+  `actions.ts` (Server Actions: `startPlaying`, `stopPlaying`, `dismissPlaySuggestion`,
+  `getRegisterContext`). `startPlaying` vincula el juego a `user_games` (lo que estás jugando
+  es parte de tu biblioteca) y traduce el `23505` del unique a "Ya lo estás jugando.".
+- **Salidas automáticas**: el platino en el sync de PSN y el 100% en el de Steam cierran la
+  racha **sólo si empezó antes** de conseguirlo (`achievedAt`): sin eso, marcar como jugando
+  un juego ya platinado para rejugarlo duraba hasta el siguiente sync. Van en su propio
+  try/catch al lado de `reconcilePlatinumDiaryEntry` / `reconcileCompletedDiaryEntry`: son un
+  extra y no pueden tirar abajo el sync. `createDiaryEntry` la cierra con `diary_entry`.
+- **Sugerencia** ("¿Estás jugando X?" en el +, "¿Empezaste X?" en la biblioteca): sale del
+  `user_games.last_played_at` que ya escriben los syncs, **nunca marca solo**. Candidato = el
+  último abierto que no está jugando, no está platinado ni al 100% y no lo dejaste después de
+  esa sesión. El banner de la biblioteca además respeta el "Descartar"
+  (`user_games.play_suggestion_dismissed_at` guarda el `last_played_at` del juego al
+  descartarlo, **no la hora actual**: se vuelve a sugerir con uno posterior) y no sugiere nada de hace más de 30 días; el + no lleva esos filtros porque ahí
+  el usuario abrió el menú a propósito. No hay una columna de "sugerencia" que escriba el sync:
+  se deriva al leer, así el sync no suma escrituras.
+- El + pide su contexto (`getRegisterContext`) **al abrirse**, no en el layout: vive en todas
+  las pantallas. "Registrar un juego terminado" arranca con los juegos que estás jugando.
+  `CatalogSearchCombobox` acepta `onSelectGame` para devolver el `games.id` elegido (ya dado
+  de alta si venía de RAWG) en vez de navegar.
+- Dónde se ve: `NowPlayingSection` (`components/now-playing/`, un `PosterRow`) en `/perfil`
+  (con "Dejé de jugarlo" por carátula), `/perfil/[id]` y `/biblioteca` (sólo si hay algo);
+  el toggle "Jugando" del panel de acciones de la ficha (`aria-pressed`, sin estado optimista:
+  lo que se ve es lo que devolvió el server) con "N amigos lo están jugando". La línea
+  "Empezaste a jugar X" de Actividad › Vos llega con #195, que es el feed de actividad.
 
 ## Modelo de datos (borrador)
 
@@ -709,6 +747,7 @@ su hero, y sólo abrían juegos de tu `user_games`.
 - `ai_game_plans` — planes generados por el advisor de IA por juego (`payload_json` con la estructura de `lib/ai/schema.ts`, `user_id` nullable si el plan es genérico/compartible). Ver `PRODUCT_SPEC.md` sección 6 para el detalle de columnas y RLS.
 - `steam_accounts` — vínculo user ↔ Steam (steam_id64, persona_name, avatar, visibilidad del perfil,
   última sync). Planeado, ver sección de Steam arriba.
+- `now_playing` — rachas de "Jugando ahora" (inicio, fin y motivo), públicas. Ver la sección de arriba.
 - `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
 
 ## Letterbox: diario de partidas (`game_diary_entries`, `game_scores`)
@@ -1093,8 +1132,9 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     **#184 completo**: paleta refinada (chrome, superficies a pasos parejos, `rating` /
     `rating-muted` / `like`). **#185 completo**: shell de navegación de 5 botones, header
     web, `SwipeTabs`, rutas nuevas con placeholders y redirects. **#186 completo**: ficha de
-    juego unificada con tabs y panel de acciones, que abre cualquier juego del catálogo. Ver el
-    epic para el orden y las decisiones ya tomadas.
+    juego unificada con tabs y panel de acciones, que abre cualquier juego del catálogo. **#187
+    completo**: "Jugando ahora" (`now_playing`, el + con sugerencia, perfil, biblioteca y
+    ficha). Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

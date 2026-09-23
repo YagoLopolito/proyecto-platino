@@ -8,6 +8,9 @@ import { EmptyState } from "@/components/EmptyState";
 import { SyncStatusBadge, type SyncTokenStatus } from "@/components/SyncStatusBadge";
 import { isVisibleInLibrary } from "@/lib/library/visibility";
 import SyncButton from "@/components/psn/SyncButton";
+import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
+import { PlaySuggestionBanner } from "@/components/now-playing/PlaySuggestionBanner";
+import { getNowPlaying, getPlaySuggestion } from "@/lib/now-playing/queries";
 
 type GameStats = {
   total: number;
@@ -75,6 +78,7 @@ export default async function JuegosPage({
     { data: steamAccount },
     { data: library, error },
     { data: statsRows },
+    nowPlaying,
   ] = await Promise.all([
     supabase
       .from("psn_accounts")
@@ -84,7 +88,15 @@ export default async function JuegosPage({
     supabase.from("steam_accounts").select("persona_name").eq("user_id", userId).maybeSingle(),
     libraryQuery,
     supabase.rpc("get_library_trophy_stats"),
+    getNowPlaying(supabase, userId),
   ]);
+
+  // Después y no en paralelo: reusa las stats del RPC en vez de pedirlas de
+  // nuevo, que es la consulta cara de esta página.
+  const suggestion = await getPlaySuggestion(supabase, userId, {
+    forBanner: true,
+    stats: statsRows ?? [],
+  });
 
   const statsByGame = new Map<string, GameStats>();
   for (const row of statsRows ?? []) {
@@ -217,6 +229,12 @@ export default async function JuegosPage({
             </nav>
           )}
         </div>
+
+        {/* "Jugando ahora" va arriba de todo (issue #187): es lo que abrís la
+            app para seguir. La sugerencia del sync va justo antes, porque si
+            la aceptás es ahí donde aparece el juego. */}
+        {suggestion && <PlaySuggestionBanner gameId={suggestion.id} gameName={suggestion.name} />}
+        <NowPlayingSection games={nowPlaying} />
 
         {error && <ErrorState message={`No se pudo cargar la biblioteca: ${error.message}`} />}
 

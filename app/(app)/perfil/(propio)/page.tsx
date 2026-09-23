@@ -17,6 +17,8 @@ import {
 import { FriendsStrip } from "@/components/profile/FriendsStrip";
 import { TrophyTypeStrip } from "@/components/profile/TrophyTypeStrip";
 import { TopFiveEditor } from "@/components/profile/TopFiveEditor";
+import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
+import { getNowPlaying } from "@/lib/now-playing/queries";
 import { getFavoriteGames } from "@/lib/profile/queries";
 import { getUserDiaryEntries } from "@/lib/diary/queries";
 import { getFriends } from "@/lib/friends/queries";
@@ -88,6 +90,7 @@ export default async function PerfilPage() {
     { data: libraryRows },
     { data: statsRows },
     favorites,
+    nowPlaying,
     diaryOutcome,
     friends,
   ] = await Promise.all([
@@ -112,6 +115,7 @@ export default async function PerfilPage() {
       .eq("user_id", user.id),
     supabase.rpc("get_library_trophy_stats"),
     getFavoriteGames(supabase, user.id),
+    getNowPlaying(supabase, user.id),
     getUserDiaryEntries(supabase, user.id, PROFILE_DIARY_PREVIEW_LIMIT),
     getFriends(supabase, user.id),
   ]);
@@ -236,6 +240,12 @@ export default async function PerfilPage() {
               selectedIds={favorites.map((game) => game.id)}
             />
           }
+        />
+
+        <NowPlayingSection
+          games={nowPlaying}
+          canStop
+          emptyMessage="No estás jugando nada por ahora. Tocá el + para contar qué estás jugando."
         />
 
         <DiaryPreviewSection

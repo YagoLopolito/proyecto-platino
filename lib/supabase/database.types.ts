@@ -439,6 +439,48 @@ export type Database = {
           },
         ];
       };
+      now_playing: {
+        Row: {
+          end_reason: string | null;
+          ended_at: string | null;
+          game_id: string;
+          id: string;
+          started_at: string;
+          user_id: string;
+        };
+        Insert: {
+          end_reason?: string | null;
+          ended_at?: string | null;
+          game_id: string;
+          id?: string;
+          started_at?: string;
+          user_id: string;
+        };
+        Update: {
+          end_reason?: string | null;
+          ended_at?: string | null;
+          game_id?: string;
+          id?: string;
+          started_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "now_playing_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "now_playing_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       psn_accounts: {
         Row: {
           account_id: string;
@@ -710,6 +752,7 @@ export type Database = {
           game_id: string;
           id: string;
           last_played_at: string | null;
+          play_suggestion_dismissed_at: string | null;
           playtime_minutes: number | null;
           user_id: string;
         };
@@ -718,6 +761,7 @@ export type Database = {
           game_id: string;
           id?: string;
           last_played_at?: string | null;
+          play_suggestion_dismissed_at?: string | null;
           playtime_minutes?: number | null;
           user_id: string;
         };
@@ -726,6 +770,7 @@ export type Database = {
           game_id?: string;
           id?: string;
           last_played_at?: string | null;
+          play_suggestion_dismissed_at?: string | null;
           playtime_minutes?: number | null;
           user_id?: string;
         };

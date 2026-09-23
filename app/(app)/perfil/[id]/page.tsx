@@ -7,6 +7,8 @@ import { profileLabel } from "@/lib/friends/constants";
 import { ProfileHeader, ProfileBadge } from "@/components/profile/ProfileHeader";
 import { ProfileStatStrip } from "@/components/profile/ProfileStatStrip";
 import { FavoriteGamesSection } from "@/components/profile/FavoriteGamesSection";
+import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
+import { getNowPlaying } from "@/lib/now-playing/queries";
 import {
   DiaryPreviewSection,
   PROFILE_DIARY_PREVIEW_LIMIT,
@@ -44,9 +46,10 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
     redirect("/perfil");
   }
 
-  const [profile, favorites, diaryOutcome, { data: friendRow }] = await Promise.all([
+  const [profile, favorites, nowPlaying, diaryOutcome, { data: friendRow }] = await Promise.all([
     getPublicProfile(supabase, id),
     getFavoriteGames(supabase, id),
+    getNowPlaying(supabase, id),
     getUserDiaryEntries(supabase, id, PROFILE_DIARY_PREVIEW_LIMIT),
     supabase
       .from("friendships")
@@ -102,6 +105,8 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
           games={favorites}
           emptyMessage={`${name} todavía no eligió su Top 5.`}
         />
+
+        <NowPlayingSection games={nowPlaying} />
 
         {diaryOutcome.status === "error" ? (
           <ErrorState message={`No se pudo cargar el diario: ${diaryOutcome.message}`} />

@@ -7,7 +7,7 @@ import { createTestUserClient } from "../helpers/supabase";
 /**
  * Sync y biblioteca (`/juegos`, `POST /api/psn/sync`, `GET /api/cron/sync`).
  * Casos SYNC-01, SYNC-03, SYNC-04, SYNC-06, SYNC-11 de TESTING_PRD.md §6.3
- * (los P0). El fixture mockeado (`lib/psn/mocks.ts`, `E2E_MOCKS=1`) trae 3
+ * (los P0), más PLAY-04 (§6.21), que necesita la misma cuenta PSN mockeada. El fixture mockeado (`lib/psn/mocks.ts`, `E2E_MOCKS=1`) trae 3
  * juegos `[E2E]` con ~12 trofeos, uno de ellos platinado al 100%.
  *
  * Todos tocan la misma fila `psn_accounts`: corren en serie dentro de este
@@ -109,6 +109,60 @@ test.describe("Sync y biblioteca", () => {
       .in("game_id", gameIds);
     // 5 + 4 + 3 trofeos del fixture, sin duplicados por el segundo sync.
     expect(trophies).toHaveLength(12);
+  });
+
+  test("PLAY-04: el platino del sync saca el juego de jugando ahora", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    await page.goto(CONNECTIONS);
+    const psnCard = page.getByRole("region", { name: "PlayStation Network" });
+    await psnCard.getByLabel("NPSSO").fill(MOCK_VALID_NPSSO);
+    await psnCard.getByRole("button", { name: /Conectar cuenta PSN/i }).click();
+    await expect(psnCard.getByTestId("connection-status")).toHaveAttribute(
+      "data-status",
+      "connected",
+    );
+    await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
+    await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
+
+    // Juego Uno está platinado en el fixture (2026-01-10); Juego Dos no.
+    const { data: games } = await supabase
+      .from("games")
+      .select("id, np_comm_id")
+      .in("np_comm_id", [`${E2E_PSN_MOCK_PREFIX}1`, `${E2E_PSN_MOCK_PREFIX}2`]);
+    const platinumed = games?.find((g) => g.np_comm_id === `${E2E_PSN_MOCK_PREFIX}1`)?.id;
+    const inProgress = games?.find((g) => g.np_comm_id === `${E2E_PSN_MOCK_PREFIX}2`)?.id;
+    expect(platinumed && inProgress).toBeTruthy();
+
+    await supabase
+      .from("now_playing")
+      .delete()
+      .eq("user_id", users.userB.id)
+      .in("game_id", [platinumed!, inProgress!]);
+    // Las dos rachas empezaron ANTES del platino: la del platinado se cierra.
+    await supabase.from("now_playing").insert([
+      { user_id: users.userB.id, game_id: platinumed!, started_at: "2026-01-01T00:00:00Z" },
+      { user_id: users.userB.id, game_id: inProgress!, started_at: "2026-01-01T00:00:00Z" },
+    ]);
+
+    // El mensaje "Sincronizado" del primer sync sigue en pantalla: lo que dice
+    // que terminó el segundo es la base, no la UI.
+    await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
+    const sessionsByGame = async () => {
+      const { data } = await supabase
+        .from("now_playing")
+        .select("game_id, ended_at, end_reason")
+        .eq("user_id", users.userB.id)
+        .in("game_id", [platinumed!, inProgress!]);
+      return new Map((data ?? []).map((row) => [row.game_id, row]));
+    };
+    await expect
+      .poll(async () => (await sessionsByGame()).get(platinumed!)?.end_reason)
+      .toBe("platinum");
+    await expect(psnCard.getByRole("button", { name: /Sincronizar ahora/i })).toBeEnabled();
+    expect((await sessionsByGame()).get(inProgress!)?.ended_at).toBeNull();
   });
 
   test("SYNC-06: el conteo por tipo de trofeo coincide con el fixture", async ({

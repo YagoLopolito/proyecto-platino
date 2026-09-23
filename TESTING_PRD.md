@@ -598,7 +598,7 @@ del mismo archivo (proyecto `authed`).
 | --- | --- | --- | --- |
 | NAV-01 | Barra inferior de 5 botones | `mobile-tab-bar` tiene, en orden, Biblioteca, Buscar, Registrar, Actividad y Perfil, nombrados por `aria-label` (sin texto visible) | P1 |
 | NAV-02 | El activo se mueve al navegar | En `/biblioteca` el botón Biblioteca tiene `aria-current="page"`; al tocar Buscar pasa a Buscar y Biblioteca lo pierde | P1 |
-| NAV-03 | El + abre un diálogo | El botón Registrar tiene `aria-haspopup="dialog"`, abre el diálogo "Registrar" sin cambiar la URL, con "Registrar un juego terminado" habilitado y las opciones de "Jugando ahora" deshabilitadas | P1 |
+| NAV-03 | El + abre un diálogo | El botón Registrar tiene `aria-haspopup="dialog"`, abre el diálogo "Registrar" sin cambiar la URL, con "Registrar un juego terminado" y "Marcar un juego como jugando" habilitados (#187) | P1 |
 | NAV-04 | Tabs deslizables | En mobile, un swipe a la izquierda en `/actividad` lleva a `/actividad/vos` y uno a la derecha vuelve; un gesto corto no navega. En escritorio, →, Inicio y ← (con vuelta) cambian de tab, de URL y de foco | P1 |
 | NAV-05 | Redirects de rutas viejas | `/juegos?fuente=steam&q=zelda` → `/biblioteca?fuente=steam&q=zelda`; `/diario?nuevo=1` → `/perfil/diario?nuevo=1` con el modal abierto; `/diario/amigos` → `/biblioteca/resenas`; `/diario/resumen` no se mueve | P0 |
 | NAV-06 | Configuración en el engranaje | La barra inferior no tiene Configuración; el engranaje del header de `/perfil` lleva a `/configuracion/conexiones` | P1 |
@@ -617,9 +617,28 @@ enfoca el trofeo" que listaba el issue es AI-10 (§6.7), actualizado.
 | FICHA-02 | Redirects de las fichas viejas | `/juegos/[id]/diario` → `/juegos/[id]` (Reseñas) y `/juegos/[id]/enlaces` → `/juegos/[id]/guias` | P0 |
 | FICHA-03 | Tabs en la URL | → con el teclado recorre Reseñas → Trofeos → Guías e IA cambiando la URL; recargar conserva la tab | P1 |
 | FICHA-04 | Materializar un juego de catálogo | `/juegos/catalogo/[rawgId]` (RAWG mockeado) redirige a la ficha; abrirlo dos veces deja **una** fila `source = 'catalog'` y no vincula el juego a `user_games` | P0 |
-| FICHA-05 | Registrar desde el panel | Jugando / Playlist / Lista se ven deshabilitados con `aria-pressed="false"`; "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
+| FICHA-05 | Registrar desde el panel | Playlist / Lista se ven deshabilitados con `aria-pressed="false"` (Jugando se habilitó con #187, ver PLAY-02); "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
 
-**Total: 141 casos** — 52 P0, 59 P1, 30 P2.
+### 6.21 Jugando ahora (`24-now-playing.spec.ts`)
+
+"Jugando ahora" del epic #183 (issue #187): tabla `now_playing` (una racha por fila, con
+historial), el + con la sugerencia del último juego abierto, el toggle de la ficha, la fila del
+perfil y de la biblioteca, las salidas automáticas y el banner "¿Empezaste X?". PLAY-04 vive en
+`03-sync-library.spec.ts` (necesita la cuenta PSN de userB y el sync mockeado, que ese archivo
+corre en serie) y PLAY-06 en `24-now-playing.spec.ts`, porque `12-security-isolation.spec.ts`
+no existe todavía.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| PLAY-01 | El + sugiere el último juego abierto | Con un juego de `last_played_at` reciente, el diálogo "Registrar" pregunta "¿Estás jugando X?"; "Sí, lo estoy jugando" abre una racha en `now_playing` | P1 |
+| PLAY-02 | Marcar como jugando se ve en perfil y ficha | El toggle "Jugando" de la ficha pasa a `aria-pressed="true"`, el juego aparece en "Jugando ahora" de `/perfil` y de `/perfil/[id]` visto por otro usuario, y "Dejé de jugarlo" lo saca con `end_reason = 'manual'` | P0 |
+| PLAY-03 | Registrar la partida lo saca de jugando | Guardar una entrada de diario de un juego que estás jugando cierra la racha con `end_reason = 'diary_entry'` | P0 |
+| PLAY-04 | El platino del sync lo saca de jugando | Una racha abierta antes del platino del juego mockeado se cierra en el sync con `end_reason = 'platinum'` | P1 |
+| PLAY-05 | Sin rachas dobles | Marcar dos veces el mismo juego deja una sola racha abierta (unique parcial) y la segunda vez avisa "Ya lo estás jugando" | P1 |
+| PLAY-06 | RLS de `now_playing` | userB no puede insertar ni cerrar una racha de userA con su propia sesión; sí puede leerla | P0 |
+| PLAY-07 | Sugerencia de la biblioteca | `/biblioteca` muestra "¿Empezaste X?" para un juego abierto hace poco; "Descartar" lo esconde y no vuelve al recargar | P1 |
+
+**Total: 148 casos** — 55 P0, 63 P1, 30 P2.
 
 ---
 
