@@ -20,7 +20,7 @@ export default function GameBreadcrumb({
       aria-label="breadcrumb"
       className="flex flex-wrap items-center gap-1 type-meta text-ink-muted"
     >
-      <Link href="/juegos" className="transition-colors hover:text-accent-ink hover:underline">
+      <Link href="/biblioteca" className="transition-colors hover:text-accent-ink hover:underline">
         Biblioteca
       </Link>
       <span aria-hidden="true">/</span>

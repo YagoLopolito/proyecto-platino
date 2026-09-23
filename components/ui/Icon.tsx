@@ -60,6 +60,9 @@ export const ICON_NAMES = [
   "arrow-right",
   "plus",
   "logout",
+  "library",
+  "plus-circle",
+  "bolt",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -178,9 +181,7 @@ const PATHS: Record<IconName, ReactNode> = {
 
   /* --- Navegación y estados (fase 5) ------------------------------------ */
   /** Perfil propio (tab de la barra inferior). */
-  user: (
-    <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2.2-7 5v1h14v-1c0-2.8-3-5-7-5Z" />
-  ),
+  user: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-7 2.2-7 5v1h14v-1c0-2.8-3-5-7-5Z" />,
   /** Amigos: el estado vacío de la fila de amigos y del feed. */
   users: (
     <path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7-.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM9 13c-3.6 0-6.5 2-6.5 4.6V19h13v-1.4C15.5 15 12.6 13 9 13Zm7 .5c-.6 0-1.2.1-1.7.2 1.6 1 2.7 2.4 2.7 4V19h4.5v-1.2c0-2.4-2.5-4.3-5.5-4.3Z" />
@@ -196,6 +197,26 @@ const PATHS: Record<IconName, ReactNode> = {
   /** Sin conexión. Reemplaza al 📡 de la pantalla offline. */
   offline: (
     <path d="M3.3 2.3a1 1 0 0 1 1.4 0l17 17a1 1 0 0 1-1.4 1.4l-3.9-3.9A9 9 0 0 0 12 15a9 9 0 0 0-6.4 2.6 1 1 0 1 1-1.4-1.4A11 11 0 0 1 12 13c.7 0 1.4.1 2.1.2l-2.3-2.3A15 15 0 0 0 3.5 14a1 1 0 1 1-1.3-1.5 17 17 0 0 1 7.6-3.8L3.3 3.7a1 1 0 0 1 0-1.4ZM12 4c3.8 0 7.4 1.4 10.2 3.8a1 1 0 1 1-1.3 1.5A13 13 0 0 0 12 6c-.9 0-1.8.1-2.7.3L7.7 4.7C9.1 4.2 10.5 4 12 4Zm0 4c2.5 0 4.9.9 6.8 2.4a1 1 0 1 1-1.3 1.5A9 9 0 0 0 12 10h-.4l-1.9-1.9c.8-.1 1.5-.1 2.3-.1Zm0 11a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
+  ),
+
+  /* --- Barra de 5 botones (epic #183, issue #185) ----------------------- */
+  /** Biblioteca: dos pósters apilados, la unidad visual de la app. */
+  library: (
+    <>
+      <path d="M8 4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-1V5H8V4Z" />
+      <path d="M4 7h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z" />
+    </>
+  ),
+  /**
+   * El botón + del centro de la barra (registrar). Sólido y no el `plus` de
+   * trazo: es la acción principal y tiene que pesar más que los otros cuatro.
+   */
+  "plus-circle": (
+    <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5a1 1 0 1 0-2 0v4H7a1 1 0 1 0 0 2h4v4a1 1 0 1 0 2 0v-4h4a1 1 0 1 0 0-2h-4V7Z" />
+  ),
+  /** Actividad: lo que pasó hace poco (reseñas de amigos, tus logros, likes). */
+  bolt: (
+    <path d="M13.6 2.2a.6.6 0 0 1 1 .5L13.4 10H19a.6.6 0 0 1 .5 1l-9.1 10.8a.6.6 0 0 1-1-.5l1.2-7.3H5a.6.6 0 0 1-.5-1l9.1-10.8Z" />
   ),
 
   /* --- Chrome (trazo, ver STROKE_ICONS) --------------------------------- */

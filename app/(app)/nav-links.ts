@@ -1,26 +1,88 @@
+import type { IconName } from "@/components/ui/Icon";
+
 /**
- * Navegación principal de la app autenticada. Compartida entre el header de
- * escritorio (`AppHeader`) y la barra inferior de mobile (`MobileTabBar`) para
- * que no se puedan desincronizar.
+ * Navegación principal de la app autenticada (epic #183, issue #185). Fuente
+ * única para el header de escritorio (`AppHeader`) y la barra inferior de
+ * mobile (`MobileTabBar`), para que no se puedan desincronizar.
+ *
+ * La estructura copia la de Letterboxd: tres gestos -- descubrir, registrar y
+ * mostrar --, cada uno con su botón. En mobile son cinco (Biblioteca, Buscar,
+ * +, Actividad, Perfil); en escritorio la búsqueda es un campo del header y el
+ * + es el botón "Registrar", así que la nav de texto queda en tres.
+ * Configuración dejó de ser un tab: vive en el engranaje del Perfil.
  */
 export type NavLink = {
   href: string;
   label: string;
-  /** Etiqueta corta para la barra inferior, donde entran ~7 caracteres. */
-  shortLabel?: string;
-  exact?: boolean;
+  icon: IconName;
+  /** Otros prefijos que cuentan como esta sección (la ficha de juego es Biblioteca). */
+  alsoActiveOn?: string[];
 };
 
-export const NAV_LINKS: NavLink[] = [
-  { href: "/juegos", label: "Biblioteca", shortLabel: "Juegos" },
-  { href: "/diario", label: "Diario" },
-  { href: "/perfil", label: "Perfil" },
-  { href: "/configuracion", label: "Configuración", shortLabel: "Ajustes" },
+const BIBLIOTECA: NavLink = {
+  href: "/biblioteca",
+  label: "Biblioteca",
+  icon: "library",
+  alsoActiveOn: ["/juegos"],
+};
+const BUSCAR: NavLink = { href: "/buscar", label: "Buscar", icon: "search" };
+const ACTIVIDAD: NavLink = { href: "/actividad", label: "Actividad", icon: "bolt" };
+const PERFIL: NavLink = {
+  href: "/perfil",
+  label: "Perfil",
+  icon: "user",
+  // El diario y el resumen del año son sub-secciones del perfil propio.
+  alsoActiveOn: ["/diario", "/configuracion"],
+};
+
+/** Nav de texto del header de escritorio. */
+export const HEADER_LINKS: NavLink[] = [BIBLIOTECA, ACTIVIDAD, PERFIL];
+
+/**
+ * Barra inferior de mobile. `"register"` es el + del medio: un botón que abre
+ * el sheet de registrar, no un link, así que no tiene `href`.
+ */
+export const TAB_BAR_ITEMS: (NavLink | "register")[] = [
+  BIBLIOTECA,
+  BUSCAR,
+  "register",
+  ACTIVIDAD,
+  PERFIL,
 ];
 
-/** Un link está activo también en sus subrutas (`/juegos/[id]`, etc.). */
+function matchesPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/** Un link está activo en su ruta, en sus subrutas y en las que declara como propias. */
 export function isActiveLink(pathname: string, link: NavLink): boolean {
-  return link.exact
-    ? pathname === link.href
-    : pathname === link.href || pathname.startsWith(`${link.href}/`);
+  return [link.href, ...(link.alsoActiveOn ?? [])].some((prefix) =>
+    matchesPrefix(pathname, prefix),
+  );
+}
+
+/**
+ * Título del header de mobile para la ruta actual. En mobile no hay logo
+ * arriba: como en Letterboxd, la barra dice dónde estás. `null` en las rutas
+ * que no son una sección (la ficha de un juego, que tiene su propio hero):
+ * ahí el header muestra el logo.
+ */
+export function sectionTitle(pathname: string): string | null {
+  if (matchesPrefix(pathname, "/configuracion")) return "Configuración";
+  if (matchesPrefix(pathname, "/juegos")) return null;
+  for (const link of [BIBLIOTECA, BUSCAR, ACTIVIDAD, PERFIL]) {
+    if (isActiveLink(pathname, link)) return link.label;
+  }
+  return null;
+}
+
+/**
+ * El engranaje de Configuración va a la izquierda del header, sólo en el
+ * perfil PROPIO (`/perfil` y sus tabs), no en el de otro usuario.
+ */
+export function showsSettingsGear(pathname: string): boolean {
+  return (
+    pathname === "/perfil" ||
+    ["/perfil/diario", "/perfil/listas", "/perfil/playlist"].some((p) => matchesPrefix(pathname, p))
+  );
 }

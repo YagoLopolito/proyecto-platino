@@ -113,7 +113,7 @@ export async function disconnectPsnAccount(
 
   revalidatePath(CONNECTIONS_PATH);
   revalidatePath("/perfil");
-  revalidatePath("/juegos");
+  revalidatePath("/biblioteca");
   return { error: null, success: "Cuenta PSN desconectada." };
 }
 
@@ -194,7 +194,7 @@ export async function disconnectSteamAccount(
 
   revalidatePath(CONNECTIONS_PATH);
   revalidatePath("/perfil");
-  revalidatePath("/juegos");
+  revalidatePath("/biblioteca");
   return { error: null, success: "Cuenta de Steam desconectada." };
 }
 

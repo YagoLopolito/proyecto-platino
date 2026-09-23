@@ -399,3 +399,16 @@ body {
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }
+
+/*
+ * La hoja de `BottomSheet` sube desde el borde. Sólo con `motion-safe:` en el
+ * componente: con `prefers-reduced-motion` aparece sin animación.
+ */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

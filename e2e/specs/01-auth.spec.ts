@@ -8,7 +8,7 @@ import { test, expect } from "../fixtures/test";
  */
 test.describe("Auth", () => {
   test("AUTH-01: rutas protegidas redirigen sin sesión", async ({ page }) => {
-    for (const route of ["/perfil", "/juegos", "/psn", "/diario"]) {
+    for (const route of ["/perfil", "/juegos", "/psn", "/diario", "/biblioteca", "/actividad"]) {
       const response = await page.goto(route);
       expect(response?.status()).toBeLessThan(400);
       await expect(page).toHaveURL(/\/login/);
@@ -37,8 +37,8 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: /ingresar/i }).click();
 
     await expect(page).toHaveURL(/\/perfil/);
-    // Hay dos botones "Cerrar sesión" en la página (nav + acción de perfil);
-    // alcanza con que al menos uno esté visible.
+    // "Cerrar sesión" está al final del perfil (y, en escritorio, también
+    // dentro del menú de la cuenta, cerrado); alcanza con que uno se vea.
     await expect(page.getByRole("button", { name: /cerrar sesión/i }).first()).toBeVisible();
   });
 
@@ -84,7 +84,10 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: /ingresar/i }).click();
     await expect(page).toHaveURL(/\/perfil/);
 
-    await page.getByRole("button", { name: /cerrar sesión/i }).first().click();
+    await page
+      .getByRole("button", { name: /cerrar sesión/i })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/login/);
 
     await page.goto("/perfil");

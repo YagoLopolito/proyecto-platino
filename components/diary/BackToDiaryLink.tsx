@@ -12,7 +12,7 @@ import { Icon } from "@/components/ui/Icon";
 export function BackToDiaryLink() {
   return (
     <Link
-      href="/diario"
+      href="/perfil/diario"
       className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-chip border border-border-strong px-3 type-meta font-medium text-ink-muted transition-colors hover:border-ink-muted hover:text-ink sm:min-h-0 sm:py-1.5"
     >
       <Icon name="arrow-left" className="h-4 w-4" />

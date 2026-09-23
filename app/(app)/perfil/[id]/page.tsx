@@ -111,7 +111,7 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
             ratingTone="others"
             emptyMessage={`${name} todavía no marcó ninguna partida como terminada.`}
             action={
-              <Link href="/diario/amigos">
+              <Link href="/biblioteca/resenas">
                 <SectionAction>Ver actividad</SectionAction>
               </Link>
             }

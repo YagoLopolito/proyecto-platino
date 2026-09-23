@@ -115,7 +115,8 @@ El tab de nivel superior "PSN" deja de tener sentido con dos plataformas. Pasa a
 una tarjeta por plataforma (estado, último sync, sincronizar ahora, desconectar) y las
 instrucciones de cada una adentro de su tarjeta. `/psn` quedó como **redirect** a
 `/configuracion/conexiones`, y el matcher de `middleware.ts` (acotado a mano, ver sección de
-performance) ya cubre `/configuracion`. Las Server Actions de las dos plataformas viven en
+performance) ya cubre `/configuracion`. Desde el epic #183 Configuración **no es un tab**: se
+llega por el engranaje del perfil (mobile) o el menú de la cuenta (escritorio). Las Server Actions de las dos plataformas viven en
 `app/(app)/configuracion/conexiones/actions.ts`; las tarjetas son
 `components/connections/`. Desconectar **no borra** juegos ni trofeos ya sincronizados: son
 del usuario y el diario cuelga de ellos.
@@ -567,7 +568,7 @@ Platinoob se instala en el celular desde el navegador — "Añadir a pantalla de
 wrapper: es la misma app de Next, con manifest y service worker.
 
 - `app/manifest.ts` (ruta de metadata de Next, se sirve en `/manifest.webmanifest`).
-  `start_url` es `/juegos` y no `/`: quien instala ya tiene cuenta. Los íconos son PNG
+  `start_url` es `/biblioteca` y no `/`: quien instala ya tiene cuenta. Los íconos son PNG
   commiteados en `public/`, generados por `scripts/generate-icons.mjs` a partir del mismo
   trofeo que `app/icon.svg`; hacen falta los dos `purpose` (`any` y `maskable`, porque
   Android recorta hasta un 20% de cada borde).
@@ -602,10 +603,57 @@ O sea: mergear el PR y esperar el deploy de Vercel alcanza, no hay nada que publ
 En local el build id es `"dev"` y el chequeo se saltea, para que el cartel no sea ruido
 permanente.
 
-La navegación de mobile es la barra inferior de tabs (`app/(app)/MobileTabBar.tsx`, sólo
-debajo de `sm`); el header conserva la nav en escritorio. Los dos leen `app/(app)/nav-links.ts`
-para no desincronizarse. El header **no** es `sticky`: la ficha de juego tiene su propia
-barra `sticky top-0` y las dos se pisarían.
+La navegación (barra inferior de 5 botones en mobile, header en escritorio) está descripta
+en "Navegación de 5 botones" más abajo. El header **no** es `sticky`: la ficha de juego tiene
+su propia barra `sticky top-0` y las dos se pisarían.
+
+## Navegación de 5 botones (epic #183, issue #185)
+
+La estructura de Letterboxd: tres gestos -- **descubrir, registrar y mostrar** --, cada uno
+con su botón. Reemplaza a los cuatro tabs de tracker (Biblioteca / Diario / Perfil /
+Configuración).
+
+- **`app/(app)/nav-links.ts` es la fuente única** de la barra y del header: `TAB_BAR_ITEMS`
+  (Biblioteca, Buscar, `"register"`, Actividad, Perfil), `HEADER_LINKS` (Biblioteca,
+  Actividad, Perfil), `isActiveLink` (con `alsoActiveOn`: la ficha `/juegos/[id]` cuenta como
+  Biblioteca; `/diario/*` y `/configuracion` como Perfil), `sectionTitle` y
+  `showsSettingsGear`.
+- **Barra inferior (mobile, `MobileTabBar`)**: cinco botones sin texto visible (nombre en
+  `aria-label`), íconos del set `library` / `search` / `plus-circle` / `bolt` / `user`. El
+  activo es una píldora de `surface-hover` detrás del ícono + ícono en `accent-ink` +
+  `aria-current`. El **+ es un `<button>` con `aria-haspopup="dialog"`**, no un link: abre
+  `RegisterLauncher` (`components/register/`) en una `BottomSheet`
+  (`components/ui/BottomSheet.tsx`). Hoy sólo "Registrar un juego terminado" está activo
+  (reusa `CatalogSearchCombobox`); las dos de "Jugando ahora" quedan deshabilitadas con la
+  aclaración hasta #187.
+- **Header mobile**: barra en `chrome` con el título de la sección en `type-title` (un `<p>`,
+  no un `h1`: el `h1` es de la pantalla) y, **sólo en el perfil propio**, el engranaje a la
+  izquierda hacia `/configuracion`. En la ficha de un juego, el logo.
+- **Header escritorio**: logo · nav en versalitas · buscador inline (`<form method="get"
+  action="/buscar">`, funciona sin JS; el popover de recientes es #194) · botón primario
+  "Registrar" (el mismo `RegisterLauncher`, en un `Modal`) · menú de cuenta (Perfil,
+  Configuración, Cerrar sesión). El menú es estado propio y no un `<details>` porque tiene que
+  cerrarse al click afuera, con Escape y al navegar.
+- **Sub-secciones = `components/ui/SwipeTabs.tsx`**, montado en el `layout.tsx` de cada
+  sección. **Cada tab es un link a su ruta**, no estado de React (misma regla que `?fuente=`):
+  linkeable, sobrevive al refresh, "atrás" funciona. Swipe horizontal en mobile con dos
+  listeners de touch (umbral de 64px, gesto claramente horizontal, `touch-action: pan-y`) que
+  **ignora el gesto si arranca dentro de algo que ya scrollea en horizontal** (un `PosterRow`):
+  si no, deslizar un carrusel te cambiaba de pantalla. Teclado con el patrón de tabs de
+  WAI-ARIA (← → Inicio Fin, roving tabindex, activación automática).
+- **Rutas**: `/biblioteca` (+ `/resenas`, `/listas`), `/buscar`, `/actividad` (+ `/vos`,
+  `/recibido`), `/perfil` (+ `/diario`, `/listas`, `/playlist`). Las del perfil propio van en
+  el grupo `app/(app)/perfil/(propio)/` para que sus tabs no aparezcan en `/perfil/[id]`. Lo
+  que todavía no existe es un `SectionPlaceholder` que dice qué va a haber: el shell se
+  mergea antes que las features y ningún tab puede llevar a un 404.
+- **Rutas viejas**: `redirects()` de `next.config.ts` (307, no permanentes mientras se arma el
+  epic), porque Next pasa la query string sola: `/juegos?fuente=steam&q=…` → `/biblioteca?…`,
+  `/diario?nuevo=1` → `/perfil/diario?nuevo=1` (sigue abriendo el modal), `/diario/amigos` →
+  `/biblioteca/resenas`. `/juegos/[id]`, `/diario/resumen` y `/diario/capturas` **no se
+  mueven**. Las Server Actions de `app/(app)/diario/*.ts` se quedaron donde estaban (las
+  importa código de otros lados); sólo cambió a qué ruta hacen `revalidatePath`.
+- `start_url` de la PWA pasa a `/biblioteca`; el matcher de `middleware.ts` y
+  `isProtectedRoute` de `lib/supabase/middleware.ts` cubren las rutas nuevas.
 
 ## Modelo de datos (borrador)
 
@@ -680,7 +728,8 @@ barra `sticky top-0` y las dos se pisarían.
   con las últimas 10 partidas, cada una linkeando al diario de ese juego donde está la reseña)
   y después el timeline propio: el propio crece sin techo y empujaba el feed fuera de pantalla.
   La actividad completa de amigos (lista con reseñas, `FriendsDiaryFeed`) vive en
-  `/diario/amigos`.
+  `/biblioteca/resenas` (antes `/diario/amigos`, que redirige). El diario propio se mudó a
+  `/perfil/diario` (epic #183).
 - El fondo de `GameHero` es un backdrop a ancho completo de la ventana (w-screen + left-1/2 +
   -translate-x-1/2, con degradado al color de la página), tipo Letterbox. El wallpaper sale, en
   orden, de RAWG, del "hero" de SteamGridDB (`findHeroImageUrl`) y de la CDN pública de Steam
@@ -1001,7 +1050,9 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
 12. Platinoob como Letterboxd (epic #183): navegación de 5 tabs, listas, playlist, jugando
     ahora, estudios (IGDB), actividad y perfil nuevo, en 14 sub-issues (#184-#197). 🔄
     **#184 completo**: paleta refinada (chrome, superficies a pasos parejos, `rating` /
-    `rating-muted` / `like`). Ver el epic para el orden y las decisiones ya tomadas.
+    `rating-muted` / `like`). **#185 completo**: shell de navegación de 5 botones, header
+    web, `SwipeTabs`, rutas nuevas con placeholders y redirects. Ver el epic para el orden y
+    las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

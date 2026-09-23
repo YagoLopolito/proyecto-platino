@@ -516,11 +516,11 @@ test.describe("Sistema de diseño", () => {
     await page.goto("/perfil");
 
     // La barra está en el DOM en cualquier tamaño (es `sm:hidden`, no
-    // condicional), así que se cuenta sin exigir visibilidad. Antes tenía sus
-    // propios paths copiados a mano; ahora son los mismos íconos del set.
+    // condicional), así que se cuenta sin exigir visibilidad. Desde el epic
+    // #183 son cinco botones: Biblioteca, Buscar, +, Actividad y Perfil.
     const bar = page.getByTestId("mobile-tab-bar");
-    await expect(bar.locator("[data-icon]")).toHaveCount(4);
-    for (const icon of ["gamepad", "book", "user", "settings"]) {
+    await expect(bar.locator("[data-icon]")).toHaveCount(5);
+    for (const icon of ["library", "search", "plus-circle", "bolt", "user"]) {
       await expect(bar.locator(`[data-icon="${icon}"]`)).toHaveCount(1);
     }
   });

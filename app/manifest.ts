@@ -12,7 +12,7 @@ import type { MetadataRoute } from "next";
  *   forma del launcher; sin una versión maskable queda el ícono chico dentro
  *   de un círculo blanco.
  *
- * `start_url` es `/juegos` y no `/`: quien instala la app ya tiene cuenta, y la
+ * `start_url` es `/biblioteca` y no `/`: quien instala la app ya tiene cuenta, y la
  * landing sólo lo haría clickear "Entrar" cada vez. Si no hay sesión, el
  * middleware redirige a `/login` igual.
  */
@@ -23,7 +23,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description:
       "Seguí tu progreso de trofeos de PlayStation y logros de Steam, con guías y diario de partidas.",
     id: "/",
-    start_url: "/juegos",
+    start_url: "/biblioteca",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
@@ -45,8 +45,8 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     shortcuts: [
-      { name: "Mi biblioteca", url: "/juegos" },
-      { name: "Diario", url: "/diario" },
+      { name: "Mi biblioteca", url: "/biblioteca" },
+      { name: "Diario", url: "/perfil/diario" },
       { name: "Perfil", url: "/perfil" },
     ],
   };
