@@ -56,7 +56,10 @@ function HeaderSearch() {
         name="q"
         defaultValue={current}
         placeholder="Buscar"
-        aria-label="Buscar juegos, estudios, listas y usuarios"
+        // Nombre distinto del buscador de la biblioteca ("Buscar juego en tu
+        // biblioteca"): en `/biblioteca` conviven los dos, y con nombres
+        // parecidos un lector de pantalla no sabe cuál es cuál.
+        aria-label="Buscar en Platinoob"
         className="min-h-9 w-full rounded-chip border border-border-strong bg-surface pl-8 pr-2 type-meta text-ink transition-colors placeholder:text-ink-faint hover:border-ink-faint focus:border-accent-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 [&::-webkit-search-cancel-button]:hidden"
       />
     </form>
