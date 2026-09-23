@@ -833,6 +833,39 @@ export type Database = {
           },
         ];
       };
+      user_playlist: {
+        Row: {
+          added_at: string;
+          game_id: string;
+          user_id: string;
+        };
+        Insert: {
+          added_at?: string;
+          game_id: string;
+          user_id: string;
+        };
+        Update: {
+          added_at?: string;
+          game_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_playlist_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_playlist_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_trophies: {
         Row: {
           created_at: string;

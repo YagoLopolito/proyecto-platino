@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import AddDiaryEntryForm from "@/components/diary/AddDiaryEntryForm";
 import { GameScore } from "@/components/diary/GameScore";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
@@ -9,15 +9,16 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { FormError } from "@/components/FormError";
 import { startPlaying, stopPlaying } from "@/lib/now-playing/actions";
+import { addToPlaylist, removeFromPlaylist } from "@/lib/playlist/actions";
 
 /**
  * Toggle de la barra de acciones (Jugando / Playlist / Lista). `aria-pressed`
  * es el estado visible para un lector de pantalla; a la vista, el activo va en
  * `accent-ink` con el ícono relleno de fondo, como el resto de los activos.
  *
- * Sin `onClick` va deshabilitado con la aclaración en `hint`: Playlist (#188)
- * y Lista (#189) llegan con sus sub-issues, y así la ficha ya tiene su forma
- * final y nadie piensa que el botón "no hace nada".
+ * Sin `onClick` va deshabilitado con la aclaración en `hint`: Lista (#189)
+ * llega con su sub-issue, y así la ficha ya tiene su forma final y nadie
+ * piensa que el botón "no hace nada".
  */
 function ActionToggle({
   icon,
@@ -73,6 +74,8 @@ export function GameActionPanel({
   gameId,
   isPlaying,
   friendsPlaying,
+  inPlaylist,
+  friendsWithInPlaylist,
   ownRating,
   ownEntriesCount,
   community,
@@ -82,6 +85,10 @@ export function GameActionPanel({
   isPlaying: boolean;
   /** Cuántas de las personas que seguís lo están jugando ahora. */
   friendsPlaying: number;
+  /** El juego está en tu Playlist (#188). */
+  inPlaylist: boolean;
+  /** En la Playlist de cuántas de las personas que seguís está. */
+  friendsWithInPlaylist: number;
   /** Tu última puntuación (escala 0-10), si tenés alguna. */
   ownRating: number | null;
   ownEntriesCount: number;
@@ -95,14 +102,37 @@ export function GameActionPanel({
   const [dialog, setDialog] = useState<"sheet" | "modal" | null>(null);
   const [playingError, setPlayingError] = useState<string | null>(null);
   const [playingPending, startPlayingTransition] = useTransition();
+  /** Aviso de un efecto colateral, como "Sacado de tu Playlist" (#188). */
+  const [notice, setNotice] = useState<string | null>(null);
 
   // El estado que se ve es el del server (la action revalida la ficha): no se
   // lleva una copia optimista que pueda quedar desfasada si la escritura falla.
   function togglePlaying() {
     setPlayingError(null);
+    setNotice(null);
     startPlayingTransition(async () => {
       const result = isPlaying ? await stopPlaying(gameId) : await startPlaying(gameId);
       if (result.error) setPlayingError(result.error);
+      else if (result.removedFromPlaylist) setNotice("Sacado de tu Playlist.");
+    });
+  }
+
+  // La Playlist sí es optimista (lo pide el issue #188): agregar un juego es
+  // un gesto de un toque y tiene que responder al instante. Si la action falla,
+  // `useOptimistic` vuelve solo al valor del server al terminar la transición,
+  // y se muestra el error: ese es el rollback.
+  const [optimisticInPlaylist, setOptimisticInPlaylist] = useOptimistic(inPlaylist);
+  const [playlistError, setPlaylistError] = useState<string | null>(null);
+  const [, startPlaylistTransition] = useTransition();
+
+  function togglePlaylist() {
+    setPlaylistError(null);
+    setNotice(null);
+    const next = !optimisticInPlaylist;
+    startPlaylistTransition(async () => {
+      setOptimisticInPlaylist(next);
+      const result = next ? await addToPlaylist(gameId) : await removeFromPlaylist(gameId);
+      if (result.error) setPlaylistError(result.error);
     });
   }
   const close = () => setDialog(null);
@@ -127,16 +157,35 @@ export function GameActionPanel({
             pending={playingPending}
             onClick={togglePlaying}
           />
-          <ActionToggle icon="clock" label="Playlist" hint="Llega con la Playlist (#188)." />
+          <ActionToggle
+            icon={optimisticInPlaylist ? "playlist-check" : "playlist-add"}
+            label="Playlist"
+            hint={optimisticInPlaylist ? "Sacar de tu Playlist" : "Agregar a tu Playlist"}
+            pressed={optimisticInPlaylist}
+            onClick={togglePlaylist}
+          />
           <ActionToggle icon="list" label="Lista" hint="Llega con las listas (#189)." />
         </div>
-        <FormError>{playingError}</FormError>
+        <FormError>{playingError ?? playlistError}</FormError>
+        {notice && (
+          <p role="status" className="text-center type-caption text-ink-muted">
+            {notice}
+          </p>
+        )}
         {friendsPlaying > 0 && (
           <p className="flex items-center justify-center gap-1.5 type-caption text-ink-muted">
             <Icon name="users" className="h-3.5 w-3.5 text-ink-faint" />
             {friendsPlaying === 1
               ? "1 amigo lo está jugando"
               : `${friendsPlaying} amigos lo están jugando`}
+          </p>
+        )}
+        {friendsWithInPlaylist > 0 && (
+          <p className="flex items-center justify-center gap-1.5 type-caption text-ink-muted">
+            <Icon name="playlist-check" className="h-3.5 w-3.5 text-ink-faint" />
+            {friendsWithInPlaylist === 1
+              ? "Está en la Playlist de 1 amigo"
+              : `Está en la Playlist de ${friendsWithInPlaylist} amigos`}
           </p>
         )}
       </div>

@@ -145,10 +145,10 @@ test.describe("Ficha de juego unificada", () => {
     const gameId = page.url().split("/").pop()!;
 
     const panel = page.getByRole("region", { name: "Acciones" });
-    // Playlist y Lista llegan con #188-#189: se ven, pero deshabilitados.
-    // Jugando ya funciona (#187, PLAY-02).
-    await expect(panel.getByRole("button", { name: "Playlist" })).toBeDisabled();
-    await expect(panel.getByRole("button", { name: "Playlist" })).toHaveAttribute(
+    // Lista llega con #189: se ve, pero deshabilitada. Jugando (#187, PLAY-02)
+    // y Playlist (#188, PLIST-01) ya funcionan.
+    await expect(panel.getByRole("button", { name: "Lista" })).toBeDisabled();
+    await expect(panel.getByRole("button", { name: "Lista" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );

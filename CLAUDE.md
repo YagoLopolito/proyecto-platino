@@ -682,8 +682,8 @@ su hero, y sólo abrían juegos de tu `user_games`.
   `addCatalogGame` dejaba). En E2E, `fetchGameDetails` responde un fixture para los ids `E2E-…`.
 - **Registrar una partida sí vincula** el juego a `user_games` (`createDiaryEntry`), mismo
   criterio que `addCatalogGame`.
-- **Panel de acciones**: Jugando (#187) · Playlist · Lista, con `aria-pressed`; Playlist y Lista
-  van deshabilitados con la aclaración hasta sus sub-issues (#188-#189); "Registrar o puntuar" abre `AddDiaryEntryForm`
+- **Panel de acciones**: Jugando (#187) · Playlist (#188) · Lista, con `aria-pressed`; Lista
+  va deshabilitada con la aclaración hasta su sub-issue (#189); "Registrar o puntuar" abre `AddDiaryEntryForm`
   en una `BottomSheet` en mobile y en un `Modal` en escritorio; debajo, tu puntuación (`rating`)
   y el score de la comunidad con su histograma (oro).
 - **El foco de trofeo viaja en la URL**: el advisor y la lista ya no conviven, así que los chips
@@ -734,6 +734,38 @@ ve en tu perfil (y en el de otros), arriba de la biblioteca y en la ficha del ju
   lo que se ve es lo que devolvió el server) con "N amigos lo están jugando". La línea
   "Empezaste a jugar X" de Actividad › Vos llega con #195, que es el feed de actividad.
 
+## Playlist (epic #183, issue #188)
+
+El equivalente de la Watchlist de Letterboxd: poner un juego en tu Playlist quiere decir que
+lo **querés jugar**.
+
+- **`user_playlist`** (migración `20260923020000_user_playlist.sql`): `user_id + game_id +
+  added_at`, PK compuesta. RLS: select `using (true)` (se ve en perfiles, como la watchlist),
+  insert/delete sólo el dueño, **sin update** (no hay nada que editar). **No depende de
+  `user_games`**: casi siempre es un juego que todavía no tenés, por eso la ficha abre
+  cualquier juego (#186).
+- `lib/playlist/`: `queries.ts` (server-only: `getPlaylist`, `isInPlaylist`,
+  `countFriendsWithInPlaylist`), `actions.ts` (Server Actions `addToPlaylist` —upsert que
+  ignora el duplicado, así un doble click no es un error— y `removeFromPlaylist`),
+  `remove.ts` (`removeFromPlaylistIfPresent`, nunca tira) y `sort.ts` (puro, sin
+  `server-only`: los órdenes y `sortPlaylist`).
+- **Sale sola** al empezar a jugarlo (`startPlaying`) o al registrarlo como terminado
+  (`createDiaryEntry`), como Letterboxd al marcar una película como vista. Las dos devuelven si
+  efectivamente la sacaron y la UI lo avisa ("Sacado de tu Playlist.") sólo en ese caso. No
+  hay un sistema de toasts: el aviso es un `role="status"` en el lugar de la acción.
+- **El toggle de la ficha es optimista** (`useOptimistic`), a diferencia del de "Jugando": es
+  un gesto de un toque. Si la action falla, `useOptimistic` vuelve solo al valor del server al
+  terminar la transición y se muestra el error; ese es el rollback. Íconos nuevos del set, de
+  contenido: `playlist-add` / `playlist-check`.
+- **`/perfil/playlist`**: grilla de 4 columnas en mobile y 6 en escritorio, sin progreso ni
+  badges (acá la carátula es un recordatorio), contador en la cabecera y orden en `?orden=`
+  (`recientes` / `nombre` / `anio` / `tiempo`, este último por `time_to_beat_minutes`: "qué me
+  da tiempo a jugar"). Lo que no tiene el dato va siempre al final. En `/perfil/[id]` va como
+  fila de pósters (`PlaylistSection`), y la ficha dice "Está en la Playlist de N amigos".
+- **Afuera por ahora**: el long-press / menú contextual "Agregar a Playlist" sobre cualquier
+  póster. El issue lo marcaba opcional, y un long-press sobre un `<Link>` choca con el menú
+  nativo del sistema en mobile; se agrega cuando haya un menú de póster compartido.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -748,6 +780,7 @@ ve en tu perfil (y en el de otros), arriba de la biblioteca y en la ficha del ju
 - `steam_accounts` — vínculo user ↔ Steam (steam_id64, persona_name, avatar, visibilidad del perfil,
   última sync). Planeado, ver sección de Steam arriba.
 - `now_playing` — rachas de "Jugando ahora" (inicio, fin y motivo), públicas. Ver la sección de arriba.
+- `user_playlist` — los juegos que el usuario quiere jugar, públicos. Ver la sección de Playlist.
 - `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
 
 ## Letterbox: diario de partidas (`game_diary_entries`, `game_scores`)
@@ -1134,7 +1167,9 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     web, `SwipeTabs`, rutas nuevas con placeholders y redirects. **#186 completo**: ficha de
     juego unificada con tabs y panel de acciones, que abre cualquier juego del catálogo. **#187
     completo**: "Jugando ahora" (`now_playing`, el + con sugerencia, perfil, biblioteca y
-    ficha). Ver el epic para el orden y las decisiones ya tomadas.
+    ficha). **#188 completo**: Playlist (`user_playlist`, toggle optimista en la ficha,
+    `/perfil/playlist` con órdenes, salida automática al jugar o terminar). Ver el epic para
+    el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
