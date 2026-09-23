@@ -2,6 +2,7 @@ import "server-only";
 import type { createClient } from "@/lib/supabase/server";
 import { isVisibleInLibrary } from "@/lib/library/visibility";
 import { aiRecommendationsSchema, type AiRecommendations } from "@/lib/ai";
+import type { Database } from "@/lib/supabase/database.types";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -217,10 +218,14 @@ export type CachedRecommendations = {
  * nueva, ver la migración 20260826000000). Devuelve null si nunca generó
  * ninguna, o si la guardada ya no matchea el schema actual -- en ese caso la UI
  * simplemente ofrece regenerar en vez de romper la página.
+ *
+ * `knownStats`: las filas de `get_library_trophy_stats()` si el caller ya las
+ * tiene (la biblioteca), para no correr dos veces la consulta más cara.
  */
 export async function getCachedRecommendations(
   supabase: SupabaseServerClient,
   userId: string,
+  knownStats?: Database["public"]["Functions"]["get_library_trophy_stats"]["Returns"],
 ): Promise<CachedRecommendations | null> {
   const { data: row } = await supabase
     .from("ai_recommendations")
@@ -242,7 +247,7 @@ export async function getCachedRecommendations(
   if (gameIds.length > 0) {
     const [{ data: games }, { data: statsRows }] = await Promise.all([
       supabase.from("games").select("id, name, platform, cover_url, icon_url").in("id", gameIds),
-      supabase.rpc("get_library_trophy_stats"),
+      knownStats ? { data: knownStats } : supabase.rpc("get_library_trophy_stats"),
     ]);
     const statsByGame = new Map((statsRows ?? []).map((r) => [r.game_id, r]));
 

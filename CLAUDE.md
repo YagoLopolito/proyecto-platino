@@ -830,6 +830,49 @@ juegos (para eso están el rating y el Top 5) ni comentarios.
   inválido), la ficha de una lista (la propia sólo con contador) y, sólo como contador, las
   carátulas de "Últimas reseñas" del perfil y las `ListCard`.
 
+## Biblioteca › Juegos y Reseñas (epic #183, issue #191)
+
+El primer botón de la barra, la "home" de la app. A diferencia de Letterboxd, la primera tab es
+**tu** biblioteca y no lo popular.
+
+- **Juegos (`/biblioteca`)**: el título con el estado de sync en una línea y, debajo, secciones
+  en este orden: sugerencia del sync + **Jugando ahora**, **Recomendados para vos** (la sección
+  de IA, mudada desde el diario), **Cerca del platino** y **Tu biblioteca** (la grilla de
+  siempre, con `?q=` / `?fuente=` / orden y filtros, en la misma URL). Las tres primeras son
+  `PosterRow`: ahí importa el orden, no ver todo.
+- **Cerca del platino** es `lib/library/near-platinum.ts` (puro, sin `server-only`): más del
+  80% (estricto) y sin cerrar, ordenado por %, tope 12. "Sin cerrar" es sin el platino en PSN
+  (un juego al 95% con el platino ya ganado por un DLC no está "cerca" de nada) y no estar al
+  100% en Steam. Sale de las mismas stats de `get_library_trophy_stats()` que ya trae la
+  página; `getCachedRecommendations` y `getPlaySuggestion` también las reusan en vez de correr
+  el RPC otra vez.
+- `PosterRowItem` toma desde `sm` el ancho de una columna de la grilla (4 en `sm`, 6 en `lg`),
+  así un carrusel y la grilla de abajo alinean sus carátulas. En mobile sigue el ancho fijo que
+  deja asomar media carátula.
+- **Reseñas (`/biblioteca/resenas`)**: `lib/friends/reviews.ts` (`getFriendReviewsPage`) trae
+  sólo entradas de amigos **con reseña escrita** (las de sólo rating van a Actividad, #195),
+  con los likes de la página ya resueltos. Columna de lectura `max-w-2xl` también en
+  escritorio. `components/friends/FriendReviewFeed.tsx` reemplaza a `FriendsDiaryFeed`
+  (borrado): nombre del juego en `type-headline` (la serif al tamaño de una fila, utilidad
+  nueva) + año, estrellas en `rating-muted`, corazón, autor con avatar a la derecha (link al
+  perfil), carátula y reseña en `type-review` cortada a 6 líneas.
+- **La fila ya no es un link entero**: título, autor, carátula, corazón y "Leer más" tienen
+  cada uno el suyo. La carátula repite el link del título, así que va con `tabIndex={-1}` y
+  `aria-hidden`.
+- **"Leer más" sólo aparece si el texto se cortó**, medido en el cliente (`scrollHeight` contra
+  `clientHeight` con un `ResizeObserver`): cuántas líneas ocupa depende del ancho, no del largo
+  del string. Lleva a `/juegos/[id]?resena=<id>#resena-<id>` (`lib/game-page/review-focus.ts`):
+  la tab Reseñas de la ficha marca esa fila (barra de acento + `aria-current`) y el `#` la trae
+  a la vista sin JS, mismo criterio que el `?trofeo=` del advisor.
+- **Paginación con cursor de keyset** (`lib/friends/review-cursor.ts`, puro) sobre
+  `finished_on desc, created_at desc, id desc`, no con offset: si un amigo registra algo
+  mientras leés, un offset repetiría una reseña. El cursor viaja por el cliente y termina en un
+  filtro `or` de PostgREST, así que `decodeReviewCursor` valida cada campo (fecha, timestamp
+  sin `",()`, uuid) y devuelve `null` ante cualquier otra cosa. "Cargar más" es la Server
+  Action `loadMoreFriendReviews` y **suma** la página debajo (un link con `?cursor=` la
+  reemplazaría); no es scroll infinito, y el foco pasa a la primera reseña nueva.
+- `AddFriendModal` acepta `label`: el estado vacío sin amigos lo usa como "Buscar amigos".
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -906,9 +949,9 @@ juegos (para eso están el rating y el Top 5) ni comentarios.
 - `/diario` muestra primero el feed corto de amigos (`FriendsDiaryGrid`, grilla de carátulas
   con las últimas 10 partidas, cada una linkeando al diario de ese juego donde está la reseña)
   y después el timeline propio: el propio crece sin techo y empujaba el feed fuera de pantalla.
-  La actividad completa de amigos (lista con reseñas, `FriendsDiaryFeed`) vive en
-  `/biblioteca/resenas` (antes `/diario/amigos`, que redirige). El diario propio se mudó a
-  `/perfil/diario` (epic #183).
+  Las reseñas completas de amigos viven en Biblioteca › Reseñas (`/biblioteca/resenas`, antes
+  `/diario/amigos`, que redirige; ver "Biblioteca › Juegos y Reseñas"). El diario propio se
+  mudó a `/perfil/diario` (epic #183).
 - El fondo de `GameHero` es un backdrop a ancho completo de la ventana (w-screen + left-1/2 +
   -translate-x-1/2, con degradado al color de la página), tipo Letterbox. El wallpaper sale, en
   orden, de RAWG, del "hero" de SteamGridDB (`findHeroImageUrl`) y de la CDN pública de Steam
@@ -1017,9 +1060,10 @@ juegos (para eso están el rating y el Top 5) ni comentarios.
   ocultan **derivándolos durante el render**, no con un `setState` dentro del effect (regla
   `react-hooks/set-state-in-effect`, ver Convenciones de código).
 
-## Recomendaciones del diario (`ai_recommendations`)
+## Recomendaciones de IA (`ai_recommendations`)
 
-Sección "Recomendados para vos" en `/diario`, debajo del feed de amigos: qué **seguir jugando**
+Sección "Recomendados para vos" en Biblioteca › Juegos (`/biblioteca`, desde el issue #191;
+antes vivía en el diario): qué **seguir jugando**
 de la propia biblioteca (juegos empezados y sin platinar) y qué **juegos nuevos** probar, todo
 inferido por IA a partir de los juegos ya platinados (PSN) o al 100% (Steam).
 
@@ -1039,7 +1083,8 @@ inferido por IA a partir de los juegos ya platinados (PSN) o al 100% (Steam).
   RLS "solo el dueño"): cada generación inserta una fila nueva y la UI muestra la última `ok`,
   así una regeneración fallida no borra la anterior. La Server Action es
   `app/(app)/diario/recommendation-actions.ts` (depende de la sesión de cookies, no va como API
-  route) y hace `revalidatePath("/diario")`: por eso `RecommendationsSection.tsx` renderiza la
+  route; sigue en esa carpeta aunque la sección se mudó) y hace
+  `revalidatePath("/biblioteca")`: por eso `RecommendationsSection.tsx` renderiza la
   lista desde las props del server y usa estado local solo para el error y el pending.
 - Los juegos de "Para probar" no existen en `games` (el usuario no los tiene), así que van como
   tarjetas de texto y no como grilla de carátulas: no hay ficha adónde linkear.
@@ -1104,9 +1149,8 @@ lo que el usuario **elige** mostrar.
   caliente, y la definición arranca de la de `20260823010000` para no perder las
   columnas de Steam.
 - Se llega al perfil de un amigo desde la fila de amigos del perfil propio
-  (`FriendsStrip`), desde `/diario/amigos` y desde el "Ver perfil" del buscador
-  de "Agregar amigo". El feed de amigos **no** linkea a la persona: su fila
-  entera ya es un link al juego, y anidar links es HTML inválido.
+  (`FriendsStrip`), desde el autor de cada reseña de Biblioteca › Reseñas y desde
+  el "Ver perfil" del buscador de "Agregar amigo".
 
 ## Amigos y feed "Jugados por amigos" (`friendships`, `public_profiles`)
 
@@ -1237,7 +1281,9 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     `/perfil/playlist` con órdenes, salida automática al jugar o terminar). **#189 completo**:
     listas (`user_lists` / `user_list_items`, editor, ficha con "Vos jugaste N de M" y
     "Agregar a una lista"). **#190 completo**: likes en reseñas y listas (`review_likes` /
-    `list_likes`, corazón optimista). Ver el epic para el orden y las decisiones ya tomadas.
+    `list_likes`, corazón optimista). **#191 completo**: Biblioteca › Juegos por secciones
+    (Jugando ahora, recomendaciones de IA, Cerca del platino, la grilla) y › Reseñas (feed de
+    reseñas de amigos con cursor y "Cargar más"). Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

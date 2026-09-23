@@ -25,7 +25,12 @@ const DEBOUNCE_MS = 300;
  * filtra por nombre de PSN o de la app a medida que se tipea. Agregar es
  * unidireccional y sin aceptación, ver la migración 20260822010000.
  */
-export default function AddFriendModal() {
+export default function AddFriendModal({
+  label = "+ Agregar amigo",
+}: {
+  /** Texto del botón que abre el modal (ej. "Buscar amigos" en un estado vacío). */
+  label?: string;
+} = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -79,7 +84,7 @@ export default function AddFriendModal() {
         onClick={() => setOpen(true)}
         className="whitespace-nowrap py-2 sm:py-1.5"
       >
-        + Agregar amigo
+        {label}
       </Button>
 
       <Modal

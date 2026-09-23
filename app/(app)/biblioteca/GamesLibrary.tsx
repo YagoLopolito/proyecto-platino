@@ -150,7 +150,7 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
       <SectionHeader
         title={
           <>
-            Juegos{" "}
+            Tu biblioteca{" "}
             {games.length > 0 && (
               <span className="tabular-nums text-ink-faint">
                 {visibleGames.length}/{games.length}

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { USER_SEARCH_LIMIT } from "@/lib/friends/constants";
 import type { FriendProfile } from "@/lib/friends/queries";
+import { getFriendReviewsPage, type FriendReviewsPage } from "@/lib/friends/reviews";
 
 export interface UserSearchResult extends FriendProfile {
   isFriend: boolean;
@@ -145,4 +146,21 @@ export async function removeFriend(
   revalidatePath("/perfil/diario");
   revalidatePath("/biblioteca/resenas");
   return { error: null, success: "Amigo eliminado." };
+}
+
+/**
+ * "Cargar más" de Biblioteca › Reseñas (issue #191): la página siguiente del
+ * feed, a partir del cursor que devolvió la anterior. Es una Server Action y
+ * no un link con `?cursor=` porque las páginas se **suman** debajo de las que
+ * ya estás leyendo; una navegación reemplazaría la lista.
+ */
+export async function loadMoreFriendReviews(cursor: string): Promise<FriendReviewsPage> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "error", message: "Tenés que iniciar sesión." };
+  }
+  return getFriendReviewsPage(supabase, user.id, cursor);
 }

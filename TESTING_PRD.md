@@ -304,6 +304,9 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | LIB-02 | La búsqueda vive en la URL | Queda en `?q=` y sobrevive al reload | P2 |
 | LIB-03 | Búsqueda sin resultados | El estado vacío nombra el término buscado | P2 |
 | LIB-04 | Matcher de búsqueda | `matchesSearch` ignora acentos/símbolos y acepta las palabras en cualquier orden (test puro) | P1 |
+| LIB-10 | Secciones de `/biblioteca` (`28-library-home.spec.ts`) | Recomendados → Cerca del platino → Tu biblioteca, con Jugando ahora antes si hay algo; `?q=` y `?fuente=` siguen filtrando la grilla | P1 |
+| LIB-11 | Recomendaciones en la Biblioteca | "Recomendados para vos" se ve en `/biblioteca` (mock de Groq) y ya no en `/perfil/diario` | P1 |
+| LIB-12 | Cerca del platino | Un juego a más del 80% sin platino aparece; uno platinado al 91% y uno al 50% no; `selectNearPlatinum` ordena por % y en Steam cierra al 100% (test puro) | P1 |
 | SYNC-09 | Orden por última jugada | Sin recarga de página (PR #49) | P2 |
 | SYNC-10 | Juegos `source='catalog'` no aparecen | Un juego de catálogo del diario no se lista en `/juegos` | P1 |
 | SYNC-11 | `/api/cron/sync` sin `CRON_SECRET` | 401 | **P0 (seguridad)** |
@@ -407,6 +410,9 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | FRIEND-06 | Usuario sin PSN | Se muestra "Usuario sin nombre", no un hueco vacío | P2 |
 | FRIEND-07 | Sin badge de platino en el feed ajeno | Nunca aparece (`user_trophies` es privado) | **P0 (seguridad)** |
 | FRIEND-08 | `public_profiles` no filtra secretos | Ni `npsso_encrypted`, ni `account_id`, ni email en ninguna respuesta | **P0 (seguridad)** |
+| REV-01 | Feed de Biblioteca › Reseñas (`28-library-home.spec.ts`) | Sólo reseñas **con texto** de gente que seguís, de la más nueva a la más vieja; las de sólo rating y las de no-amigos no aparecen; el nombre del juego en la serif (estilo computado) | P0 |
+| REV-02 | "Leer más" | Sólo en una reseña cortada; abre `/juegos/[id]?resena=<id>` con esa fila marcada (`aria-current`), entera y en pantalla | P1 |
+| REV-03 | "Cargar más" | Con 25 reseñas, la primera página trae 20 y "Cargar más" suma las 5 restantes debajo, sin repetidas, con el foco en la primera nueva y sin botón al final; el cursor rechaza basura (test puro) | P1 |
 
 ### 6.10 Perfil (`10-profile.spec.ts`, `19-profile.spec.ts`)
 
@@ -495,9 +501,9 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 | STEAM-10 | OpenID válido | Una respuesta válida deja `verified = true` y la tarjeta lo muestra | P0 |
 | STEAM-11 | Filtro de fuente | El selector solo aparece con las dos cuentas conectadas, y un `?fuente=` inválido cae a "Todos" | P1 |
 
-### 6.15 Recomendaciones del diario (`16-recommendations.spec.ts`)
+### 6.15 Recomendaciones de IA (`16-recommendations.spec.ts`)
 
-La sección "Recomendados para vos" de `/diario`: la IA infiere el gusto del usuario desde
+La sección "Recomendados para vos" de `/biblioteca` (antes en el diario, issue #191): la IA infiere el gusto del usuario desde
 sus platinos/100% y devuelve qué seguir jugando de su propia biblioteca y qué probar de
 nuevo. Mismo mock que el advisor (`lib/ai/mocks.ts`, `E2E_MOCKS=1`): las corridas de CI
 nunca llaman a Groq.
@@ -683,7 +689,7 @@ a una lista privada ajena (Server Action + RLS). El corazón es un toggle optimi
 | LIKE-05 | Cascade | Borrar la reseña borra sus likes | P1 |
 | LIKE-06 | Likear una lista pública ajena | En `/listas/[id]`, "Me gusta la lista X" pasa a `aria-pressed="true"`, guarda la fila y sigue así al recargar | P1 |
 
-**Total: 165 casos** — 65 P0, 70 P1, 30 P2.
+**Total: 171 casos** — 66 P0, 75 P1, 30 P2.
 
 ---
 

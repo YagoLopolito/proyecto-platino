@@ -4,7 +4,7 @@ import { matchesSearch, searchKey } from "@/lib/library/search";
 import { testGameTitle } from "../helpers/ids";
 
 /**
- * Buscador de la biblioteca (`app/(app)/juegos/GamesLibrary.tsx`). Casos
+ * Buscador de la biblioteca (`app/(app)/biblioteca/GamesLibrary.tsx`). Casos
  * LIB-01/LIB-02/LIB-03 de TESTING_PRD.md §6.3.
  *
  * El filtro es 100% client-side sobre la biblioteca ya cargada, así que no
@@ -26,7 +26,7 @@ test.describe("Buscador de la biblioteca", () => {
   });
 
   test("LIB-01: buscar por nombre deja sólo los juegos que coinciden", async ({ page }) => {
-    await page.goto("/juegos");
+    await page.goto("/biblioteca");
 
     const search = page.getByRole("searchbox", { name: /Buscar juego/i });
     await search.fill("Buscador Pokemon");
@@ -43,7 +43,7 @@ test.describe("Buscador de la biblioteca", () => {
   });
 
   test("LIB-02: la búsqueda queda en la URL y sobrevive al reload", async ({ page }) => {
-    await page.goto("/juegos");
+    await page.goto("/biblioteca");
     await page.getByRole("searchbox", { name: /Buscar juego/i }).fill("Buscador Pokemon");
 
     await expect(page).toHaveURL(/[?&]q=/);
@@ -56,7 +56,7 @@ test.describe("Buscador de la biblioteca", () => {
   });
 
   test("LIB-03: una búsqueda sin resultados lo dice con el término buscado", async ({ page }) => {
-    await page.goto("/juegos");
+    await page.goto("/biblioteca");
     await page
       .getByRole("searchbox", { name: /Buscar juego/i })
       .fill("zzz-no-existe-ningun-juego-asi");

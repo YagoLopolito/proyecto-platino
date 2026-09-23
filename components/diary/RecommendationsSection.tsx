@@ -1,7 +1,7 @@
 "use client";
 
 import { GamePoster } from "@/components/game/GamePoster";
-import { PosterGrid } from "@/components/game/PosterGrid";
+import { PosterRow, PosterRowItem } from "@/components/game/PosterGrid";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Icon } from "@/components/ui/Icon";
 import { useActionState } from "react";
@@ -49,6 +49,12 @@ function EffortBadge({ effort }: { effort: string }) {
  * la última generación `ok` guardada): la Server Action hace `revalidatePath`,
  * así que al terminar vuelven a bajar ya resueltas con carátula y progreso.
  * El estado local se usa solo para el error y el pending del botón.
+ *
+ * Vive en Biblioteca › Juegos (epic #183, issue #191; antes estaba en el
+ * diario), plegada a lo que entra en una pantalla de navegar: "Seguí jugando"
+ * es un carrusel de pósters, no una grilla, y "Para probar" son tarjetas de
+ * texto. Arriba lleva la misma `SectionHeader` que las demás secciones de la
+ * biblioteca, con el botón de generar como acción.
  */
 export default function RecommendationsSection({
   recommendations,
@@ -71,35 +77,31 @@ export default function RecommendationsSection({
   const fresh = recommendations?.nuevos ?? [];
 
   return (
-    <section
-      aria-labelledby="recomendados-heading"
-      className="space-y-4 border-t border-border pt-6 sm:pt-8"
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <h2 id="recomendados-heading" className="flex items-center gap-1.5 type-title text-ink">
-            <Icon name="sparkle" className="h-4 w-4 text-accent-ink" />
+    <section aria-labelledby="recomendados-heading" className="space-y-3">
+      <SectionHeader
+        title={
+          <span id="recomendados-heading" className="flex items-center gap-1.5">
+            <Icon name="sparkle" className="h-3.5 w-3.5 text-accent-ink" />
             Recomendados para vos
-          </h2>
-          <p className="type-body text-ink-muted">
-            Qué seguir jugando y qué probar, según lo que jugaste en PSN, Steam y tu diario.
-            Contenido generado por IA: puede tener errores.
-          </p>
-        </div>
-        <form action={formAction}>
-          <button
-            type="submit"
-            disabled={pending}
-            className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-chip border border-accent-ink bg-accent/15 px-3 type-meta font-medium text-accent-ink transition-colors hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:w-auto sm:py-1.5"
-          >
-            {pending
-              ? "Generando..."
-              : recommendations
-                ? "Actualizar recomendaciones"
-                : "Recomendame algo"}
-          </button>
-        </form>
-      </div>
+          </span>
+        }
+        action={
+          <form action={formAction}>
+            <button
+              type="submit"
+              disabled={pending}
+              className="inline-flex min-h-11 items-center font-semibold text-accent-ink transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0"
+            >
+              {pending
+                ? "Generando..."
+                : recommendations
+                  ? "Actualizar recomendaciones"
+                  : "Recomendame algo"}
+            </button>
+          </form>
+        }
+        description="Qué seguir jugando y qué probar, según lo que jugaste en PSN, Steam y tu diario. Contenido generado por IA: puede tener errores."
+      />
 
       {state.error && (
         <p
@@ -111,22 +113,22 @@ export default function RecommendationsSection({
       )}
 
       {!recommendations ? (
-        <p className="rounded-card border border-dashed border-border p-8 text-center type-body text-ink-muted">
+        <p className="type-body text-ink-muted">
           Todavía no generaste recomendaciones. Dale a &quot;Recomendame algo&quot; y la IA arma una
           lista tomando como referencia lo que jugaste, platinaste y puntuaste.
         </p>
       ) : (
         <div className="space-y-5">
-          <p className="type-body text-ink-muted">{recommendations.perfil}</p>
+          <p className="type-review text-ink-muted">{recommendations.perfil}</p>
 
           {keepPlaying.length > 0 && (
             <div className="space-y-2">
-              <SectionHeader as="h3" title="Seguí jugando" />
-              <PosterGrid>
+              <h3 className="type-meta font-semibold text-ink-muted">Seguí jugando</h3>
+              <PosterRow>
                 {keepPlaying.map((item) => {
                   const game = gamesById.get(item.juego_id)!;
                   return (
-                    <li key={item.juego_id}>
+                    <PosterRowItem key={item.juego_id}>
                       <GamePoster
                         href={`/juegos/${game.id}`}
                         name={game.name}
@@ -141,24 +143,25 @@ export default function RecommendationsSection({
                             <EffortBadge effort={item.esfuerzo} />
                           </div>
                         }
-                        caption={<span className="line-clamp-2">{item.motivo}</span>}
+                        caption={<span className="line-clamp-3">{item.motivo}</span>}
+                        sizes="(max-width: 640px) 26vw, 170px"
                       />
-                    </li>
+                    </PosterRowItem>
                   );
                 })}
-              </PosterGrid>
+              </PosterRow>
             </div>
           )}
 
           {fresh.length > 0 && (
             <div className="space-y-2">
-              <SectionHeader as="h3" title="Para probar" />
+              <h3 className="type-meta font-semibold text-ink-muted">Para probar</h3>
               {/*
                * Estos juegos no están en la base (por definición: el usuario no
                * los tiene), así que no hay carátula ni ficha adónde linkear --
                * van como tarjetas de texto y no como grilla de portadas.
                */}
-              <ul className="grid gap-2 sm:grid-cols-2">
+              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {fresh.map((item, i) => (
                   <li
                     key={`${item.nombre}-${i}`}

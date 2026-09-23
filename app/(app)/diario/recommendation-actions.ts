@@ -18,7 +18,7 @@ export type RecommendationsActionState = {
 };
 
 /**
- * Genera las recomendaciones del diario a partir de lo que el usuario jugó
+ * Genera las recomendaciones de la Biblioteca (antes vivían en el diario) a partir de lo que el usuario jugó
  * (platinos, horas, puntajes del diario) en PSN, Steam y catálogo. Igual que
  * el advisor de un juego (`ai-actions.ts`): siempre inserta una fila nueva en `ai_recommendations`, así una regeneración fallida no borra
  * la última buena, que es lo que sigue mostrando la página.
@@ -94,7 +94,7 @@ export async function generateRecommendations(
       status: "ok",
     });
 
-    revalidatePath("/perfil/diario");
+    revalidatePath("/biblioteca");
     return { recommendations, error: null };
   } catch (cause) {
     console.error("generateRecommendations failed:", cause);
