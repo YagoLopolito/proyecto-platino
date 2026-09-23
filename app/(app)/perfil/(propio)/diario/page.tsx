@@ -12,8 +12,6 @@ import { getFriendsDiaryFeed } from "@/lib/friends/queries";
 import { ErrorState } from "@/components/ErrorState";
 import Link from "next/link";
 import ImportPlatinumsButton from "@/components/diary/ImportPlatinumsButton";
-import RecommendationsSection from "@/components/diary/RecommendationsSection";
-import { getCachedRecommendations } from "@/lib/diary/recommendations";
 import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
 import { Icon } from "@/components/ui/Icon";
 
@@ -35,10 +33,9 @@ export default async function DiaryPage({
 
   // Las dos consultas no dependen entre sí (ver convención de Promise.all en
   // CLAUDE.md, sección Performance).
-  const [outcome, friendsOutcome, cachedRecommendations] = await Promise.all([
+  const [outcome, friendsOutcome] = await Promise.all([
     getUserDiaryEntries(supabase, user.id),
     getFriendsDiaryFeed(supabase, user.id),
-    getCachedRecommendations(supabase, user.id),
   ]);
 
   return (
@@ -106,11 +103,7 @@ export default async function DiaryPage({
             />
           )}
         </section>
-        <RecommendationsSection
-          recommendations={cachedRecommendations?.recommendations ?? null}
-          games={[...(cachedRecommendations?.gamesById.values() ?? [])]}
-          generatedAt={cachedRecommendations?.createdAt ?? null}
-        />
+        {/* Las recomendaciones de IA se mudaron a Biblioteca › Juegos (#191). */}
 
         {/*
          * El feed de amigos va arriba: el timeline propio crece sin techo y,

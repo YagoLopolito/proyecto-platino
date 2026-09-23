@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 
 /**
- * "Volver al diario", la misma pieza en las tres subpantallas del diario
- * (`/diario/amigos`, `/diario/capturas`, `/diario/resumen`).
+ * "Volver al diario", la misma pieza en las subpantallas del diario
+ * (`/diario/capturas`, `/diario/resumen`).
  *
  * Estaba copiada tres veces con el carácter ← suelto delante: un glifo, no un
  * ícono, que no toma el grosor del set ni se alinea igual en cada sistema.

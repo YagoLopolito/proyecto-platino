@@ -11,6 +11,12 @@ import SyncButton from "@/components/psn/SyncButton";
 import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
 import { PlaySuggestionBanner } from "@/components/now-playing/PlaySuggestionBanner";
 import { getNowPlaying, getPlaySuggestion } from "@/lib/now-playing/queries";
+import RecommendationsSection from "@/components/diary/RecommendationsSection";
+import { getCachedRecommendations } from "@/lib/diary/recommendations";
+import { selectNearPlatinum } from "@/lib/library/near-platinum";
+import { GamePoster } from "@/components/game/GamePoster";
+import { PosterRow, PosterRowItem } from "@/components/game/PosterGrid";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 
 type GameStats = {
   total: number;
@@ -35,7 +41,12 @@ const SOURCE_LABEL: Record<SourceFilter, string> = {
   steam: "Steam",
 };
 
-export default async function JuegosPage({
+/**
+ * Biblioteca › Juegos (epic #183, issue #191): la "home" de la app. A
+ * diferencia de Letterboxd, la primera tab es **tu** biblioteca y no lo
+ * popular. Arriba, el estado de sync en una línea; debajo, las secciones.
+ */
+export default async function BibliotecaJuegosPage({
   searchParams,
 }: {
   searchParams: Promise<{ fuente?: string }>;
@@ -91,12 +102,12 @@ export default async function JuegosPage({
     getNowPlaying(supabase, userId),
   ]);
 
-  // Después y no en paralelo: reusa las stats del RPC en vez de pedirlas de
-  // nuevo, que es la consulta cara de esta página.
-  const suggestion = await getPlaySuggestion(supabase, userId, {
-    forBanner: true,
-    stats: statsRows ?? [],
-  });
+  // Después y no en paralelo: las dos reusan las stats del RPC en vez de
+  // pedirlas de nuevo, que es la consulta cara de esta página.
+  const [suggestion, cachedRecommendations] = await Promise.all([
+    getPlaySuggestion(supabase, userId, { forBanner: true, stats: statsRows ?? [] }),
+    getCachedRecommendations(supabase, userId, statsRows ?? []),
+  ]);
 
   const statsByGame = new Map<string, GameStats>();
   for (const row of statsRows ?? []) {
@@ -146,11 +157,15 @@ export default async function JuegosPage({
     };
   });
 
+  const nearPlatinum = selectNearPlatinum(
+    games.map((game) => ({ ...game, platinumObtained: game.counts.platinum })),
+  );
+
   return (
     // max-w-5xl (antes 2xl): la biblioteca es una grilla de carátulas, y a
     // 672px de ancho entraban tres columnas con mucho aire muerto a los lados.
     <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
-      <div className="mx-auto w-full max-w-5xl space-y-6">
+      <div className="mx-auto w-full max-w-5xl space-y-8">
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="type-title text-ink">Mi biblioteca</h1>
@@ -230,11 +245,47 @@ export default async function JuegosPage({
           )}
         </div>
 
-        {/* "Jugando ahora" va arriba de todo (issue #187): es lo que abrís la
-            app para seguir. La sugerencia del sync va justo antes, porque si
-            la aceptás es ahí donde aparece el juego. */}
+        {/*
+         * Secciones en el orden del issue #191: lo que estás jugando, lo que la
+         * IA te sugiere, lo que tenés a un paso y, al final, la biblioteca
+         * entera. Las tres primeras son carruseles (`PosterRow`): ahí importa
+         * el orden, no ver todo.
+         *
+         * "Jugando ahora" va arriba de todo (issue #187): es lo que abrís la
+         * app para seguir. La sugerencia del sync va justo antes, porque si
+         * la aceptás es ahí donde aparece el juego.
+         */}
         {suggestion && <PlaySuggestionBanner gameId={suggestion.id} gameName={suggestion.name} />}
         <NowPlayingSection games={nowPlaying} />
+
+        <RecommendationsSection
+          recommendations={cachedRecommendations?.recommendations ?? null}
+          games={[...(cachedRecommendations?.gamesById.values() ?? [])]}
+          generatedAt={cachedRecommendations?.createdAt ?? null}
+        />
+
+        {nearPlatinum.length > 0 && (
+          <section className="space-y-3" aria-labelledby="near-platinum-heading">
+            <SectionHeader
+              title={<span id="near-platinum-heading">Cerca del platino</span>}
+              description="Más del 80% y todavía sin cerrar: lo que tenés a un paso."
+            />
+            <PosterRow>
+              {nearPlatinum.map((game) => (
+                <PosterRowItem key={game.id}>
+                  <GamePoster
+                    href={`/juegos/${game.id}`}
+                    name={game.name}
+                    imageUrl={game.imageUrl}
+                    progress={game}
+                    showName
+                    caption={<span className="tabular-nums">{game.percent}%</span>}
+                  />
+                </PosterRowItem>
+              ))}
+            </PosterRow>
+          </section>
+        )}
 
         {error && <ErrorState message={`No se pudo cargar la biblioteca: ${error.message}`} />}
 

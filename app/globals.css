@@ -283,6 +283,19 @@
   font-weight: 600;
 }
 
+/**
+ * Nombre del juego encabezando una reseña (feed de Biblioteca › Reseñas).
+ * Serif, como el `type-display` del hero, pero al tamaño de una fila: ahí el
+ * juego es el título del texto que sigue, no un dato de interfaz.
+ */
+@utility type-headline {
+  font-family: var(--font-editorial);
+  font-size: 1.1875rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
 /** Cuerpo de interfaz: descripciones, ayudas, párrafos que no son reseña. */
 @utility type-body {
   font-family: var(--font-ui);

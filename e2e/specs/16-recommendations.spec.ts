@@ -14,7 +14,7 @@ async function countRecommendations(
 }
 
 /**
- * "Recomendados para vos" en `/diario` (`RecommendationsSection.tsx` +
+ * "Recomendados para vos" en `/biblioteca` (antes en el diario, issue #191) (`RecommendationsSection.tsx` +
  * `recommendation-actions.ts`). Casos REC-01, REC-02 y REC-04 de
  * TESTING_PRD.md §6.15. `lib/ai/mocks.ts` responde con recomendaciones de
  * fixture bajo `E2E_MOCKS=1`: la suite nunca llama a Groq.
@@ -23,9 +23,9 @@ async function countRecommendations(
  * `fullyParallel` los de un mismo archivo también corren en paralelo -- las
  * cuentas de filas se pisarían entre sí.
  */
-test.describe.serial("Recomendaciones del diario", () => {
+test.describe.serial("Recomendaciones de la biblioteca", () => {
   test("REC-01: el label de contenido generado por IA está siempre visible", async ({ page }) => {
-    await page.goto("/diario");
+    await page.goto("/biblioteca");
 
     const section = page.getByRole("region", { name: "Recomendados para vos" });
     await expect(section.getByText(/Contenido generado por IA/i)).toBeVisible();
@@ -64,7 +64,7 @@ test.describe.serial("Recomendaciones del diario", () => {
 
     const before = await countRecommendations(supabase, users.userA.id);
 
-    await page.goto("/diario");
+    await page.goto("/biblioteca");
     await page.getByRole("button", { name: "Recomendame algo" }).click();
 
     const section = page.getByRole("region", { name: "Recomendados para vos" });
@@ -86,7 +86,7 @@ test.describe.serial("Recomendaciones del diario", () => {
   }) => {
     const before = await countRecommendations(supabase, users.userA.id);
 
-    await page.goto("/diario");
+    await page.goto("/biblioteca");
     // REC-02 ya generó una vez: el botón arranca en "Actualizar".
     await page.getByRole("button", { name: "Actualizar recomendaciones" }).click();
 

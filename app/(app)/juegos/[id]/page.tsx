@@ -10,6 +10,7 @@ import { profileLabel } from "@/lib/friends/constants";
 import { getGamePageBase } from "@/lib/game-page/data";
 import { getReviewLikes, likeStateOf, type LikeState } from "@/lib/likes/queries";
 import { LikeButton } from "@/components/likes/LikeButton";
+import { FOCUS_REVIEW_PARAM, reviewAnchorId } from "@/lib/game-page/review-focus";
 
 type ReviewEntry = {
   id: string;
@@ -32,8 +33,16 @@ type ReviewEntry = {
  * El diario es público (a diferencia de `user_trophies`), así que esta tab
  * funciona igual para un juego que no está en tu biblioteca.
  */
-export default async function GameReviewsTab({ params }: { params: Promise<{ id: string }> }) {
-  const { id: gameId } = await params;
+export default async function GameReviewsTab({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [FOCUS_REVIEW_PARAM]?: string }>;
+}) {
+  const [{ id: gameId }, query] = await Promise.all([params, searchParams]);
+  // Reseña pedida desde el "Leer más" del feed de amigos (issue #191).
+  const focusedId = query[FOCUS_REVIEW_PARAM] ?? null;
   const { supabase, userId } = await getGamePageBase(gameId);
 
   const [{ data, error }, friends] = await Promise.all([
@@ -99,7 +108,13 @@ export default async function GameReviewsTab({ params }: { params: Promise<{ id:
       )}
 
       {!error && fromFriends.length > 0 && (
-        <ReviewList title="De tus amigos" entries={fromFriends} nameById={nameById} likes={likes} />
+        <ReviewList
+          title="De tus amigos"
+          entries={fromFriends}
+          nameById={nameById}
+          likes={likes}
+          focusedId={focusedId}
+        />
       )}
 
       {!error && fromOthers.length > 0 && (
@@ -108,6 +123,7 @@ export default async function GameReviewsTab({ params }: { params: Promise<{ id:
           entries={fromOthers}
           nameById={nameById}
           likes={likes}
+          focusedId={focusedId}
         />
       )}
 
@@ -128,11 +144,13 @@ function ReviewList({
   entries,
   nameById,
   likes,
+  focusedId,
 }: {
   title: string;
   entries: ReviewEntry[];
   nameById: Map<string | null, string>;
   likes: Map<string, LikeState>;
+  focusedId: string | null;
 }) {
   return (
     <section className="space-y-2">
@@ -141,8 +159,19 @@ function ReviewList({
         {entries.map((entry) => {
           const author = nameById.get(entry.user_id) ?? "Usuario sin nombre";
           const like = likeStateOf(likes, entry.id);
+          const focused = entry.id === focusedId;
           return (
-            <li key={entry.id} className="border-t border-border py-3 first:border-t-0">
+            // La enfocada lleva una barra de acento a la izquierda (y
+            // `aria-current`): el `#` del link ya la trae a la vista, esto dice
+            // cuál de todas es la que venías leyendo.
+            <li
+              key={entry.id}
+              id={reviewAnchorId(entry.id)}
+              aria-current={focused ? "true" : undefined}
+              className={`scroll-mt-20 border-t border-border py-3 first:border-t-0 ${
+                focused ? "-ml-3 border-l-2 border-l-accent-ink pl-2.5" : ""
+              }`}
+            >
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-ink-muted">
                 <Link
                   href={`/perfil/${entry.user_id}`}

@@ -30,7 +30,17 @@ export function PosterRow({ children }: { children: ReactNode }) {
   );
 }
 
-/** Un ítem de `PosterRow`: ancho fijo, porque la fila no es una grilla. */
+/**
+ * Un ítem de `PosterRow`. En mobile, ancho fijo que deja asomar media carátula
+ * (la fila no es una grilla). Desde `sm` toma el ancho de una columna de la
+ * grilla de al lado -- 4 en `sm`, 6 en `lg`, como pide el diseño web del epic
+ * #183 -- así un carrusel y la grilla de abajo alinean sus carátulas.
+ * `0.625rem` es el `gap-2.5` de la fila.
+ */
 export function PosterRowItem({ children }: { children: ReactNode }) {
-  return <li className="w-[26vw] max-w-[132px] shrink-0 snap-start sm:w-28">{children}</li>;
+  return (
+    <li className="w-[26vw] max-w-[132px] shrink-0 snap-start sm:w-[calc((100%-3*0.625rem)/4)] sm:max-w-none lg:w-[calc((100%-5*0.625rem)/6)]">
+      {children}
+    </li>
+  );
 }
