@@ -174,3 +174,153 @@ export async function countOwnListsWithGame(
     .eq("user_lists.user_id", userId);
   return count ?? 0;
 }
+
+/** Cuántas carátulas lleva la tira de pósters de una fila de lista (`ListRow`). */
+const ROW_COVERS = 8;
+/** Los días que mira "Populares esta semana". */
+const POPULAR_WINDOW_DAYS = 7;
+
+/**
+ * Una fila de lista para Biblioteca › Listas (epic #183, issue #192): una
+ * lista de usuario o una pregenerada, con la misma forma.
+ */
+export interface ListRowData {
+  href: string;
+  title: string;
+  description: string | null;
+  /** `null` = la armó Platinoob (una pregenerada). */
+  author: { name: string; avatarUrl: string | null } | null;
+  itemCount: number;
+  /** Hasta 8 carátulas, en el orden de la lista. */
+  covers: (string | null)[];
+  /** `null` = no se likea (las pregeneradas). */
+  likeCount: number | null;
+}
+
+const LIST_ROW_SELECT =
+  "id, user_id, title, description, created_at, user_list_items (position, games (cover_url, icon_url))";
+
+type ListRowSource = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  user_list_items: {
+    position: number;
+    games: { cover_url: string | null; icon_url: string | null } | null;
+  }[];
+};
+
+/** Arma las filas con su autor y sus likes. Las listas sin juegos se descartan. */
+async function toListRows(
+  supabase: Client,
+  viewerId: string,
+  lists: ListRowSource[],
+): Promise<ListRowData[]> {
+  const withItems = lists.filter((list) => list.user_list_items.length > 0);
+  if (withItems.length === 0) return [];
+
+  const ownerIds = [...new Set(withItems.map((list) => list.user_id))];
+  const [{ data: profiles }, { data: likes }] = await Promise.all([
+    supabase
+      .from("public_profiles")
+      .select("id, display_name, psn_online_id, avatar_url")
+      .in("id", ownerIds),
+    supabase
+      .from("list_likes")
+      .select("list_id")
+      .in(
+        "list_id",
+        withItems.map((list) => list.id),
+      ),
+  ]);
+
+  const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+  const likeCount = new Map<string, number>();
+  for (const like of likes ?? []) {
+    likeCount.set(like.list_id, (likeCount.get(like.list_id) ?? 0) + 1);
+  }
+
+  return withItems.map((list) => {
+    const profile = profileById.get(list.user_id);
+    const items = [...list.user_list_items].sort((a, b) => a.position - b.position);
+    return {
+      href: `/listas/${list.id}`,
+      title: list.title,
+      description: list.description,
+      author: {
+        name:
+          list.user_id === viewerId
+            ? "Vos"
+            : (profile?.psn_online_id ?? profile?.display_name ?? "Usuario sin nombre"),
+        avatarUrl: profile?.avatar_url ?? null,
+      },
+      itemCount: items.length,
+      covers: items
+        .slice(0, ROW_COVERS)
+        .map((item) => item.games?.cover_url ?? item.games?.icon_url ?? null),
+      likeCount: likeCount.get(list.id) ?? 0,
+    };
+  });
+}
+
+/**
+ * "Nuevas de tus amigos": las listas públicas de la gente que seguís, la más
+ * nueva primero. Sólo las públicas aunque la RLS ya lo garantice: acá se pide
+ * explícito, no se hereda.
+ */
+export async function getFriendsLists(
+  supabase: Client,
+  viewerId: string,
+  limit = 10,
+): Promise<{ hasFriends: boolean; lists: ListRowData[] }> {
+  const { data: friendships } = await supabase
+    .from("friendships")
+    .select("friend_id")
+    .eq("user_id", viewerId);
+  const friendIds = (friendships ?? []).map((row) => row.friend_id);
+  if (friendIds.length === 0) return { hasFriends: false, lists: [] };
+
+  const { data } = await supabase
+    .from("user_lists")
+    .select(LIST_ROW_SELECT)
+    .in("user_id", friendIds)
+    .eq("visibility", "public")
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
+
+  const lists = (await toListRows(supabase, viewerId, data ?? [])).slice(0, limit);
+  return { hasFriends: true, lists };
+}
+
+/**
+ * "Populares esta semana": las listas públicas con más likes recibidos en los
+ * últimos 7 días. Empates: la más nueva primero.
+ */
+export async function getPopularListsThisWeek(
+  supabase: Client,
+  viewerId: string,
+  limit = 10,
+): Promise<ListRowData[]> {
+  const since = new Date(Date.now() - POPULAR_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { data: likes } = await supabase
+    .from("list_likes")
+    .select("list_id")
+    .gte("created_at", since);
+
+  const weekly = new Map<string, number>();
+  for (const like of likes ?? []) weekly.set(like.list_id, (weekly.get(like.list_id) ?? 0) + 1);
+  if (weekly.size === 0) return [];
+
+  const { data } = await supabase
+    .from("user_lists")
+    .select(LIST_ROW_SELECT)
+    .in("id", [...weekly.keys()])
+    .eq("visibility", "public");
+
+  const lists = [...(data ?? [])].sort(
+    (a, b) =>
+      (weekly.get(b.id) ?? 0) - (weekly.get(a.id) ?? 0) || b.created_at.localeCompare(a.created_at),
+  );
+  return (await toListRows(supabase, viewerId, lists)).slice(0, limit);
+}

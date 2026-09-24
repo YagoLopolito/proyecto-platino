@@ -146,7 +146,10 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
   }
 
   return (
-    <section className="space-y-3">
+    // Nombre accesible propio: desde #191 un juego puede aparecer también en
+    // los carruseles de arriba (Jugando ahora, Seguí jugando, Cerca del
+    // platino), y "la grilla" tiene que poder encontrarse sola.
+    <section className="space-y-3" aria-label="Tu biblioteca">
       <SectionHeader
         title={
           <>

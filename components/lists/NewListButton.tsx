@@ -10,10 +10,14 @@ import { Icon } from "@/components/ui/Icon";
 export function NewListButton() {
   return (
     <>
-      <Link href="/listas/nueva" className={buttonClassName("primary", "hidden sm:inline-flex")}>
-        <Icon name="plus" className="h-4 w-4" />
-        Nueva lista
-      </Link>
+      {/* El `hidden` va en un envoltorio: puesto en el link, pierde contra el
+          `inline-flex` de `buttonClassName` y el botón aparecía también en mobile. */}
+      <span className="hidden sm:contents">
+        <Link href="/listas/nueva" className={buttonClassName("primary")}>
+          <Icon name="plus" className="h-4 w-4" />
+          Nueva lista
+        </Link>
+      </span>
       <Link
         href="/listas/nueva"
         aria-label="Nueva lista"

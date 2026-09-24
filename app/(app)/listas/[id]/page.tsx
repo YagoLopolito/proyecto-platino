@@ -2,20 +2,14 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { countPlayed, getList } from "@/lib/lists/queries";
-import { GamePoster } from "@/components/game/GamePoster";
-import { PosterGrid } from "@/components/game/PosterGrid";
-import { GameArt } from "@/components/game/GameArt";
 import { EmptyState } from "@/components/EmptyState";
-import { ProgressBar } from "@/components/ProgressBar";
 import { buttonClassName } from "@/components/Button";
 import { FriendAvatar } from "@/components/friends/FriendAvatar";
-import { Icon } from "@/components/ui/Icon";
+import { ListGames, ListProgress, parseListView } from "@/components/lists/ListGames";
 import { LikeButton, LikeCount } from "@/components/likes/LikeButton";
 import { getListLikes, likeStateOf } from "@/lib/likes/queries";
 
 export const metadata = { title: "Lista" };
-
-type View = "grilla" | "detalle";
 
 /**
  * Ficha de una lista (epic #183, issue #189), como la de Letterboxd: el título
@@ -35,7 +29,7 @@ export default async function ListPage({
   searchParams: Promise<{ vista?: string }>;
 }) {
   const [{ id }, { vista }] = await Promise.all([params, searchParams]);
-  const view: View = vista === "detalle" ? "detalle" : "grilla";
+  const view = parseListView(vista);
 
   const supabase = await createClient();
   const {
@@ -64,20 +58,6 @@ export default async function ListPage({
     month: "long",
     year: "numeric",
   });
-
-  const viewLink = (value: View, label: string) => (
-    <Link
-      href={value === "grilla" ? `/listas/${list.id}` : `/listas/${list.id}?vista=detalle`}
-      aria-current={view === value ? "page" : undefined}
-      className={`flex min-h-10 items-center rounded-chip px-3 type-caption font-medium transition-colors sm:min-h-9 ${
-        view === value
-          ? "bg-accent/15 text-accent-ink shadow-[inset_0_0_0_1px_var(--color-accent-ink)]"
-          : "text-ink-muted hover:bg-surface-hover hover:text-ink"
-      }`}
-    >
-      {label}
-    </Link>
-  );
 
   return (
     // max-w-5xl: es un listado, mismo ancho que la biblioteca.
@@ -135,14 +115,7 @@ export default async function ListPage({
           </div>
         </header>
 
-        {total > 0 && (
-          <section aria-label="Tu progreso en la lista" className="max-w-md space-y-1.5">
-            <p className="type-meta text-ink-muted">
-              Vos jugaste <span className="font-semibold text-ink">{played}</span> de {total}
-            </p>
-            <ProgressBar percent={(played / total) * 100} className="h-1" />
-          </section>
-        )}
+        {total > 0 && <ListProgress played={played} total={total} />}
 
         {total === 0 ? (
           <EmptyState
@@ -157,81 +130,12 @@ export default async function ListPage({
             }
           />
         ) : (
-          <div className="space-y-4">
-            <nav
-              aria-label="Vista de la lista"
-              className="inline-flex items-center rounded-card border border-border-strong bg-surface p-0.5"
-            >
-              {viewLink("grilla", "Grilla")}
-              {viewLink("detalle", "Detalle")}
-            </nav>
-
-            {view === "grilla" ? (
-              <PosterGrid>
-                {list.items.map((item, index) => (
-                  <li key={item.gameId}>
-                    <GamePoster
-                      href={`/juegos/${item.gameId}`}
-                      name={item.name}
-                      imageUrl={item.imageUrl}
-                      overlay={
-                        list.isRanked ? (
-                          <span className="absolute left-1 top-1 rounded-chip bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-ink backdrop-blur-sm">
-                            {index + 1}
-                          </span>
-                        ) : undefined
-                      }
-                    />
-                  </li>
-                ))}
-              </PosterGrid>
-            ) : (
-              <ol aria-label="Juegos de la lista" className="divide-y divide-border">
-                {list.items.map((item, index) => (
-                  <li key={item.gameId}>
-                    <Link
-                      href={`/juegos/${item.gameId}`}
-                      className="flex gap-3 py-3 transition-colors hover:bg-surface-hover/50"
-                    >
-                      {list.isRanked && (
-                        <span className="w-7 shrink-0 pt-0.5 text-right type-stat text-ink-faint">
-                          {index + 1}
-                        </span>
-                      )}
-                      <span className="relative block aspect-[3/4] w-14 shrink-0 overflow-hidden rounded-chip border border-border bg-surface">
-                        {item.imageUrl ? (
-                          <GameArt
-                            src={item.imageUrl}
-                            alt=""
-                            sizes="56px"
-                            className="object-cover"
-                            fallback={null}
-                          />
-                        ) : (
-                          <span className="flex h-full items-center justify-center text-ink-faint">
-                            <Icon name="gamepad" className="h-5 w-5" />
-                          </span>
-                        )}
-                      </span>
-                      <span className="min-w-0 space-y-1">
-                        <span className="block type-subtitle text-ink">
-                          {item.name}
-                          {item.releaseYear && (
-                            <span className="ml-2 type-meta text-ink-faint">
-                              {item.releaseYear}
-                            </span>
-                          )}
-                        </span>
-                        {item.note && (
-                          <span className="block type-review text-ink-muted">{item.note}</span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
+          <ListGames
+            items={list.items}
+            isRanked={list.isRanked}
+            view={view}
+            href={`/listas/${list.id}`}
+          />
         )}
       </div>
     </div>

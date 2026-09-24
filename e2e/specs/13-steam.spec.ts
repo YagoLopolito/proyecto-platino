@@ -174,11 +174,16 @@ test.describe("Steam", () => {
     // La biblioteca muestra el juego jugado, sin desglose por tipo de trofeo, y
     // esconde el que tiene 0 horas y 0 logros (demos, playtests, free-to-play
     // reclamados y nunca abiertos).
+    //
+    // Acotado a la grilla: desde #191 `/biblioteca` también tiene carruseles
+    // arriba, y un juego empezado puede aparecer en "Seguí jugando" si otro
+    // spec generó recomendaciones para userA en paralelo.
     await page.goto("/juegos");
-    await expect(page.getByText("[E2E] Steam Game Con Logros")).toBeVisible();
+    const library = page.getByRole("region", { name: "Tu biblioteca" });
+    await expect(library.getByText("[E2E] Steam Game Con Logros")).toBeVisible();
     await expect(page.getByText("[E2E] Steam Game Sin Logros")).toHaveCount(0);
     // Las 2 horas del fixture se muestran en la tarjeta, mismo formato que PSN.
-    const card = page.getByRole("listitem").filter({ hasText: "[E2E] Steam Game Con Logros" });
+    const card = library.getByRole("listitem").filter({ hasText: "[E2E] Steam Game Con Logros" });
     await expect(card.getByText("2 h")).toBeVisible();
     await expect(card.locator('[data-icon="clock"]')).toBeVisible();
   });

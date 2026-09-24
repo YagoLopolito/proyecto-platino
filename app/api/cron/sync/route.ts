@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { syncTrophiesForUser, NpssoExpiredError } from "@/lib/psn";
 import { mapWithConcurrency } from "@/lib/psn/concurrency";
 import { syncSteamAchievementsForUser, SteamProfilePrivateError } from "@/lib/steam";
+import { refreshSystemLists } from "@/lib/lists/system";
 
 /**
  * Igual límite que /api/psn/sync (ver CLAUDE.md): declarar maxDuration no
@@ -28,12 +29,36 @@ function isAuthorized(request: NextRequest): boolean {
   return request.headers.get("authorization") === `Bearer ${secret}`;
 }
 
+/**
+ * El último paso de la corrida: recalcular las listas pregeneradas (#192).
+ * Va en su propio try/catch: es un extra y no puede hacer fallar el sync, y
+ * a la vez un sync que falla no tiene por qué dejar las listas sin refrescar.
+ */
+async function refreshSystemListsStep(supabase: ReturnType<typeof createServiceClient>) {
+  try {
+    return { ok: true as const, lists: await refreshSystemLists(supabase) };
+  } catch (cause) {
+    console.error("[cron] no se pudieron refrescar las listas pregeneradas", cause);
+    return {
+      ok: false as const,
+      error: cause instanceof Error ? cause.message : "Error inesperado.",
+    };
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
   const supabase = createServiceClient();
+
+  // `?paso=listas` corre sólo el refresco de las listas, sin sincronizar
+  // ninguna cuenta: para dispararlo a mano (o desde los tests) sin pegarle a
+  // PSN ni a Steam por cada usuario.
+  if (request.nextUrl.searchParams.get("paso") === "listas") {
+    return NextResponse.json({ systemLists: await refreshSystemListsStep(supabase) });
+  }
 
   const [{ data: psnAccounts, error: psnError }, { data: steamAccounts, error: steamError }] =
     await Promise.all([
@@ -84,7 +109,10 @@ export async function GET(request: NextRequest) {
     }
   });
 
+  const systemLists = await refreshSystemListsStep(supabase);
+
   return NextResponse.json({
+    systemLists,
     accountsProcessed: results.length,
     succeeded: results.filter((r) => r.ok).length,
     failed: results.filter((r) => !r.ok).length,

@@ -873,6 +873,60 @@ El primer botón de la barra, la "home" de la app. A diferencia de Letterboxd, l
   reemplazaría); no es scroll infinito, y el foco pasa a la primera reseña nueva.
 - `AddFriendModal` acepta `label`: el estado vacío sin amigos lo usa como "Buscar amigos".
 
+## Biblioteca › Listas y listas pregeneradas (epic #183, issue #192)
+
+La tab Lists de Letterboxd: primero lo de tus amigos, después lo que arma Platinoob con datos.
+
+- **`/biblioteca/listas`**: tres secciones, en este orden. **Nuevas de tus amigos** son las
+  listas públicas de la gente que seguís, la más nueva primero (`getFriendsLists`). **Armadas
+  por Platinoob** son las pregeneradas (`getSystemListRows`). **Populares esta semana** son las
+  listas públicas con más likes de los últimos 7 días (`getPopularListsThisWeek`), y la sección
+  aparece sólo si hay al menos 3. Las dos primeras se muestran siempre, con un `EmptyState` si
+  no tienen nada: el orden de la pantalla no depende de los datos.
+- **`components/lists/ListRow.tsx`**:
+  - arriba, el título en `type-subtitle` y el autor con su avatar; en una pregenerada, el
+    autor es "Platinoob" con el ícono de la app;
+  - abajo, la **tira de 8 pósters**: pegados a ancho completo en mobile y, desde `sm`, de
+    tamaño fijo y solapados un 30%;
+  - al final, la descripción cortada a 3 líneas.
+
+  Toda la fila es **un solo link**, así que el autor no linkea a su perfil: un link adentro de
+  otro es HTML inválido. `ListRowData` es la misma forma para una lista de usuario y para una
+  pregenerada (`author: null` y `likeCount: null` en la pregenerada).
+- **Pregeneradas globales** (`mejor-puntuados`, `mas-jugados`, `platinos-fin-de-semana`,
+  `maratones`, `mejor-de-<año>`):
+  - Se cachean en `system_lists` + `system_list_items` (migración
+    `20260925000000_system_lists.sql`), que se leen con cualquier sesión y no tienen policies
+    de escritura.
+  - Las recalcula `refresh_system_lists(min_ratings, min_items, max_items)`: plpgsql, **una
+    sola transacción** (borra y reinserta) y execute **sólo para `service_role`**.
+  - Las constantes vienen del código (`MIN_RATINGS_FOR_AVERAGE`, `MIN_SYSTEM_LIST_ITEMS` = 5,
+    `MAX_SYSTEM_LIST_ITEMS` = 50) para no duplicarlas en SQL.
+  - "Jugado" es la definición del epic: platino, 100% en Steam o entrada de diario, sin contar
+    dos veces al mismo usuario. "Los más jugados" exige al menos 2 jugadores. La función lee
+    `user_trophies` de todos, pero sólo expone conteos por juego.
+- **La base guarda sólo el slug.** Título, descripción, si es ranking y el orden en la tab viven
+  en `lib/lists/system-catalog.ts` (puro); "Lo mejor de <año>" sale del slug.
+- **`system_lists.item_count`**: la tab trae sólo las primeras 8 carátulas de cada lista, porque
+  PostgREST corta en 1000 filas y con varios años se pasaba. Si un juego se borra después del
+  cálculo (cascada), el conteo se corrige con las carátulas que llegaron.
+- **Personalizadas** (`populares-entre-amigos`: lo que más registró en su diario la gente que
+  seguís; `tu-playlist-corta`: la Playlist con el orden de `?orden=tiempo`): se calculan al
+  vuelo en `lib/lists/system.ts`. Son baratas y dependen de quién mira.
+- **Una lista con menos de 5 juegos no se muestra**: ni en la tab ni en su ficha, que da 404.
+  El issue pedía "≥ 3" para la de Playlist, pero la regla general de 5 la incluye.
+- **El cron**: `/api/cron/sync` corre el refresco como **último paso**, en su propio try/catch
+  (un sync fallido no deja las listas sin refrescar, y un refresco fallido no tira abajo el
+  sync). No se agregó un segundo cron. `?paso=listas` corre **sólo** ese paso, con el mismo
+  `CRON_SECRET`: así lo usan los tests, porque el cron entero sincronizaría las cuentas reales
+  con los mocks.
+- **Ficha `/listas/sistema/[slug]`**: la misma UI que una lista de usuario, sin editar ni likes.
+  `components/lists/ListGames.tsx` (`ListGames` + `ListProgress`) salió de `/listas/[id]` y lo
+  usan las dos fichas. En la nav, `/listas/sistema` cuenta como Biblioteca, no como Perfil
+  (`notActiveOn` en `nav-links.ts`).
+- `NewListButton`: el `hidden` va en un envoltorio `hidden sm:contents`. Puesto en el link,
+  perdía contra el `inline-flex` de `buttonClassName` y en mobile se veían el botón y el FAB.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -890,6 +944,8 @@ El primer botón de la barra, la "home" de la app. A diferencia de Letterboxd, l
 - `user_playlist` — los juegos que el usuario quiere jugar, públicos. Ver la sección de Playlist.
 - `user_lists` / `user_list_items` — listas de juegos, públicas o privadas. Ver la sección de Listas.
 - `review_likes` / `list_likes` — me gusta en reseñas y listas. Ver la sección de Likes.
+- `system_lists` / `system_list_items` — listas pregeneradas globales, las recalcula el cron. Ver
+  la sección de Biblioteca › Listas.
 - `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
 
 ## Letterbox: diario de partidas (`game_diary_entries`, `game_scores`)
@@ -909,6 +965,9 @@ El primer botón de la barra, la "home" de la app. A diferencia de Letterboxd, l
 - Vista `game_scores` promedia el **último** rating de cada usuario por juego (no todas las
   rejugadas) — ver el `distinct on (game_id, user_id) ... order by playthrough_number desc` en la
   migración. `security_invoker = true` (misma convención que `get_library_trophy_stats`).
+  El promedio es `numeric(4, 2)` desde `20260925000100_game_scores_precision.sql`: con el
+  `numeric(3, 2)` original, un juego con todas sus valoraciones en 10 hacía fallar la vista
+  entera ("numeric field overflow").
 - `games.source` ahora incluye `'catalog'` (juegos agregados desde la búsqueda de RAWG, no
   sincronizados por PSN ni cargados a mano) y `games.external_catalog_id` guarda el id de RAWG.
 - **Los juegos `source='catalog'` no se listan en la biblioteca** (`/juegos`) ni cuentan en
@@ -1283,7 +1342,9 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     "Agregar a una lista"). **#190 completo**: likes en reseñas y listas (`review_likes` /
     `list_likes`, corazón optimista). **#191 completo**: Biblioteca › Juegos por secciones
     (Jugando ahora, recomendaciones de IA, Cerca del platino, la grilla) y › Reseñas (feed de
-    reseñas de amigos con cursor y "Cargar más"). Ver el epic para el orden y las decisiones ya tomadas.
+    reseñas de amigos con cursor y "Cargar más"). **#192 completo**: Biblioteca › Listas
+    (amigos, pregeneradas y populares de la semana), `system_lists` refrescadas por el cron y
+    ficha `/listas/sistema/[slug]`. Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

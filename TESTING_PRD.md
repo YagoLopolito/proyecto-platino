@@ -663,7 +663,11 @@ o registrarlo como terminado.
 
 Listas de usuario del epic #183 (issue #189): `user_lists` + `user_list_items` (públicas o
 privadas, escritura sólo del dueño), el editor (`/listas/nueva`, `/listas/[id]/editar`), la ficha
-(`/listas/[id]`) y "Agregar a una lista" desde la ficha del juego.
+(`/listas/[id]`) y "Agregar a una lista" desde la ficha del juego. Desde el issue #192, también
+Biblioteca › Listas (`/biblioteca/listas`) y las listas pregeneradas (`system_lists`, que refresca
+el paso `?paso=listas` de `/api/cron/sync`, y las personalizadas que se calculan al vuelo). Los
+casos que llaman al cron necesitan `CRON_SECRET` y se saltean sin él. El tercer usuario que puntúa
+se crea en el propio spec: el diario de userC lo borra `28-library-home` desde el otro worker.
 
 | ID | Caso | Resultado esperado | Prio |
 | --- | --- | --- | --- |
@@ -673,6 +677,11 @@ privadas, escritura sólo del dueño), el editor (`/listas/nueva`, `/listas/[id]
 | LIST-04 | Lista privada | Otro usuario recibe 404 en `/listas/[id]` y su sesión no la lee (RLS) | P0 |
 | LIST-05 | Lista ajena de sólo lectura | Otro usuario recibe 404 en `/listas/[id]/editar`, y con su sesión no puede cambiar el título ni agregar juegos | P0 |
 | LIST-06 | "Vos jugaste N de M" | Con un juego platinado, uno con entrada de diario y uno sin jugar, la ficha dice "Vos jugaste 2 de 3" | P1 |
+| LIST-10 | La tab muestra primero lo de amigos | En `/biblioteca/listas`, una lista pública de un amigo aparece en "Nuevas de tus amigos", esa sección va arriba de "Armadas por Platinoob" y la fila abre la ficha de la lista | P0 |
+| LIST-11 | "Mejor puntuados" respeta el mínimo | Tras el refresco del cron, cinco juegos con 3 valoraciones de 10 entran en `mejor-puntuados` y en "Lo mejor de 1972"; uno con 2 valoraciones de 10 no aparece en ninguna | P0 |
+| LIST-12 | Menos de 5 juegos no se muestra | Con sólo cuatro juegos puntuados de 1971, no hay fila `mejor-de-1971`, su ficha da 404 y la tab no la lista | P1 |
+| LIST-13 | El cron refresca `system_lists` | `?paso=listas` sin `CRON_SECRET` da 401; con él, `mejor-de-1973` queda con `item_count = 5`, `refreshed_at` nuevo, exactamente los cinco juegos, y aparece en la tab | P0 |
+| LIST-14 | "Populares entre tus amigos" es personal | Si userB sigue a userA, la lista de userB muestra los juegos del diario de userA y la de userA no; cuando userB deja de seguirlo, los juegos desaparecen | P1 |
 
 ### 6.24 Likes (`27-likes.spec.ts`)
 
@@ -689,7 +698,7 @@ a una lista privada ajena (Server Action + RLS). El corazón es un toggle optimi
 | LIKE-05 | Cascade | Borrar la reseña borra sus likes | P1 |
 | LIKE-06 | Likear una lista pública ajena | En `/listas/[id]`, "Me gusta la lista X" pasa a `aria-pressed="true"`, guarda la fila y sigue así al recargar | P1 |
 
-**Total: 171 casos** — 66 P0, 75 P1, 30 P2.
+**Total: 176 casos** — 69 P0, 77 P1, 30 P2.
 
 ---
 
