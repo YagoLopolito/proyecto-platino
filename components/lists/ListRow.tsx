@@ -18,12 +18,14 @@ const STRIP_COVERS = 8;
  * Toda la fila es un solo link a la ficha: el autor no linkea a su perfil,
  * porque un link dentro de otro es HTML inválido.
  */
-export function ListRow({ list }: { list: ListRowData }) {
+export function ListRow({ list, prefetch }: { list: ListRowData; prefetch?: boolean }) {
   const covers = [...list.covers, ...Array<null>(STRIP_COVERS).fill(null)].slice(0, STRIP_COVERS);
 
   return (
     <Link
       href={list.href}
+      // `false` desde la búsqueda: ahí el href guarda la reciente (`/buscar/ir`).
+      prefetch={prefetch}
       className="group block space-y-3 rounded-card py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
     >
       <span className="flex items-start justify-between gap-3">

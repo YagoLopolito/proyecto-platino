@@ -651,6 +651,38 @@ export type Database = {
           },
         ];
       };
+      recent_searches: {
+        Row: {
+          id: string;
+          query: string;
+          scope: string;
+          searched_at: string;
+          user_id: string;
+        };
+        Insert: {
+          id?: string;
+          query: string;
+          scope: string;
+          searched_at?: string;
+          user_id: string;
+        };
+        Update: {
+          id?: string;
+          query?: string;
+          scope?: string;
+          searched_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "recent_searches_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       review_likes: {
         Row: {
           created_at: string;
@@ -1244,6 +1276,10 @@ export type Database = {
       refresh_system_lists: {
         Args: { p_max_items: number; p_min_items: number; p_min_ratings: number };
         Returns: number;
+      };
+      save_recent_search: {
+        Args: { p_max: number; p_query: string; p_scope: string };
+        Returns: undefined;
       };
     };
     Enums: {
