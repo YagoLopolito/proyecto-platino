@@ -1,6 +1,8 @@
 import "server-only";
 import { fetchGameDetails } from "@/lib/covers";
 import { createServiceClient } from "@/lib/supabase/service";
+import { fetchIgdbGameDetails } from "@/lib/igdb";
+import { IGDB_CATALOG_PREFIX } from "./details";
 
 /**
  * Devuelve el `games.id` de un juego del catálogo externo (RAWG), creando la
@@ -64,4 +66,53 @@ async function findByExternalId(
     .eq("external_catalog_id", externalId)
     .maybeSingle();
   return data?.id ?? null;
+}
+
+/**
+ * Lo mismo que `materializeCatalogGame`, pero para un juego de IGDB (los
+ * juegos de un estudio que nadie tiene todavía, issue #193).
+ *
+ * La unicidad reusa el índice único de `external_catalog_id`, con el prefijo
+ * `igdb:` para que no choque con un id de RAWG. Antes de crear nada se busca
+ * por `games.igdb_id`: si el juego ya está en la base (sincronizado por PSN o
+ * Steam, o abierto antes desde otro lado), se abre ese.
+ */
+export async function materializeIgdbGame(igdbId: number): Promise<string | null> {
+  const supabase = createServiceClient();
+
+  const { data: known } = await supabase
+    .from("games")
+    .select("id")
+    .eq("igdb_id", igdbId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (known) return known.id;
+
+  const externalId = `${IGDB_CATALOG_PREFIX}${igdbId}`;
+  const existing = await findByExternalId(supabase, externalId);
+  if (existing) return existing;
+
+  const details = await fetchIgdbGameDetails(igdbId);
+  if (!details) return null;
+
+  const { data: inserted } = await supabase
+    .from("games")
+    .upsert(
+      {
+        name: details.name,
+        source: "catalog",
+        external_catalog_id: externalId,
+        igdb_id: igdbId,
+        cover_url: details.coverUrl,
+        description: details.description,
+        description_source: details.description ? "igdb" : null,
+        release_year: details.releaseYear,
+      },
+      { onConflict: "external_catalog_id", ignoreDuplicates: true },
+    )
+    .select("id")
+    .maybeSingle();
+
+  return inserted?.id ?? (await findByExternalId(supabase, externalId));
 }

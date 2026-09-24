@@ -5,6 +5,7 @@ import { syncTrophiesForUser, NpssoExpiredError } from "@/lib/psn";
 import { mapWithConcurrency } from "@/lib/psn/concurrency";
 import { syncSteamAchievementsForUser, SteamProfilePrivateError } from "@/lib/steam";
 import { refreshSystemLists } from "@/lib/lists/system";
+import { backfillGameCompanies } from "@/lib/studios/backfill";
 
 /**
  * Igual límite que /api/psn/sync (ver CLAUDE.md): declarar maxDuration no
@@ -58,6 +59,15 @@ export async function GET(request: NextRequest) {
   // PSN ni a Steam por cada usuario.
   if (request.nextUrl.searchParams.get("paso") === "listas") {
     return NextResponse.json({ systemLists: await refreshSystemListsStep(supabase) });
+  }
+
+  // `?paso=estudios` completa los estudios de IGDB de una tanda de juegos
+  // viejos (#193). No lo corre el cron diario: lo dispara a mano
+  // `scripts/backfill-companies.mjs`, que repite hasta que no quede nada.
+  if (request.nextUrl.searchParams.get("paso") === "estudios") {
+    const size = Number(request.nextUrl.searchParams.get("tanda") ?? "40");
+    const batch = Number.isInteger(size) && size > 0 && size <= 100 ? size : 40;
+    return NextResponse.json({ companies: await backfillGameCompanies(supabase, batch) });
   }
 
   const [{ data: psnAccounts, error: psnError }, { data: steamAccounts, error: steamError }] =

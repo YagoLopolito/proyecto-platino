@@ -41,7 +41,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/actividad") ||
     request.nextUrl.pathname.startsWith("/psn") ||
     request.nextUrl.pathname.startsWith("/configuracion") ||
-    request.nextUrl.pathname.startsWith("/listas");
+    request.nextUrl.pathname.startsWith("/listas") ||
+    request.nextUrl.pathname.startsWith("/estudios");
 
   if (!user && !isAuthRoute && isProtectedRoute) {
     const url = request.nextUrl.clone();

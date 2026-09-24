@@ -193,6 +193,9 @@ muestran en el hero de la ficha de juego (`GameHero`, uno solo desde el issue #1
   preguntamos"**: con valor no se vuelve a consultar aunque los dos tiempos hayan quedado en
   NULL, que es lo que evita pegarle a IGDB en cada visita a la ficha de un juego que no está
   en su catálogo.
+- Desde el issue #193 el cliente HTTP (token + APIcalypse) y el match por nombre viven en
+  `lib/igdb/`: la ficha resuelve el juego **una sola vez** (`resolveIgdbGame`) y ese id lo usan
+  los tiempos y los estudios. `games.igdb_id` guarda el resultado.
 - **`IGDB_CLIENT_ID` / `IGDB_CLIENT_SECRET`** (gratis en dev.twitch.tv; son credenciales de
   app, el token de client credentials se cachea en memoria del proceso). La app de Twitch
   tiene que ser de tipo **Confidential**: una de tipo Público no tiene secreto, y el tipo no
@@ -927,6 +930,41 @@ La tab Lists de Letterboxd: primero lo de tus amigos, después lo que arma Plati
 - `NewListButton`: el `hidden` va en un envoltorio `hidden sm:contents`. Puesto en el link,
   perdía contra el `inline-flex` de `buttonClassName` y en mobile se veían el botón y el FAB.
 
+## Estudios (epic #183, issue #193): `lib/igdb/` y `lib/studios/`
+
+"Buscar por productora": abrir Insomniac y ver lo que hizo. **Sólo estudios de IGDB**
+(desarrolladoras y publishers); nada de personas, que IGDB no tiene y no se inventan con IA.
+
+- **`lib/igdb/`** es el único lugar que habla con IGDB (misma regla de aislamiento que
+  `lib/psn/`): `client.ts` (token de Twitch cacheado + `igdbQuery`), `games.ts`
+  (`resolveIgdbGame`, `fetchIgdbGameDetails`), `companies.ts` (`fetchGameCompanies`,
+  `fetchCompany`, `fetchGamesByIds`) y `mocks.ts` (`E2E_MOCKS`, leído sólo acá). Todo devuelve
+  `ok` / `not_found` / `unavailable`, y **un `unavailable` no se cachea**.
+- **Tablas** (migración `20260926000000_companies.sql`): `companies` (`igdb_id` y `slug`
+  únicos, logo, descripción, país en español, `parent_igdb_id`, y `games_cache` jsonb con los
+  juegos desarrollados/publicados ya resueltos) y `game_companies` (`game_id`, `company_id`,
+  `role` developer/publisher/porting/supporting). Más `games.igdb_id` (no único: PSN y Steam
+  pueden ser dos filas del mismo juego) y `games.companies_checked_at`, con la misma lógica que
+  `time_estimates_checked_at`. Lectura pública; **escritura sólo service role**.
+- **Estudios de un juego**: `getGameCardData` los pide la primera vez que se abre la ficha
+  (`syncGameCompanies`, `lib/studios/store.ts`), reusando el match de los tiempos. El hero los
+  muestra como links; sin estudios, queda la desarrolladora en texto de RAWG.
+- **Perfil `/estudios/[slug]`** (tabs Desarrollados / Publicados por ruta): logo o iniciales,
+  nombre en `type-display`, país, "Parte de X" linkeable. Los juegos salen del `games_cache`
+  (se refresca cada 30 días; si IGDB falla se muestra el viejo) y **se muestran aunque no estén
+  en `games`**: el póster linkea a `/juegos/igdb/[igdbId]`, que materializa la fila
+  (`materializeIgdbGame`, `external_catalog_id = 'igdb:<id>'` para reusar su índice único) y
+  redirige. Orden en `?orden=` (`anio` / `puntuados` / `nombre`, `lib/studios/sort.ts`, puro),
+  "Vos jugaste N de M" y tilde "Jugado" con el mismo criterio que las listas
+  (`getPlayedGameIds`), cruzando por `games.igdb_id`. Cuenta como sección Buscar en la nav.
+- IGDB publica el país como ISO numérico: `lib/studios/country.ts` lo traduce con una tabla
+  chica + `Intl.DisplayNames`; uno que no esté no se muestra.
+- **Backfill** de los juegos viejos: `scripts/backfill-companies.mjs` llama por tandas a
+  `/api/cron/sync?paso=estudios` (no lo corre el cron diario), que usa la misma lógica con
+  concurrencia 2 y pausas para no pasar los 4 req/s de IGDB.
+- En E2E, los ids de IGDB de test viven arriba de `E2E_IGDB_ID_MIN` (900.000.000) y el
+  teardown limpia `games` y `companies` por ahí.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -1344,7 +1382,8 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     (Jugando ahora, recomendaciones de IA, Cerca del platino, la grilla) y › Reseñas (feed de
     reseñas de amigos con cursor y "Cargar más"). **#192 completo**: Biblioteca › Listas
     (amigos, pregeneradas y populares de la semana), `system_lists` refrescadas por el cron y
-    ficha `/listas/sistema/[slug]`. Ver el epic para el orden y las decisiones ya tomadas.
+    ficha `/listas/sistema/[slug]`. **#193 completo**: estudios de IGDB (`lib/igdb/`,
+    `/estudios/[slug]`, estudios linkeables en la ficha). Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

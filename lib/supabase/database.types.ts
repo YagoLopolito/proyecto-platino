@@ -121,6 +121,69 @@ export type Database = {
           },
         ];
       };
+      companies: {
+        Row: {
+          id: string;
+          igdb_id: number;
+          name: string;
+          slug: string;
+          logo_url: string | null;
+          description: string | null;
+          country: string | null;
+          parent_igdb_id: number | null;
+          games_cache: Json | null;
+          games_checked_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          igdb_id: number;
+          name: string;
+          slug: string;
+          logo_url?: string | null;
+          description?: string | null;
+          country?: string | null;
+          parent_igdb_id?: number | null;
+          games_cache?: Json | null;
+          games_checked_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          igdb_id?: number;
+          name?: string;
+          slug?: string;
+          logo_url?: string | null;
+          description?: string | null;
+          country?: string | null;
+          parent_igdb_id?: number | null;
+          games_cache?: Json | null;
+          games_checked_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      game_companies: {
+        Row: { game_id: string; company_id: string; role: string };
+        Insert: { game_id: string; company_id: string; role: string };
+        Update: { game_id?: string; company_id?: string; role?: string };
+        Relationships: [
+          {
+            foreignKeyName: "game_companies_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "game_companies_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       game_diary_entries: {
         Row: {
           completed_at: string | null;
@@ -283,6 +346,8 @@ export type Database = {
           steam_appid: number | null;
           steam_has_achievements: boolean | null;
           time_estimates_checked_at: string | null;
+          igdb_id: number | null;
+          companies_checked_at: string | null;
           time_estimates_source: string | null;
           time_to_beat_minutes: number | null;
           time_to_complete_minutes: number | null;
@@ -307,6 +372,8 @@ export type Database = {
           steam_appid?: number | null;
           steam_has_achievements?: boolean | null;
           time_estimates_checked_at?: string | null;
+          igdb_id?: number | null;
+          companies_checked_at?: string | null;
           time_estimates_source?: string | null;
           time_to_beat_minutes?: number | null;
           time_to_complete_minutes?: number | null;
@@ -331,6 +398,8 @@ export type Database = {
           steam_appid?: number | null;
           steam_has_achievements?: boolean | null;
           time_estimates_checked_at?: string | null;
+          igdb_id?: number | null;
+          companies_checked_at?: string | null;
           time_estimates_source?: string | null;
           time_to_beat_minutes?: number | null;
           time_to_complete_minutes?: number | null;

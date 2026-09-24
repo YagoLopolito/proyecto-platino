@@ -698,7 +698,22 @@ a una lista privada ajena (Server Action + RLS). El corazón es un toggle optimi
 | LIKE-05 | Cascade | Borrar la reseña borra sus likes | P1 |
 | LIKE-06 | Likear una lista pública ajena | En `/listas/[id]`, "Me gusta la lista X" pasa a `aria-pressed="true"`, guarda la fila y sigue así al recargar | P1 |
 
-**Total: 176 casos** — 69 P0, 77 P1, 30 P2.
+### 6.25 Estudios (`29-studios.spec.ts`)
+
+Estudios de IGDB del epic #183 (issue #193): `companies` / `game_companies`, lectura pública y
+escritura sólo por service role. Corren contra el mock de `lib/igdb/mocks.ts`: todo juego `[E2E]`
+lo desarrolla "[E2E] Estudio" y lo publica "[E2E] Editora", y el estudio tiene dos juegos (A y B)
+que no están en `games`. Los ids de test de IGDB viven arriba de `E2E_IGDB_ID_MIN`.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| STUDIO-01 | Estudios en la ficha | El hero de `/juegos/[id]` muestra "[E2E] Estudio" y "[E2E] Editora" como links a `/estudios/<slug>` | P0 |
+| STUDIO-02 | Perfil de estudio | `/estudios/e2e-estudio` muestra el nombre, "Parte de [E2E] Editora" linkeable y los dos juegos en Desarrollados; la Editora los lista en Publicados | P0 |
+| STUDIO-03 | Materializar un juego de IGDB | Tocar un juego que no está en `games` crea la fila (`external_catalog_id = igdb:<id>`) y abre su ficha | P1 |
+| STUDIO-04 | IGDB caído no se cachea | Con IGDB `unavailable`, la ficha carga y `games.companies_checked_at` queda en NULL | P0 |
+| STUDIO-05 | "Jugaste N de M" | Con una reseña en el diario de un juego del estudio (vinculado por `igdb_id`), el perfil dice "Vos jugaste 1 de 2" y el póster lleva la marca "Jugado" | P1 |
+
+**Total: 181 casos** — 72 P0, 79 P1, 30 P2.
 
 ---
 

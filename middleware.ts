@@ -18,6 +18,7 @@ export const config = {
     "/configuracion/:path*",
     "/diario/:path*",
     "/listas/:path*",
+    "/estudios/:path*",
     "/login",
     "/registro",
     "/auth/:path*",

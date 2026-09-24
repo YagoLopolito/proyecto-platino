@@ -3,6 +3,7 @@ import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getGameCardData, GAME_CARD_COLUMNS, type GameCardData } from "@/lib/catalog/details";
+import { getGameStudios } from "@/lib/studios/store";
 import { getGameDiarySummary, type GameDiarySummaryOutcome } from "@/lib/diary/queries";
 
 /**
@@ -44,7 +45,7 @@ export const getGamePageBase = cache(async (gameId: string): Promise<GamePageBas
   // `games` es de lectura pública (policy `games_select_all`): la ficha ya no
   // pasa por `user_games`. Lo que sí es de cada uno es la fila de `user_games`,
   // que dice si el juego está en tu biblioteca y cuántas horas le jugaste.
-  const [{ data: game }, { data: userGame }] = await Promise.all([
+  const [{ data: game }, { data: userGame }, storedStudios] = await Promise.all([
     supabase.from("games").select(`${GAME_CARD_COLUMNS}, source`).eq("id", gameId).maybeSingle(),
     supabase
       .from("user_games")
@@ -52,10 +53,16 @@ export const getGamePageBase = cache(async (gameId: string): Promise<GamePageBas
       .eq("user_id", user.id)
       .eq("game_id", gameId)
       .maybeSingle(),
+    getGameStudios(supabase, gameId),
   ]);
   if (!game) notFound();
 
-  const card = await getGameCardData(supabase, game);
+  const fetched = await getGameCardData(supabase, game);
+  // Los estudios recién traídos de IGDB (primera visita) ganan a los guardados.
+  const card = {
+    ...fetched,
+    studios: fetched.studios.length > 0 ? fetched.studios : storedStudios,
+  };
 
   return {
     supabase,

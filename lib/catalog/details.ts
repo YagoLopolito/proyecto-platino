@@ -10,6 +10,8 @@ import {
 import { generateGameDescription } from "@/lib/ai";
 import { fetchTimeEstimates } from "@/lib/time-to-beat";
 import { createServiceClient } from "@/lib/supabase/service";
+import { resolveIgdbGame, type IgdbGameLookup } from "@/lib/igdb";
+import { syncGameCompanies, type GameStudio } from "@/lib/studios/store";
 
 export interface GameCardData {
   id: string;
@@ -28,6 +30,11 @@ export interface GameCardData {
   timeToCompleteMinutes: number | null;
   /** "igdb" | "rawg" | "none" | null -- la ficha cita la fuente del dato. */
   timeEstimatesSource: string | null;
+  /**
+   * Estudios del juego (issue #193). Lo llena `getGamePageBase` desde
+   * `game_companies`, o `getGameCardData` cuando los acaba de traer de IGDB.
+   */
+  studios: GameStudio[];
 }
 
 type GameRow = {
@@ -46,10 +53,15 @@ type GameRow = {
   time_to_complete_minutes: number | null;
   time_estimates_source: string | null;
   time_estimates_checked_at: string | null;
+  igdb_id: number | null;
+  companies_checked_at: string | null;
 };
 
+/** Prefijo de `external_catalog_id` de los juegos que se crearon desde IGDB. */
+export const IGDB_CATALOG_PREFIX = "igdb:";
+
 export const GAME_CARD_COLUMNS =
-  "id, name, platform, cover_url, icon_url, background_url, description, description_source, developer, release_year, external_catalog_id, time_to_beat_minutes, time_to_complete_minutes, time_estimates_source, time_estimates_checked_at";
+  "id, name, platform, cover_url, icon_url, background_url, description, description_source, developer, release_year, external_catalog_id, time_to_beat_minutes, time_to_complete_minutes, time_estimates_source, time_estimates_checked_at, igdb_id, companies_checked_at";
 
 function toCardData(game: GameRow): GameCardData {
   return {
@@ -65,6 +77,7 @@ function toCardData(game: GameRow): GameCardData {
     timeToBeatMinutes: game.time_to_beat_minutes,
     timeToCompleteMinutes: game.time_to_complete_minutes,
     timeEstimatesSource: game.time_estimates_source,
+    studios: [],
   };
 }
 
@@ -132,13 +145,18 @@ export async function getGameCardData(
   // con valor significa "ya preguntamos", aunque las dos columnas hayan
   // quedado en NULL porque ninguna fuente lo conocía.
   const needsTimeEstimates = game.time_estimates_checked_at === null;
-  if (!needsDescription && !needsBackground && !needsCover && !needsTimeEstimates) return base;
+  // Estudios (issue #193): misma regla, con su propia marca.
+  const needsCompanies = game.companies_checked_at === null;
+  if (!needsDescription && !needsBackground && !needsCover && !needsTimeEstimates && !needsCompanies)
+    return base;
 
   try {
     const wantsRawg = needsDescription || needsCover;
     const [details, heroUrl] = await Promise.all([
       wantsRawg
-        ? game.external_catalog_id
+        ? // Los juegos materializados desde IGDB (`igdb:<id>`, issue #193) no
+          // tienen id de RAWG: se buscan por nombre.
+          game.external_catalog_id && !game.external_catalog_id.startsWith(IGDB_CATALOG_PREFIX)
           ? fetchGameDetails(game.external_catalog_id)
           : findGameDetailsByName(game.name)
         : Promise.resolve(null),
@@ -194,12 +212,26 @@ export async function getGameCardData(
     // consultado a propósito: si no, un fallo transitorio dejaría el juego sin
     // tiempos para siempre. Cuando IGDB contesta y no sabe, devuelve
     // `source: "none"`, que sí se cachea.
-    const estimates = needsTimeEstimates
-      ? await fetchTimeEstimates(game.name, {
-          platform: game.platform,
-          releaseYear: details?.releaseYear ?? game.release_year,
-        })
-      : null;
+    //
+    // El match por nombre contra IGDB se hace **una vez** y lo comparten los
+    // tiempos y los estudios. Si ya quedó guardado el id, ni se busca.
+    const igdbGame: IgdbGameLookup | undefined =
+      needsTimeEstimates || needsCompanies
+        ? game.igdb_id !== null
+          ? { status: "ok", id: game.igdb_id, name: game.name }
+          : await resolveIgdbGame(game.name)
+        : undefined;
+
+    const [estimates, studios] = await Promise.all([
+      needsTimeEstimates
+        ? fetchTimeEstimates(game.name, {
+            platform: game.platform,
+            releaseYear: details?.releaseYear ?? game.release_year,
+            igdbGame,
+          })
+        : null,
+      needsCompanies && igdbGame ? syncGameCompanies(game.id, igdbGame) : null,
+    ]);
 
     await persistGameCardData(supabase, game.id, {
       ...(needsDescription
@@ -233,6 +265,7 @@ export async function getGameCardData(
       timeToBeatMinutes: estimates?.beatMinutes ?? base.timeToBeatMinutes,
       timeToCompleteMinutes: estimates?.completeMinutes ?? base.timeToCompleteMinutes,
       timeEstimatesSource: estimates?.source ?? base.timeEstimatesSource,
+      studios: studios ?? [],
     };
   } catch {
     return base;

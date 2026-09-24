@@ -27,6 +27,13 @@ export const E2E_TITLE_PREFIX = "[E2E]";
  */
 export const E2E_STEAM_APPID_MIN = 999_000_000;
 
+/**
+ * Ids de IGDB de los mocks (`lib/igdb/mocks.ts`): los juegos y estudios de test
+ * viven arriba de este número, muy por encima de los reales. El teardown limpia
+ * `games` y `companies` por acá.
+ */
+export const E2E_IGDB_ID_MIN = 900_000_000;
+
 /** Dominio reservado por RFC 2606: nunca sale un mail real. */
 export const E2E_EMAIL_DOMAIN = "proyecto-platino.test";
 

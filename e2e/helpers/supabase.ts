@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { E2E_GAME_PREFIX, E2E_EMAIL_DOMAIN, E2E_STEAM_APPID_MIN } from "./ids";
+import { E2E_GAME_PREFIX, E2E_EMAIL_DOMAIN, E2E_IGDB_ID_MIN, E2E_STEAM_APPID_MIN } from "./ids";
 
 /**
  * Cliente con service role para setup/teardown de los tests. Bypassea RLS,
@@ -64,6 +64,10 @@ export async function cleanupTestData(supabase: SupabaseClient): Promise<void> {
   // Los juegos de catálogo que materializa la ficha (issue #186) no tienen
   // np_comm_id ni appid: se reconocen por el id de RAWG inventado, `E2E-…`.
   await supabase.from("games").delete().like("external_catalog_id", `${E2E_GAME_PREFIX}%`);
+  // Los que materializan los estudios mockeados (issue #193) y los estudios en
+  // sí: ids de IGDB inventados, arriba de E2E_IGDB_ID_MIN.
+  await supabase.from("games").delete().gte("igdb_id", E2E_IGDB_ID_MIN);
+  await supabase.from("companies").delete().gte("igdb_id", E2E_IGDB_ID_MIN);
 
   const { data } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
   const testUsers = (data?.users ?? []).filter((u) => u.email?.endsWith(`@${E2E_EMAIL_DOMAIN}`));
