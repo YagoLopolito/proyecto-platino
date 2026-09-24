@@ -3,7 +3,7 @@ import { SwipeTabs } from "@/components/ui/SwipeTabs";
 
 /**
  * Actividad (epic #183): lo que hicieron tus amigos, lo que hiciste vos y lo
- * que recibiste. El contenido real llega con el sub-issue #195.
+ * que recibiste. Cada tab es un log derivado (ver `lib/activity/`).
  */
 const TABS = [
   { href: "/actividad", label: "Amigos" },

@@ -1261,6 +1261,63 @@ export type Database = {
       };
     };
     Functions: {
+      get_activity_friends: {
+        Args: {
+          before_at?: string;
+          before_id?: string;
+          max_rows?: number;
+          kinds?: string[];
+        };
+        Returns: {
+          id: string;
+          kind: string;
+          occurred_at: string;
+          actor_id: string;
+          game_id: string | null;
+          list_id: string | null;
+          entry_id: string | null;
+          rating: number | null;
+          finished_on: string | null;
+        }[];
+      };
+      get_activity_received: {
+        Args: {
+          before_at?: string;
+          before_id?: string;
+          max_rows?: number;
+          kinds?: string[];
+        };
+        Returns: {
+          id: string;
+          kind: string;
+          occurred_at: string;
+          actor_id: string;
+          game_id: string | null;
+          list_id: string | null;
+          entry_id: string | null;
+          rating: number | null;
+          finished_on: string | null;
+        }[];
+      };
+      get_activity_self: {
+        Args: {
+          before_at?: string;
+          before_id?: string;
+          max_rows?: number;
+          kinds?: string[];
+        };
+        Returns: {
+          id: string;
+          kind: string;
+          occurred_at: string;
+          actor_id: string;
+          game_id: string | null;
+          list_id: string | null;
+          entry_id: string | null;
+          rating: number | null;
+          finished_on: string | null;
+        }[];
+      };
       get_library_trophy_stats: {
         Args: never;
         Returns: {

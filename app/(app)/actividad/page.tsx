@@ -1,14 +1,13 @@
-import { SectionPlaceholder } from "@/components/SectionPlaceholder";
+import { ActivityScreen } from "@/components/activity/ActivityScreen";
 
 export const metadata = { title: "Actividad" };
 
-/** Actividad › Amigos. Llega con el sub-issue #195. */
-export default function ActividadAmigosPage() {
-  return (
-    <SectionPlaceholder
-      icon="users"
-      title="Acá vas a ver las reseñas que escriben tus amigos, a medida que las publican."
-      description="Mientras tanto, las últimas están en Biblioteca › Reseñas."
-    />
-  );
+/** Actividad › Actividad (epic #183, issue #195). */
+export default async function ActividadAmigosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string }>;
+}) {
+  const { tipo } = await searchParams;
+  return <ActivityScreen tab="amigos" tipo={tipo} />;
 }

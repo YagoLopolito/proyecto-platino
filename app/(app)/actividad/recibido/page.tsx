@@ -1,14 +1,13 @@
-import { SectionPlaceholder } from "@/components/SectionPlaceholder";
+import { ActivityScreen } from "@/components/activity/ActivityScreen";
 
 export const metadata = { title: "Recibido" };
 
-/** Actividad › Recibido. Llega con los likes (#190) y la actividad (#195). */
-export default function ActividadRecibidoPage() {
-  return (
-    <SectionPlaceholder
-      icon="star"
-      title="Cuando a alguien le guste una reseña o una lista tuya, lo vas a ver acá."
-      description="Próximamente."
-    />
-  );
+/** Actividad › Recibido (epic #183, issue #195). */
+export default async function ActividadRecibidoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string }>;
+}) {
+  const { tipo } = await searchParams;
+  return <ActivityScreen tab="recibido" tipo={tipo} />;
 }
