@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { PwaRuntime } from "@/components/pwa/PwaRuntime";
+import { ScrollRestoration } from "@/components/ScrollRestoration";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           desaparece, y `100vh` deja un hueco del alto de esa barra. */}
       <body className="flex min-h-dvh flex-col">
         {children}
+        <ScrollRestoration />
         <PwaRuntime />
       </body>
     </html>
