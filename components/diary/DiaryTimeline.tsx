@@ -1,15 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import type { DiaryTimelineEntry } from "@/lib/diary/queries";
-import { StarRatingDisplay } from "@/components/diary/StarRating";
-import { GamePoster } from "@/components/game/GamePoster";
-import { PosterGrid } from "@/components/game/PosterGrid";
-import { EmptyState } from "@/components/EmptyState";
-import { SectionHeader } from "@/components/ui/SectionHeader";
+import { StarRatingDisplay, type RatingTone } from "@/components/diary/StarRating";
+import { GameArt } from "@/components/game/GameArt";
+import { TrophyTypeIcon } from "@/components/TrophyTypeIcon";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Select } from "@/components/ui/Select";
 import { Icon } from "@/components/ui/Icon";
+import { reviewFocusHref } from "@/lib/game-page/review-focus";
 import { text, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 
 const MONTH_NAMES = [
@@ -50,19 +50,32 @@ function monthLabel(key: string): string {
 const ANY = "all";
 
 /**
- * Timeline cronológico del diario (issue #93): agrupado por mes y año, más
- * reciente primero, con filtros por año, plataforma y rating. Los filtros son
- * client-side a propósito: el diario propio de un usuario es un dataset chico
- * y así no hace falta un round-trip por cada cambio de filtro.
+ * Diario (epic #183, issue #197), con el formato del diario de Letterboxd:
+ * cabeceras de mes pegajosas y, por partida, una fila con el **día** en un
+ * recuadro, la carátula chica, el nombre del juego en la serif con su año y
+ * las marcas (estrellas, reseña, platino/100%, rejugada). Tocar la fila abre la
+ * ficha del juego con esa entrada enfocada.
+ *
+ * Los filtros (año, plataforma, rating) siguen siendo client-side: el diario de
+ * un usuario es un dataset chico y así no hay round-trip por filtro. Viven en
+ * la URL (`useUrlFilterState`) para sobrevivir al "atrás" y al reload. En
+ * mobile van en una hoja detrás del ícono de filtro; en escritorio, en línea.
  */
-export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry[] }) {
-  // En la query string para sobrevivir al "atrás" (volver desde el diario de
-  // un juego) y al reload -- ver useUrlFilterState. Se validan contra las
-  // opciones reales más abajo, no acá: año y plataforma dependen de las
-  // entradas del usuario, así que la lista no se conoce de antemano.
+export default function DiaryTimeline({
+  entries,
+  ratingTone = "own",
+  empty,
+}: {
+  entries: DiaryTimelineEntry[];
+  /** `others` en el diario de otro usuario: sus estrellas no son "lo que hiciste". */
+  ratingTone?: RatingTone;
+  /** Qué mostrar sin ninguna entrada (el propio invita a registrar; el ajeno no). */
+  empty: ReactNode;
+}) {
   const [year, setYear] = useUrlFilterState<string>("anio", ANY, text);
   const [platform, setPlatform] = useUrlFilterState<string>("plataforma", ANY, text);
   const [minRating, setMinRating] = useUrlFilterState<string>("rating", ANY, text);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const years = useMemo(
     () =>
@@ -80,12 +93,11 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
   );
 
   // Un valor que viene de la URL puede no existir entre las entradas actuales
-  // (un link viejo con `?anio=2023`, o la última entrada de ese año borrada).
-  // Se degrada a "todos" durante el render -- no con un setState en un effect,
-  // ver la regla react-hooks/set-state-in-effect en CLAUDE.md -- para que el
-  // <select> no quede en blanco ni el timeline vacío sin explicación.
+  // (un link viejo con `?anio=2023`). Se degrada a "todos" durante el render --
+  // no con un setState en un effect, ver react-hooks/set-state-in-effect.
   const activeYear = year === ANY || years.includes(year) ? year : ANY;
   const activePlatform = platform === ANY || platforms.includes(platform) ? platform : ANY;
+  const activeCount = [activeYear, activePlatform, minRating].filter((v) => v !== ANY).length;
 
   const filtered = useMemo(
     () =>
@@ -102,6 +114,8 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
     [entries, activeYear, activePlatform, minRating],
   );
 
+  // Las entradas ya vienen ordenadas (finished_on desc, created_at desc); el
+  // Map conserva ese orden dentro de cada mes.
   const groups = useMemo(() => {
     const byMonth = new Map<string, DiaryTimelineEntry[]>();
     for (const entry of filtered) {
@@ -113,36 +127,19 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
     return Array.from(byMonth.entries()).sort(([a], [b]) => b.localeCompare(a));
   }, [filtered]);
 
-  if (entries.length === 0) {
+  if (entries.length === 0) return <>{empty}</>;
+
+  function filterControls(idPrefix: string) {
     return (
-      <EmptyState
-        icon="book"
-        title="Todavía no marcaste ningún juego como terminado."
-        action={
-          <Link href="/perfil/diario?nuevo=1" className="text-accent-ink hover:underline">
-            Marcar uno ahora
-          </Link>
-        }
-      />
-    );
-  }
-
-  // En mobile los tres filtros van uno por fila y a ancho completo: con
-  // `flex-1` en una fila de 375px quedaban de ~100px y el texto de la opción
-  // elegida se cortaba.
-  const selectClass = "w-full min-w-0 sm:w-auto sm:flex-1 md:flex-none";
-
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <label className="sr-only" htmlFor="diary-filter-year">
+      <>
+        <label className="sr-only" htmlFor={`${idPrefix}-year`}>
           Filtrar por año
         </label>
         <Select
-          id="diary-filter-year"
+          id={`${idPrefix}-year`}
           value={activeYear}
           onChange={(e) => setYear(e.target.value)}
-          className={selectClass}
+          className="w-full sm:w-auto"
         >
           <option value={ANY}>Todos los años</option>
           {years.map((y) => (
@@ -152,14 +149,14 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
           ))}
         </Select>
 
-        <label className="sr-only" htmlFor="diary-filter-platform">
+        <label className="sr-only" htmlFor={`${idPrefix}-platform`}>
           Filtrar por plataforma
         </label>
         <Select
-          id="diary-filter-platform"
+          id={`${idPrefix}-platform`}
           value={activePlatform}
           onChange={(e) => setPlatform(e.target.value)}
-          className={selectClass}
+          className="w-full sm:w-auto"
         >
           <option value={ANY}>Todas las plataformas</option>
           {platforms.map((p) => (
@@ -169,14 +166,14 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
           ))}
         </Select>
 
-        <label className="sr-only" htmlFor="diary-filter-rating">
+        <label className="sr-only" htmlFor={`${idPrefix}-rating`}>
           Filtrar por rating
         </label>
         <Select
-          id="diary-filter-rating"
+          id={`${idPrefix}-rating`}
           value={minRating}
           onChange={(e) => setMinRating(e.target.value)}
-          className={selectClass}
+          className="w-full sm:w-auto"
         >
           <option value={ANY}>Cualquier rating</option>
           <option value="8">4 estrellas o más</option>
@@ -184,11 +181,36 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
           <option value="4">2 estrellas o más</option>
           <option value="none">Sin rating</option>
         </Select>
+      </>
+    );
+  }
 
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
         <span className="type-meta text-ink-faint">
           {filtered.length} de {entries.length}
         </span>
+        {/* Mobile: el ícono de filtro abre una hoja con los tres selects. */}
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          aria-haspopup="dialog"
+          className="relative flex h-11 w-11 items-center justify-center rounded-chip text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink sm:hidden"
+        >
+          <Icon name="filters" className="h-5 w-5" label="Filtros del diario" />
+          {activeCount > 0 && (
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 type-caption leading-none text-white">
+              {activeCount}
+            </span>
+          )}
+        </button>
+        <div className="hidden items-center gap-2 sm:flex">{filterControls("diary-filter")}</div>
       </div>
+
+      <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Filtros">
+        <div className="flex flex-col gap-3 p-4">{filterControls("diary-sheet-filter")}</div>
+      </BottomSheet>
 
       {filtered.length === 0 && (
         <p className="rounded-card border border-dashed border-border p-8 text-center type-body text-ink-muted">
@@ -196,55 +218,77 @@ export default function DiaryTimeline({ entries }: { entries: DiaryTimelineEntry
         </p>
       )}
 
-      {/*
-       * Cada mes es una grilla de carátulas, como el diario de Letterbox: el
-       * día y el rating van debajo de la carátula, y la reseña completa está
-       * a un toque, en el diario del juego. Antes cada partida era una fila
-       * con la reseña recortada, que en mobile daba scroll infinito para ver
-       * cuatro juegos.
-       */}
       {groups.map(([key, monthEntries]) => (
-        <section key={key} className="space-y-3">
-          <SectionHeader title={monthLabel(key)} />
-          <PosterGrid>
-            {monthEntries.map((entry) => {
-              const { day } = parseDateParts(entry.finishedOn);
-              return (
-                <li key={entry.id} data-testid="diary-entry">
-                  <GamePoster
-                    href={`/juegos/${entry.gameId}`}
-                    name={entry.gameName}
-                    imageUrl={entry.imageUrl}
-                    isPlatinum={entry.isPlatinum}
-                    isCompleted={entry.isCompleted}
-                    overlay={
-                      entry.playthroughNumber > 1 ? (
-                        <span
-                          className="absolute left-1 top-1 rounded-chip bg-background/80 px-1 py-0.5 type-caption leading-none text-ink-muted backdrop-blur-sm"
-                          title={`Rejugada #${entry.playthroughNumber}`}
-                        >
-                          #{entry.playthroughNumber}
-                        </span>
-                      ) : undefined
-                    }
-                    caption={
-                      <span className="flex flex-wrap items-center justify-between gap-x-1.5">
-                        <StarRatingDisplay rating={entry.rating} tone="own" />
-                        <span className="flex items-center gap-1 text-ink-faint">
-                          {entry.review && (
-                            <Icon name="note" className="h-3 w-3" label="Tiene reseña" />
-                          )}
-                          {day}
-                        </span>
-                      </span>
-                    }
-                  />
-                </li>
-              );
-            })}
-          </PosterGrid>
+        <section key={key} aria-label={monthLabel(key)} data-testid="diary-month">
+          {/* Pegajosa y a ancho completo, como en Letterboxd: al scrollear un
+              mes largo sigue diciendo en qué mes estás. */}
+          <h2 className="sticky top-0 z-10 -mx-4 bg-surface-raised px-4 py-2 type-overline text-ink-muted sm:mx-0 sm:rounded-chip">
+            {monthLabel(key)}
+          </h2>
+          <ul className="divide-y divide-border">
+            {monthEntries.map((entry) => (
+              <li key={entry.id} data-testid="diary-entry">
+                <DiaryRow entry={entry} ratingTone={ratingTone} />
+              </li>
+            ))}
+          </ul>
         </section>
       ))}
     </div>
+  );
+}
+
+function DiaryRow({ entry, ratingTone }: { entry: DiaryTimelineEntry; ratingTone: RatingTone }) {
+  const { day } = parseDateParts(entry.finishedOn);
+  return (
+    <Link
+      href={reviewFocusHref(entry.gameId, entry.id)}
+      className="flex items-center gap-3 py-3 transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink sm:px-2"
+    >
+      <span
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-card border border-border-strong type-stat text-ink"
+        data-testid="diary-day"
+      >
+        {day}
+      </span>
+      <span className="relative block aspect-[3/4] w-10 shrink-0 overflow-hidden rounded-chip bg-surface">
+        {entry.imageUrl && (
+          <GameArt
+            src={entry.imageUrl}
+            alt=""
+            sizes="40px"
+            className="object-cover"
+            fallback={null}
+          />
+        )}
+      </span>
+      <span className="min-w-0 flex-1 space-y-1">
+        <span className="block truncate">
+          <span className="type-headline text-ink">{entry.gameName}</span>
+          {entry.releaseYear && (
+            <span className="ml-1.5 type-meta text-ink-muted">{entry.releaseYear}</span>
+          )}
+        </span>
+        <span className="flex items-center gap-2 text-ink-faint">
+          <StarRatingDisplay rating={entry.rating} tone={ratingTone} />
+          {entry.review && <Icon name="note" className="h-3.5 w-3.5" label="Tiene reseña" />}
+          {entry.isPlatinum && (
+            <span role="img" aria-label="Platino" className="text-trophy-platinum">
+              <TrophyTypeIcon type="platinum" className="h-3.5 w-3.5" />
+            </span>
+          )}
+          {entry.isCompleted && (
+            <Icon name="completed" className="h-3.5 w-3.5 text-success" label="100%" />
+          )}
+          {entry.playthroughNumber > 1 && (
+            <Icon
+              name="repeat"
+              className="h-3.5 w-3.5"
+              label={`Rejugada #${entry.playthroughNumber}`}
+            />
+          )}
+        </span>
+      </span>
+    </Link>
   );
 }

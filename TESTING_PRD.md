@@ -392,6 +392,8 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | DIARY-13 | Badge de platino en el diario propio | Aparece solo si los trofeos sincronizados lo justifican | P2 |
 | DIARY-14 | Diario público | userB ve el diario de userA | P1 |
 | DIARY-15 | userB no puede editar el diario de userA | Sin controles; la Server Action rechaza | **P0 (seguridad)** |
+| DIARY-20 | Diario con el formato de Letterboxd (`33-profile-tabs.spec.ts`, #197) | Agrupado por mes con cabecera `sticky`, el día en su recuadro, más nuevo primero; la fila abre la ficha con la entrada enfocada | P1 |
+| DIARY-21 | Filtros del diario (`33-profile-tabs.spec.ts`, #197) | Año y rating (incluido "Sin rating") acotan las filas y quedan en la URL | P1 |
 
 > Desde la ficha unificada (issue #186) el diario de un juego es la tab Reseñas de
 > `/juegos/[id]` y "Marcar como terminado" se abre desde "Registrar o puntuar" en el panel de
@@ -414,7 +416,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | REV-02 | "Leer más" | Sólo en una reseña cortada; abre `/juegos/[id]?resena=<id>` con esa fila marcada (`aria-current`), entera y en pantalla | P1 |
 | REV-03 | "Cargar más" | Con 25 reseñas, la primera página trae 20 y "Cargar más" suma las 5 restantes debajo, sin repetidas, con el foco en la primera nueva y sin botón al final; el cursor rechaza basura (test puro) | P1 |
 
-### 6.10 Perfil (`10-profile.spec.ts`, `19-profile.spec.ts`, `32-profile-v2.spec.ts`)
+### 6.10 Perfil (`10-profile.spec.ts`, `19-profile.spec.ts`, `32-profile-v2.spec.ts`, `33-profile-tabs.spec.ts`)
 
 PROF-06..PROF-10 son del rediseño del perfil: el Top 5 elegido por el usuario (que reemplazó a
 "Jugados recientemente") y el perfil público de otro usuario. No hay nada mockeado: el Top 5 y
@@ -443,6 +445,8 @@ ninguna API externa.
 | PROF-18 | "Este año" y la zona horaria | Una `date` se corta como string; un instante se resuelve en la zona de la app (un platino del 31/12 a la noche en Argentina es de ese año) — test puro | P1 |
 | PROF-19 | Platinos y 100% separados | Un 100% de Steam está en `/perfil/completados` y no en `/perfil/platinos`; la fila "100% en Steam" es aparte | P1 |
 | PROF-20 | Bio | Se edita en Configuración › Perfil y se ve debajo del avatar | P1 |
+| PROF-21 | Perfil ajeno (`33-profile-tabs.spec.ts`, #197) | Las cuatro tabs (Perfil · Diario · Listas · Playlist), sin engranaje ni editores, con Seguir / Siguiendo; las estadísticas aclaran que son públicas y no traen 100%, likes ni seguidores | **P0 (privacidad)** |
+| PROF-22 | Listas en el perfil (`33-profile-tabs.spec.ts`, #197) | Una lista privada no aparece en el perfil ajeno; en el propio aparece con candado | **P0 (privacidad)** |
 
 ### 6.11 Accesibilidad, mobile y PWA (`11-a11y-mobile.spec.ts`) — proyecto `mobile`
 
@@ -817,8 +821,8 @@ test.describe("Enlaces externos", () => {
 | `game-card` | `app/(app)/juegos/GamesLibrary.tsx` | Contar y filtrar juegos en la grilla de carátulas |
 | `trophy-item` | `app/(app)/juegos/[id]/TrophyItem.tsx` | Assertear grayscale y tipo |
 | `diary-entry` | `components/diary/DiaryTimeline.tsx` | Contar entradas por mes |
-| `friend-row` | `components/friends/FriendsDiaryFeed.tsx` | Identificar amigos en el feed |
-| `friend-entry` | `components/friends/FriendsDiaryGrid.tsx` | Partidas de amigos en la grilla corta de `/diario` |
+| `diary-month` / `diary-day` | `components/diary/DiaryTimeline.tsx` | Cada mes del diario y el recuadro del día (DIARY-20) |
+| `profile-list` | `components/lists/ProfileLists.tsx` | Filas de Perfil › Listas, propio y ajeno (PROF-22) |
 | `sync-status` | `components/SyncStatusBadge.tsx` | Estado del sync |
 | `ai-plan` | `app/(app)/juegos/[id]/AiAdvisorPanel.tsx` | Presencia del plan generado |
 | `profile-bio` | `components/profile/ProfileHeader.tsx` | La bio del perfil (PROF-20) |

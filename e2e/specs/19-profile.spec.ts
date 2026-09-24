@@ -131,13 +131,15 @@ test.describe.serial("Perfil", () => {
     await page.goto(`/perfil/${users.userB.id}`);
 
     await expect(page.getByTestId("favorite-game")).toHaveCount(1);
-    await expect(
-      page.getByTestId("profile-diary-entry").filter({ hasText: "[E2E] Reseña de otro usuario" }),
-    ).toHaveCount(1);
-    // Es un perfil ajeno: se puede agregar a amigos, no editar el Top 5.
-    await expect(
-      page.getByRole("button", { name: /Agregar a amigos|Quitar de amigos/ }),
-    ).toBeVisible();
+    // Desde #197 el perfil ajeno usa las mismas "Últimas reseñas" que el
+    // propio: estrellas y el ícono de reseña; el texto está en la ficha.
+    const entry = page
+      .getByTestId("profile-diary-entry")
+      .filter({ has: page.getByRole("link", { name: testGameTitle("Perfil Ajeno") }) });
+    await expect(entry).toHaveCount(1);
+    await expect(entry.getByRole("img", { name: "Tiene reseña" })).toBeVisible();
+    // Es un perfil ajeno: se lo puede seguir, no editar el Top 5.
+    await expect(page.getByRole("button", { name: /^(Seguir|Siguiendo)$/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Editar" })).toHaveCount(0);
   });
 

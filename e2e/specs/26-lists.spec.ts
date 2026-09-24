@@ -126,8 +126,11 @@ test.describe("Listas", () => {
 
     await page.goto("/perfil/listas");
     await expect(
-      page.getByRole("list", { name: "Tus listas" }).getByRole("link", { name: literal(title) }),
-    ).toBeVisible();
+      page
+        .getByRole("list", { name: "Mis listas" })
+        .getByTestId("profile-list")
+        .filter({ hasText: title }),
+    ).toHaveCount(1);
   });
 
   test("LIST-02: reordenar y editar la nota de un juego", async ({ page, supabase, users }) => {

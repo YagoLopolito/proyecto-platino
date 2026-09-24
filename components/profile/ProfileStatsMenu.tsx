@@ -4,7 +4,10 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 
 export interface ProfileStatRow {
   label: string;
-  href: string;
+  /** Sin `href` la fila es sólo un dato (en el perfil ajeno no todo tiene expandido). */
+  href?: string;
+  /** Aclaración chica debajo de la etiqueta ("según su diario"). */
+  note?: string;
   /** Número principal. `null` en filas sin número (Resumen del año). */
   value?: number | null;
   /** Segundo número, "este año". */
@@ -22,13 +25,13 @@ export function ProfileStatsMenu({ rows }: { rows: ProfileStatRow[] }) {
     <section className="space-y-3" aria-labelledby="profile-stats-heading">
       <SectionHeader title={<span id="profile-stats-heading">Estadísticas</span>} />
       <ul className="divide-y divide-border border-y border-border" data-testid="profile-stats">
-        {rows.map((row) => (
-          <li key={row.href}>
-            <Link
-              href={row.href}
-              className="flex min-h-11 items-center gap-3 px-1 py-2.5 type-body text-ink transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
-            >
-              <span className="flex-1">{row.label}</span>
+        {rows.map((row) => {
+          const content = (
+            <>
+              <span className="flex-1">
+                {row.label}
+                {row.note && <span className="block type-caption text-ink-faint">{row.note}</span>}
+              </span>
               {row.thisYear !== undefined && (
                 <span className="type-meta text-ink-faint">{row.thisYear} este año</span>
               )}
@@ -37,10 +40,26 @@ export function ProfileStatsMenu({ rows }: { rows: ProfileStatRow[] }) {
                   {row.value}
                 </span>
               )}
-              <Icon name="chevron-right" className="h-4 w-4 text-ink-faint" />
-            </Link>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={row.label}>
+              {row.href ? (
+                <Link
+                  href={row.href}
+                  className="flex min-h-11 items-center gap-3 px-1 py-2.5 type-body text-ink transition-colors hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                >
+                  {content}
+                  <Icon name="chevron-right" className="h-4 w-4 text-ink-faint" />
+                </Link>
+              ) : (
+                <div className="flex min-h-11 items-center gap-3 px-1 py-2.5 pr-8 type-body text-ink">
+                  {content}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

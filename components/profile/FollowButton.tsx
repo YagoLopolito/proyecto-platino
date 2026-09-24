@@ -29,13 +29,23 @@ export function FollowButton({ userId, isFriend }: { userId: string; isFriend: b
   return (
     <form action={formAction} className="space-y-1">
       <input type="hidden" name="friendId" value={userId} />
-      <Button type="submit" variant={isFriend ? "secondary" : "primary"} disabled={pending}>
+      <Button
+        type="submit"
+        variant={isFriend ? "secondary" : "primary"}
+        disabled={pending}
+        aria-pressed={isFriend}
+      >
+        {/* "Seguir / Siguiendo" (#197): la relación es unidireccional y sin
+            aceptación, es seguir y no una solicitud de amistad. */}
         {isFriend ? (
-          "Quitar de amigos"
+          <>
+            <Icon name="check" className="h-4 w-4" />
+            Siguiendo
+          </>
         ) : (
           <>
             <Icon name="plus" className="h-4 w-4" />
-            Agregar a amigos
+            Seguir
           </>
         )}
       </Button>

@@ -257,6 +257,14 @@ Cada fase abajo se traduce 1:1 en un milestone de GitHub, y cada bullet en un is
 - Sync manual y luego automático de logros de Steam (misma ruta de cron que PSN).
 - Filtro de fuente en la biblioteca (Todos / PSN / Steam).
 
+**Fase 14 — Platinoob como Letterboxd** (epic #183, sub-issues #184-#197)
+- Navegación de 5 botones (Biblioteca · Buscar · + · Actividad · Perfil), header web con buscador y `SwipeTabs` por sección.
+- Ficha de juego unificada con tabs (Reseñas · Trofeos · Guías e IA) y panel de acciones; abre cualquier juego del catálogo.
+- Jugando ahora, Playlist, listas de usuario y pregeneradas, likes en reseñas y listas.
+- Estudios de IGDB, búsqueda con búsquedas recientes y Actividad (Amigos / Vos / Recibido) derivada por RPC.
+- Perfil con Favoritos, histograma, estadísticas expandibles y tabs Diario / Listas / Playlist, igual para el perfil ajeno (sólo datos públicos).
+- Ver `CLAUDE.md` para el detalle y las reglas de cada pieza.
+
 ## 11. Definition of Done (por issue)
 
 Un issue se considera terminado cuando:

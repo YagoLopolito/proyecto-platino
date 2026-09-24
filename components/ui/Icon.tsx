@@ -68,6 +68,8 @@ export const ICON_NAMES = [
   "playlist-check",
   "heart",
   "heart-outline",
+  "lock",
+  "more",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -277,6 +279,14 @@ const PATHS: Record<IconName, ReactNode> = {
    */
   "heart-outline": (
     <path d="M12 20.5 10.7 19.3C6 15.1 3 12.4 3 8.9 3 6.1 5.2 4 7.9 4c1.6 0 3.1.7 4.1 1.9C13 4.7 14.5 4 16.1 4 18.8 4 21 6.1 21 8.9c0 3.5-3 6.2-7.7 10.4L12 20.5Z" />
+  ),
+  /** Lista privada (#197): sólo la ve su dueño. */
+  lock: (
+    <path d="M12 2a5 5 0 0 0-5 5v3H6a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V11a1 1 0 0 0-1-1h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 1 1 6 0v3H9Zm3 4a1.5 1.5 0 0 1 1 2.6V18a1 1 0 1 1-2 0v-1.4a1.5 1.5 0 0 1 1-2.6Z" />
+  ),
+  /** Menú ⋮ de acciones secundarias de una pantalla (#197). Tres puntos sólidos. */
+  more: (
+    <path d="M12 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
   ),
 };
 

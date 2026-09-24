@@ -136,7 +136,7 @@ test.describe("Biblioteca › Juegos", () => {
     page,
   }) => {
     await page.goto("/perfil/diario");
-    await expect(page.getByRole("heading", { name: "Mis partidas" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Mi diario" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Recomendados para vos" })).toHaveCount(0);
 
     await page.goto("/biblioteca");

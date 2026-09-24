@@ -447,9 +447,11 @@ test.describe("Sistema de diseño", () => {
   test("DS-14: las acciones del diario usan íconos del set, no emojis", async ({ page }) => {
     await page.goto("/diario");
 
-    const actions = page.getByRole("link", { name: /Resumen del año/ }).locator("xpath=..");
-    // Los cuatro emojis que encabezaban las acciones de la pantalla.
-    for (const icon of ["chart", "camera", "trophy", "check"]) {
+    // Desde #197 las acciones secundarias viven en el menú ⋮.
+    await page.getByRole("button", { name: "Más acciones del diario" }).click();
+    const actions = page.getByRole("menu");
+    // Los emojis que encabezaban las acciones de la pantalla.
+    for (const icon of ["chart", "camera", "trophy"]) {
       await expect(actions.locator(`[data-icon="${icon}"]`).first()).toBeVisible();
     }
     for (const emoji of ["📊", "📷", "🏆", "✓"]) {
