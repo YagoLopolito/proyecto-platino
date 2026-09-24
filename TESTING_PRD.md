@@ -729,7 +729,22 @@ y búsquedas recientes (`recent_searches`, privadas, tope de 20). Guardar pasa s
 | SEARCH-06 | Tope de 20 | Con 20 recientes, una búsqueda nueva deja 20 y se va la más vieja | P1 |
 | SEARCH-07 | URL | `?q=&en=usuarios` después de recargar conserva el campo y la tab Usuarios | P1 |
 
-**Total: 188 casos** — 75 P0, 83 P1, 30 P2.
+### 6.27 Actividad (`31-activity.spec.ts`)
+
+Actividad del epic #183 (issue #195): Amigos / Vos / Recibido, derivadas por RPC
+(`get_activity_friends` / `_self` / `_received`) sin tabla de eventos. Paginación por cursor
+`(occurred_at, id)` de a 30 y filtro en `?tipo=`.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| ACT-01 | Diario de un amigo | La entrada de userB aparece en `/actividad` de userA (que lo sigue) con el link al juego | P0 |
+| ACT-02 | Platino privado | El platino de userA aparece en Vos y el RPC de amigos de userB (que lo sigue) no lo devuelve | P0 |
+| ACT-03 | Like recibido | Un like de userB a la reseña de userA aparece en Recibido | P0 |
+| ACT-04 | Borrar | Borrar la entrada de diario la saca del log | P0 |
+| ACT-05 | Paginación | Con 32 eventos se ven 30, "Cargar más" suma los 2 restantes sin repetir | P1 |
+| ACT-06 | Fechas | Tiempo relativo (min / h / d / sem) y `2026-09-23` como "el miércoles 23 de septiembre", sin desfase de día | P1 |
+
+**Total: 194 casos** — 79 P0, 85 P1, 30 P2.
 
 ---
 

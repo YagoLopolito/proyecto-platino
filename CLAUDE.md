@@ -995,6 +995,33 @@ tab abierta.
 - Fuera por ahora: deslizar una reciente para borrarla (está el ✕) y el estudio en la fila de
   un juego (saldría de una consulta a IGDB por resultado).
 
+## Actividad (epic #183, issue #195): `lib/activity/`
+
+El cuarto botón: un log de frases, como la Activity de Letterboxd. Tabs **Amigos**
+(`/actividad`), **Vos** (`/actividad/vos`) y **Recibido** (`/actividad/recibido`).
+
+- **Sin tabla de eventos**: cada tab es un RPC (`get_activity_friends` / `_self` /
+  `_received`, migración `20260928000000_activity_feed.sql`) que hace `union all` sobre las
+  tablas fuente. El log no puede divergir de los datos y borrar algo lo saca del log. `security
+  invoker` + `auth.uid()`. Si el de amigos se pone lento con datos reales, recién ahí evaluar
+  una tabla `activity_events` con triggers.
+- **Amigos es sólo diario** (con o sin reseña). Nunca platinos: salen de `user_trophies`, que
+  sólo los ve su dueño, y además `activity_is_user_entry` descarta las entradas que creó el
+  sync (`platinum_sync` / `completion_sync`) sin rating ni reseña, que serían un platino ajeno
+  por la puerta de atrás.
+- **Vos**: registros, platinos, 100% de Steam (`completed_at`), "empezaste a jugar"
+  (`now_playing`), Playlist, listas creadas/actualizadas (actualizada = `updated_at` más de un
+  minuto después de crearla) y likes dados. **Recibido**: likes a lo tuyo y "empezó a seguirte".
+- El `id` de cada evento es `<kind>:<uuid>` y el cursor es `(occurred_at, id)`
+  (`lib/activity/format.ts`, puro): orden total aunque dos tablas coincidan en el instante.
+  30 por página con "Cargar más" (`loadMoreActivity`), mismo patrón que Biblioteca › Reseñas.
+- Filtro por tipo en `?tipo=` (links, no estado), sólo en Vos y Recibido.
+- Fila: avatar · frase con nombres en 600 linkeables · tiempo relativo en `ink-faint`. La fecha
+  del diario sale de `formatDiaryDate` (partes del string + `Date.UTC`, nunca `new
+  Date("YYYY-MM-DD")`). En el platino el avatar se reemplaza por `public/trophy-platinum.webp`,
+  el trofeo que aportó el dueño del proyecto (`scripts/generate-platinum-trophy.mjs` le saca el
+  damero pintado del PNG original).
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -1415,7 +1442,8 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     (amigos, pregeneradas y populares de la semana), `system_lists` refrescadas por el cron y
     ficha `/listas/sistema/[slug]`. **#193 completo**: estudios de IGDB (`lib/igdb/`,
     `/estudios/[slug]`, estudios linkeables en la ficha). **#194 completo**: Buscar con tabs por
-    ámbito y búsquedas recientes (`recent_searches`, popover en el header). Ver el epic para el orden y las decisiones ya tomadas.
+    ámbito y búsquedas recientes (`recent_searches`, popover en el header). **#195 completo**:
+    Actividad (Amigos / Vos / Recibido) derivada por RPC, sin tabla de eventos. Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
