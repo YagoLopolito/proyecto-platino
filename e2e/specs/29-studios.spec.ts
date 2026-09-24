@@ -130,7 +130,10 @@ test.describe("Estudios", () => {
     await expect(page.getByText(/Vos jugaste\s*1\s*de 2/)).toBeVisible();
     // El póster usa el nombre de IGDB, no el de la fila local.
     const played = page.getByRole("link", { name: /\[E2E\] Juego del estudio A/ });
-    await expect(played).toHaveAttribute("href", `/juegos/${gameId}`);
+    // Ya tiene fila en `games`: linkea a una ficha y no a la ruta que
+    // materializa. No se fija el id exacto: el mismo juego de IGDB puede tener
+    // más de una fila (PSN y Steam) y la ficha elegida es la más vieja.
+    await expect(played).toHaveAttribute("href", /^\/juegos\/[0-9a-f-]{36}$/);
     await expect(played.getByRole("img", { name: "Jugado" })).toBeVisible();
     await context.close();
   });
