@@ -110,6 +110,7 @@ export async function getFriendsDiaryFeed(
           // El 100% de Steam sí se puede: no se deriva de trofeos privados,
           // vive en la propia entrada de diario, que es pública.
           isCompleted: row.completed_at !== null,
+          completedAt: row.completed_at,
           author: friendsById.get(row.user_id)!,
         };
       }),

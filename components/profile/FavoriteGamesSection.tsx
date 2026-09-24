@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 import { GamePoster } from "@/components/game/GamePoster";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { EmptyState } from "@/components/EmptyState";
-import { MAX_FAVORITE_GAMES } from "@/lib/profile/constants";
 import type { FavoriteGame } from "@/lib/profile/queries";
 
 /**
- * El "Top 5" del perfil: los juegos que el usuario eligió mostrar, en su
- * orden, con el número de puesto sobre la carátula.
+ * El Top 5 del perfil ("Favoritos" desde #196, como en Letterboxd): los juegos
+ * que el usuario eligió mostrar, en su orden, con el número de puesto sobre la
+ * carátula.
  *
  * Va en grilla fija de 5 columnas (no en `PosterRow`) porque son exactamente
  * cinco y el puesto importa: se tienen que ver todos juntos, sin scrollear.
@@ -24,10 +24,7 @@ export function FavoriteGamesSection({
 }) {
   return (
     <section className="space-y-3" aria-labelledby="top-five-heading">
-      <SectionHeader
-        title={<span id="top-five-heading">Top {MAX_FAVORITE_GAMES}</span>}
-        action={action}
-      />
+      <SectionHeader title={<span id="top-five-heading">Favoritos</span>} action={action} />
       {games.length === 0 ? (
         <EmptyState icon="star" title={emptyMessage} />
       ) : (

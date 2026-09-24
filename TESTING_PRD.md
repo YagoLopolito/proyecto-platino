@@ -414,7 +414,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | REV-02 | "Leer más" | Sólo en una reseña cortada; abre `/juegos/[id]?resena=<id>` con esa fila marcada (`aria-current`), entera y en pantalla | P1 |
 | REV-03 | "Cargar más" | Con 25 reseñas, la primera página trae 20 y "Cargar más" suma las 5 restantes debajo, sin repetidas, con el foco en la primera nueva y sin botón al final; el cursor rechaza basura (test puro) | P1 |
 
-### 6.10 Perfil (`10-profile.spec.ts`, `19-profile.spec.ts`)
+### 6.10 Perfil (`10-profile.spec.ts`, `19-profile.spec.ts`, `32-profile-v2.spec.ts`)
 
 PROF-06..PROF-10 son del rediseño del perfil: el Top 5 elegido por el usuario (que reemplazó a
 "Jugados recientemente") y el perfil público de otro usuario. No hay nada mockeado: el Top 5 y
@@ -435,6 +435,14 @@ ninguna API externa.
 | PROF-10 | Perfil propio por id | `/perfil/<mi id>` redirige a `/perfil` (la pantalla propia, con el editor) | P2 |
 | PROF-11 | Foco del buscador del Top 5 | Tipear en el campo no devuelve el foco a la ✕ del modal (en mobile cerraba el teclado tecla por medio) | P1 |
 | PROF-12 | Top 5 más allá de la biblioteca | Un juego que el usuario no tiene sincronizado se busca en el catálogo, se vincula en `user_games` y entra al Top 5 | P1 |
+| PROF-13 | Orden de Perfil › Perfil (#196) | Favoritos, Últimas reseñas, Tus puntuaciones y Estadísticas, en ese orden; el desglose de trofeos de PSN ya no está en la pantalla principal | P1 |
+| PROF-14 | Histograma con rejugadas | Cuenta el último rating **puntuado** de cada juego, igual que `game_scores` (test puro sobre `lib/profile/stats.ts`) | P0 |
+| PROF-15 | Barra del histograma | Tocar una barra lleva a `/perfil/resenas?rating=N` y muestra sólo los juegos cuyo último rating cae ahí | P1 |
+| PROF-16 | Juegos jugados sin duplicar | Un juego platinado y reseñado aparece una sola vez en `/perfil/jugados` | P0 |
+| PROF-17 | Filas de Estadísticas | Cada fila lleva a su expandido con su título | P1 |
+| PROF-18 | "Este año" y la zona horaria | Una `date` se corta como string; un instante se resuelve en la zona de la app (un platino del 31/12 a la noche en Argentina es de ese año) — test puro | P1 |
+| PROF-19 | Platinos y 100% separados | Un 100% de Steam está en `/perfil/completados` y no en `/perfil/platinos`; la fila "100% en Steam" es aparte | P1 |
+| PROF-20 | Bio | Se edita en Configuración › Perfil y se ve debajo del avatar | P1 |
 
 ### 6.11 Accesibilidad, mobile y PWA (`11-a11y-mobile.spec.ts`) — proyecto `mobile`
 
@@ -813,6 +821,12 @@ test.describe("Enlaces externos", () => {
 | `friend-entry` | `components/friends/FriendsDiaryGrid.tsx` | Partidas de amigos en la grilla corta de `/diario` |
 | `sync-status` | `components/SyncStatusBadge.tsx` | Estado del sync |
 | `ai-plan` | `app/(app)/juegos/[id]/AiAdvisorPanel.tsx` | Presencia del plan generado |
+| `profile-bio` | `components/profile/ProfileHeader.tsx` | La bio del perfil (PROF-20) |
+| `rating-histogram` | `components/profile/RatingHistogram.tsx` | Las 10 barras de "Tus puntuaciones" |
+| `profile-stats` | `components/profile/ProfileStatsMenu.tsx` | Las filas de Estadísticas (PROF-17/19) |
+| `own-review` | `app/(app)/perfil/(expandidos)/resenas/page.tsx` | Filas de `/perfil/resenas` (PROF-08/15) |
+| `played-game` / `platinum-game` / `completed-game` | expandidos de `/perfil/*` | Pósters de cada expandido (PROF-16/19) |
+| `liked-review` / `liked-list` / `profile-person` | `/perfil/likes`, `PeopleList` | Filas de Likes, Siguiendo y Seguidores |
 | `connection-card` | `components/connections/ConnectionCard.tsx` | Identificar la tarjeta de cada plataforma en Conexiones |
 | `connection-status` | `components/connections/ConnectionCard.tsx` | Estado de la conexión (`data-status`: connected / attention / disconnected) |
 | `mobile-tab-bar` | `app/(app)/MobileTabBar.tsx` | Navegación inferior de mobile |

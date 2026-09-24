@@ -54,6 +54,7 @@ export const ICON_NAMES = [
   "arrow-down",
   "close",
   "chevron-down",
+  "chevron-right",
   "filters",
   "check",
   "arrow-left",
@@ -85,6 +86,7 @@ const STROKE_ICONS = new Set<IconName>([
   "search",
   "close",
   "chevron-down",
+  "chevron-right",
   "filters",
   "check",
   "arrow-down",
@@ -252,6 +254,8 @@ const PATHS: Record<IconName, ReactNode> = {
   close: <path d="M6 6l12 12M18 6 6 18" />,
   /** Desplegable: `<select>`, disclosure de filtros. */
   "chevron-down": <path d="m6 9 6 6 6-6" />,
+  /** Fila de menú que abre otra pantalla (estadísticas del perfil). */
+  "chevron-right": <path d="m9 6 6 6-6 6" />,
   /** Abre los filtros plegados en mobile. */
   filters: <path d="M4 6h16M7 12h10M10 18h4" />,
   /** Opción activada de un `ToggleChip`. */
