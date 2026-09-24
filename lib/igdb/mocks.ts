@@ -1,6 +1,11 @@
 import "server-only";
 import type { IgdbGameLookup, IgdbGameDetails } from "./games";
-import type { IgdbCompany, IgdbCompanyRef, IgdbStudioGame } from "./companies";
+import type {
+  IgdbCompany,
+  IgdbCompanyRef,
+  IgdbCompanySearchHit,
+  IgdbStudioGame,
+} from "./companies";
 
 /**
  * Mock determinista de IGDB para la suite E2E (issue #193).
@@ -104,4 +109,15 @@ export function mockGameDetails(igdbId: number): IgdbGameDetails | null {
     releaseYear: game.year,
     description: "Juego inventado para la suite E2E.",
   };
+}
+
+/** Búsqueda de estudios: sólo los dos de test, por "contiene" sin mayúsculas. */
+export function mockSearchCompanies(query: string): IgdbCompanySearchHit[] {
+  const needle = query.toLowerCase();
+  return [MOCK_STUDIO, MOCK_PUBLISHER]
+    .filter((company) => company.name.toLowerCase().includes(needle))
+    .map((company) => ({
+      ...refOf(company),
+      gameCount: new Set([...company.developedIds, ...company.publishedIds]).size,
+    }));
 }

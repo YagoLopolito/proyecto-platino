@@ -47,9 +47,15 @@ function startsInHorizontalScroller(target: EventTarget | null, stop: HTMLElemen
 export function SwipeTabs({
   tabs,
   label,
+  activeHref,
   children,
 }: {
   tabs: SwipeTab[];
+  /**
+   * La tab activa, cuando no sale de la ruta: en `/buscar` las cuatro tabs
+   * son la misma ruta con otro `?en=` (la query tiene que viajar con la tab).
+   */
+  activeHref?: string;
   /** Nombre accesible de la lista de tabs ("Biblioteca", "Actividad"...). */
   label: string;
   children: ReactNode;
@@ -62,11 +68,14 @@ export function SwipeTabs({
 
   // La tab activa es la de la ruta más larga que matchea: `/biblioteca` no
   // tiene que quedar activa estando en `/biblioteca/resenas`.
-  const activeIndex = tabs.reduce((best, tab, index) => {
-    const matches = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-    if (!matches) return best;
-    return best === -1 || tab.href.length > tabs[best].href.length ? index : best;
-  }, -1);
+  const activeIndex =
+    activeHref !== undefined
+      ? tabs.findIndex((tab) => tab.href === activeHref)
+      : tabs.reduce((best, tab, index) => {
+          const matches = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+          if (!matches) return best;
+          return best === -1 || tab.href.length > tabs[best].href.length ? index : best;
+        }, -1);
 
   // Precargar las vecinas: el swipe tiene que sentirse instantáneo. Es un
   // efecto del router (imperativo), no sincronización de estado.

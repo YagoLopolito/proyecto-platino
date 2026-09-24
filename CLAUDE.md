@@ -965,6 +965,36 @@ La tab Lists de Letterboxd: primero lo de tus amigos, después lo que arma Plati
 - En E2E, los ids de IGDB de test viven arriba de `E2E_IGDB_ID_MIN` (900.000.000) y el
   teardown limpia `games` y `companies` por ahí.
 
+## Buscar (epic #183, issue #194): `lib/search/`
+
+El segundo botón de la barra. `/buscar` sin query muestra el campo enfocado y **Búsquedas
+recientes**; con query (≥ `MIN_QUERY_LENGTH`, con debounce) muestra tabs **Juegos · Estudios ·
+Listas · Usuarios**, con todo en la URL (`/buscar?q=insomniac&en=estudios`). Sólo se consulta la
+tab abierta.
+
+- `lib/search/scopes.ts` (puro): ámbitos (`todo` es lo del header, abre Juegos), `searchHref`,
+  `saveAndGoHref` y `safeInternalPath`. `queries.ts` (server-only): `searchGames` (`searchCatalog`
+  con lo de tu biblioteca primero; lo de RAWG linkea a `/juegos/catalogo/[rawgId]`),
+  `searchStudios` (`companies` + `searchCompanies` de `lib/igdb/`, que va por `name ~ *"…"*`
+  porque IGDB no indexa estudios en `search`), `searchLists` (pregeneradas por título +
+  `searchPublicLists`, **sólo públicas**) y `getRecentSearches`. Usuarios reusa `searchUsers`,
+  con `FollowButton` en la fila.
+- **`recent_searches`** (migración `20260927000000_recent_searches.sql`): unique
+  `(user_id, lower(query), scope)`, RLS sólo el dueño para todo. Como el unique es una
+  expresión, PostgREST no lo puede usar de `onConflict`: guardar es la función
+  `save_recent_search` (security invoker), que hace el upsert y recorta a
+  `MAX_RECENT_SEARCHES` (20).
+- **Se guarda sólo al apretar Enter o al abrir un resultado**, nunca por tecla, y siempre por
+  `/buscar/ir` (route handler que guarda y redirige a `to`, o a los resultados). Es un GET que
+  escribe: los links a esa ruta son `<a>` comunes, **nunca `<Link>`**, que la prefetchearía y
+  guardaría búsquedas que nadie abrió (`ListRow` acepta `prefetch={false}` por eso). `to` pasa
+  por `safeInternalPath` (sin open redirect).
+- `SwipeTabs` acepta `activeHref`: acá las cuatro tabs son la misma ruta con otro `?en=`.
+- El header de escritorio abre un popover al enfocarse, con las recientes (se piden recién ahí
+  con `getMyRecentSearches`) y "Ver todos los resultados".
+- Fuera por ahora: deslizar una reciente para borrarla (está el ✕) y el estudio en la fila de
+  un juego (saldría de una consulta a IGDB por resultado).
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -982,6 +1012,7 @@ La tab Lists de Letterboxd: primero lo de tus amigos, después lo que arma Plati
 - `user_playlist` — los juegos que el usuario quiere jugar, públicos. Ver la sección de Playlist.
 - `user_lists` / `user_list_items` — listas de juegos, públicas o privadas. Ver la sección de Listas.
 - `review_likes` / `list_likes` — me gusta en reseñas y listas. Ver la sección de Likes.
+- `recent_searches` — búsquedas recientes, privadas, tope de 20. Ver la sección de Buscar.
 - `system_lists` / `system_list_items` — listas pregeneradas globales, las recalcula el cron. Ver
   la sección de Biblioteca › Listas.
 - `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
@@ -1383,7 +1414,8 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     reseñas de amigos con cursor y "Cargar más"). **#192 completo**: Biblioteca › Listas
     (amigos, pregeneradas y populares de la semana), `system_lists` refrescadas por el cron y
     ficha `/listas/sistema/[slug]`. **#193 completo**: estudios de IGDB (`lib/igdb/`,
-    `/estudios/[slug]`, estudios linkeables en la ficha). Ver el epic para el orden y las decisiones ya tomadas.
+    `/estudios/[slug]`, estudios linkeables en la ficha). **#194 completo**: Buscar con tabs por
+    ámbito y búsquedas recientes (`recent_searches`, popover en el header). Ver el epic para el orden y las decisiones ya tomadas.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

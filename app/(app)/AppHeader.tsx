@@ -3,10 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
 import { logout } from "@/app/auth/actions";
 import { RegisterLauncher } from "@/components/register/RegisterLauncher";
 import { Icon } from "@/components/ui/Icon";
+import { getMyRecentSearches } from "@/lib/search/actions";
+import { SCOPE_LABELS, saveAndGoHref, type RecentSearch } from "@/lib/search/scopes";
 import { HEADER_LINKS, isActiveLink, sectionTitle, showsSettingsGear } from "./nav-links";
 
 /** Logo de marca (`public/logo.webp`). `unoptimized` por la cuota de Vercel, igual que `GameArt`. */
@@ -31,9 +33,13 @@ function Logo({ className }: { className: string }) {
 }
 
 /**
- * Buscador inline del header de escritorio. Enter lleva a `/buscar?q=`: es un
- * `<form method="get">` común, así que funciona sin JS. El popover de
- * búsquedas recientes llega con el sub-issue #194.
+ * Buscador inline del header de escritorio. Enter va a `/buscar/ir`, que
+ * guarda la búsqueda en recientes (ámbito "Todo") y abre `/buscar?q=`: es un
+ * `<form method="get">` común, así que funciona sin JS.
+ *
+ * Al enfocarlo abre un popover (issue #194) con las búsquedas recientes, que
+ * se piden recién ahí (vive en todas las pantallas), y con texto escrito,
+ * "Ver todos los resultados".
  */
 function HeaderSearch() {
   const searchParams = useSearchParams();
@@ -41,28 +47,119 @@ function HeaderSearch() {
   // En `/buscar` el campo arranca con la búsqueda actual, para poder
   // corregirla sin tipearla de nuevo.
   const current = pathname === "/buscar" ? (searchParams.get("q") ?? "") : "";
+  const [value, setValue] = useState(current);
+  const [lastCurrent, setLastCurrent] = useState(current);
+  const [open, setOpen] = useState(false);
+  const [recents, setRecents] = useState<RecentSearch[] | null>(null);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const popoverId = useId();
+
+  // Durante el render, no en un effect (ver Convenciones de código): si la
+  // búsqueda actual cambia, el campo la sigue; al navegar, se cierra y las
+  // recientes se vuelven a pedir en el próximo foco.
+  if (current !== lastCurrent) {
+    setLastCurrent(current);
+    setValue(current);
+  }
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setOpen(false);
+    setRecents(null);
+  }
+
+  function onFocus() {
+    setOpen(true);
+    if (recents === null) {
+      getMyRecentSearches()
+        .then(setRecents)
+        .catch(() => setRecents([]));
+    }
+  }
+
+  const term = value.trim();
+  const visibleRecents = (recents ?? []).slice(0, 6);
+  const showPopover = open && (term !== "" || visibleRecents.length > 0);
 
   return (
-    <form action="/buscar" method="get" role="search" className="relative w-44 lg:w-56">
-      <Icon
-        name="search"
-        className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
-      />
-      <input
-        // `key`: si cambia la búsqueda actual, el campo no controlado se
-        // vuelve a montar con el valor nuevo.
-        key={current}
-        type="search"
-        name="q"
-        defaultValue={current}
-        placeholder="Buscar"
-        // Nombre distinto del buscador de la biblioteca ("Buscar juego en tu
-        // biblioteca"): en `/biblioteca` conviven los dos, y con nombres
-        // parecidos un lector de pantalla no sabe cuál es cuál.
-        aria-label="Buscar en Platinoob"
-        className="min-h-9 w-full rounded-chip border border-border-strong bg-surface pl-8 pr-2 type-meta text-ink transition-colors placeholder:text-ink-faint hover:border-ink-faint focus:border-accent-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 [&::-webkit-search-cancel-button]:hidden"
-      />
-    </form>
+    <div
+      ref={rootRef}
+      className="relative w-44 lg:w-56"
+      onBlur={(event) => {
+        if (!rootRef.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") setOpen(false);
+      }}
+    >
+      <form action="/buscar/ir" method="get" role="search">
+        <input type="hidden" name="en" value="todo" />
+        <Icon
+          name="search"
+          className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
+        />
+        <input
+          type="search"
+          name="q"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          onFocus={onFocus}
+          placeholder="Buscar"
+          // Nombre distinto del buscador de la biblioteca ("Buscar juego en tu
+          // biblioteca"): en `/biblioteca` conviven los dos, y con nombres
+          // parecidos un lector de pantalla no sabe cuál es cuál.
+          aria-label="Buscar en Platinoob"
+          aria-controls={showPopover ? popoverId : undefined}
+          autoComplete="off"
+          className="min-h-9 w-full rounded-chip border border-border-strong bg-surface pl-8 pr-2 type-meta text-ink transition-colors placeholder:text-ink-faint hover:border-ink-faint focus:border-accent-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink/40 [&::-webkit-search-cancel-button]:hidden"
+        />
+      </form>
+      {showPopover && (
+        <div
+          id={popoverId}
+          role="region"
+          aria-label="Búsquedas recientes"
+          className="absolute right-0 top-full z-30 mt-1 w-72 overflow-hidden rounded-card border border-border-strong bg-surface-raised py-1 shadow-lg"
+        >
+          {term !== "" && (
+            // `<a>` y no `<Link>`: `/buscar/ir` escribe, no se prefetchea.
+            <a
+              href={saveAndGoHref(term, "todo")}
+              className="flex min-h-10 items-center gap-2 px-3 type-meta text-accent-ink hover:bg-surface-hover focus:bg-surface-hover focus:outline-none"
+            >
+              <Icon name="search" className="h-4 w-4" />
+              Ver todos los resultados
+            </a>
+          )}
+          {visibleRecents.length > 0 && (
+            <>
+              <p className="px-3 pb-1 pt-2 type-overline text-ink-faint">Búsquedas recientes</p>
+              <ul>
+                {visibleRecents.map((recent) => (
+                  <li key={recent.id}>
+                    <a
+                      href={saveAndGoHref(recent.query, recent.scope)}
+                      className="flex min-h-10 items-center justify-between gap-2 px-3 type-meta text-ink hover:bg-surface-hover focus:bg-surface-hover focus:outline-none"
+                    >
+                      <span className="truncate">{recent.query}</span>
+                      <span className="shrink-0 rounded-chip bg-surface-hover px-2 py-0.5 type-caption text-ink-muted">
+                        {SCOPE_LABELS[recent.scope]}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/buscar"
+                className="block px-3 py-2 type-caption text-ink-muted hover:text-ink focus:outline-none focus-visible:text-ink"
+              >
+                Ver todas las recientes
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

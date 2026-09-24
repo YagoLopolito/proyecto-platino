@@ -19,6 +19,8 @@ export function SearchField({
   onChange,
   placeholder,
   label,
+  name,
+  autoFocus,
   className = "",
 }: {
   value: string;
@@ -26,6 +28,9 @@ export function SearchField({
   placeholder: string;
   /** Etiqueta accesible: el campo no tiene `<label>` visible. */
   label: string;
+  /** Para mandarlo en un `<form method="get">` (la búsqueda de `/buscar`). */
+  name?: string;
+  autoFocus?: boolean;
   className?: string;
 }) {
   const id = useId();
@@ -40,6 +45,8 @@ export function SearchField({
       <input
         id={id}
         type="search"
+        name={name}
+        autoFocus={autoFocus}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

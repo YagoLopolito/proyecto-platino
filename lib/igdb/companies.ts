@@ -6,6 +6,7 @@ import {
   mockCompany,
   mockGameCompanies,
   mockGamesByIds,
+  mockSearchCompanies,
 } from "./mocks";
 
 /**
@@ -46,9 +47,7 @@ export interface IgdbStudioGame {
 
 /** Mismo contrato de tres estados que el resto de `lib/igdb/`. */
 export type IgdbResult<T> =
-  | { status: "ok"; value: T }
-  | { status: "not_found" }
-  | { status: "unavailable"; reason: string };
+  { status: "ok"; value: T } | { status: "not_found" } | { status: "unavailable"; reason: string };
 
 const ROLES: CompanyRole[] = ["developer", "publisher", "porting", "supporting"];
 
@@ -72,7 +71,9 @@ export async function fetchGameCompanies(
       `fields company.name,company.slug,company.logo.image_id,developer,publisher,porting,supporting; where game = ${igdbGameId}; limit 50;`,
     );
     if ("error" in result) {
-      console.error(`[igdb] no se pudieron pedir los estudios del juego ${igdbGameId}: ${result.error}`);
+      console.error(
+        `[igdb] no se pudieron pedir los estudios del juego ${igdbGameId}: ${result.error}`,
+      );
       return { status: "unavailable", reason: result.error };
     }
 
@@ -128,7 +129,12 @@ export async function fetchCompany(
       return { status: "unavailable", reason: result.error };
     }
     const row = asRecord(result.rows[0]);
-    if (!row || typeof row.id !== "number" || typeof row.name !== "string" || typeof row.slug !== "string") {
+    if (
+      !row ||
+      typeof row.id !== "number" ||
+      typeof row.name !== "string" ||
+      typeof row.slug !== "string"
+    ) {
       return { status: "not_found" };
     }
     const parent = asRecord(row.parent);
@@ -198,6 +204,64 @@ export async function fetchGamesByIds(ids: number[]): Promise<IgdbResult<IgdbStu
   } catch (cause) {
     const reason = cause instanceof Error ? cause.message : String(cause);
     console.error(`[igdb] falló la consulta de juegos del estudio: ${reason}`);
+    return { status: "unavailable", reason };
+  }
+}
+
+export interface IgdbCompanySearchHit {
+  igdbId: number;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  /** Desarrollados + publicados, sin contar dos veces el mismo juego. */
+  gameCount: number;
+}
+
+/**
+ * Estudios por nombre para la búsqueda (issue #194). IGDB no indexa
+ * `companies` en su `search`, así que va por `name ~ *"…"*` (contiene, sin
+ * distinguir mayúsculas). Los que no tienen ningún juego se descartan: son
+ * filas vacías que IGDB guarda para distribuidoras regionales.
+ */
+export async function searchCompanies(
+  query: string,
+  limit = 20,
+): Promise<IgdbResult<IgdbCompanySearchHit[]>> {
+  if (IGDB_MOCKS_ENABLED) return { status: "ok", value: mockSearchCompanies(query) };
+
+  try {
+    const result = await igdbQuery(
+      "companies",
+      `fields name,slug,logo.image_id,developed,published; where name ~ *${igdbString(query)}*; limit ${limit};`,
+    );
+    if ("error" in result) {
+      console.error(`[igdb] no se pudieron buscar estudios: ${result.error}`);
+      return { status: "unavailable", reason: result.error };
+    }
+    const hits: IgdbCompanySearchHit[] = [];
+    for (const entry of result.rows) {
+      const row = asRecord(entry);
+      if (
+        !row ||
+        typeof row.id !== "number" ||
+        typeof row.name !== "string" ||
+        typeof row.slug !== "string"
+      )
+        continue;
+      const gameCount = new Set([...idList(row.developed), ...idList(row.published)]).size;
+      if (gameCount === 0) continue;
+      hits.push({
+        igdbId: row.id,
+        name: row.name,
+        slug: row.slug,
+        logoUrl: igdbImageUrl(asRecord(row.logo)?.image_id, "logo_med"),
+        gameCount,
+      });
+    }
+    return { status: "ok", value: hits.sort((a, b) => b.gameCount - a.gameCount) };
+  } catch (cause) {
+    const reason = cause instanceof Error ? cause.message : String(cause);
+    console.error(`[igdb] falló la búsqueda de estudios: ${reason}`);
     return { status: "unavailable", reason };
   }
 }

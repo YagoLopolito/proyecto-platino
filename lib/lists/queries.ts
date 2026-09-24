@@ -333,3 +333,27 @@ export async function getPopularListsThisWeek(
   );
   return (await toListRows(supabase, viewerId, lists)).slice(0, limit);
 }
+
+/**
+ * Listas públicas por título, para la búsqueda (issue #194). Sólo las
+ * públicas, pedido explícito: una privada ajena no puede aparecer aunque la
+ * RLS ya la esconda, y una privada propia tampoco (es un buscador de
+ * descubrir, tus listas están en tu perfil).
+ */
+export async function searchPublicLists(
+  supabase: Client,
+  viewerId: string,
+  query: string,
+  limit = 20,
+): Promise<ListRowData[]> {
+  // `%` y `_` son comodines de `ilike`: se escapan para buscar el texto literal.
+  const pattern = `%${query.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+  const { data } = await supabase
+    .from("user_lists")
+    .select(LIST_ROW_SELECT)
+    .eq("visibility", "public")
+    .ilike("title", pattern)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  return toListRows(supabase, viewerId, data ?? []);
+}

@@ -713,7 +713,23 @@ que no están en `games`. Los ids de test de IGDB viven arriba de `E2E_IGDB_ID_M
 | STUDIO-04 | IGDB caído no se cachea | Con IGDB `unavailable`, la ficha carga y `games.companies_checked_at` queda en NULL | P0 |
 | STUDIO-05 | "Jugaste N de M" | Con una reseña en el diario de un juego del estudio (vinculado por `igdb_id`), el perfil dice "Vos jugaste 1 de 2" y el póster lleva la marca "Jugado" | P1 |
 
-**Total: 181 casos** — 72 P0, 79 P1, 30 P2.
+### 6.26 Buscar (`30-search.spec.ts`)
+
+Búsqueda del epic #183 (issue #194): tabs Juegos · Estudios · Listas · Usuarios en `/buscar?q=&en=`
+y búsquedas recientes (`recent_searches`, privadas, tope de 20). Guardar pasa sólo por
+`/buscar/ir` (Enter o abrir un resultado). Los estudios salen del mock de `lib/igdb/mocks.ts`.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| SEARCH-01 | Buscar un juego | Tipear el nombre (sin Enter) muestra el juego en la tab Juegos y tocarlo abre `/juegos/[id]` | P0 |
+| SEARCH-02 | Recientes con ámbito | Enter en la tab Estudios guarda la búsqueda con el chip "Estudios"; repetirla deja una sola fila y tocarla vuelve a esa tab | P0 |
+| SEARCH-03 | Borrar recientes | ✕ borra una fila y "Borrar todo" vacía la sección | P1 |
+| SEARCH-04 | Tab Estudios | "[E2E] Estudio" aparece con "2 juegos" y lleva a `/estudios/e2e-estudio` | P1 |
+| SEARCH-05 | Listas privadas | La tab Listas muestra la lista pública de otro usuario y no su privada | P0 |
+| SEARCH-06 | Tope de 20 | Con 20 recientes, una búsqueda nueva deja 20 y se va la más vieja | P1 |
+| SEARCH-07 | URL | `?q=&en=usuarios` después de recargar conserva el campo y la tab Usuarios | P1 |
+
+**Total: 188 casos** — 75 P0, 83 P1, 30 P2.
 
 ---
 
