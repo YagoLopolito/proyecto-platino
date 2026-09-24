@@ -1,5 +1,6 @@
 import "server-only";
 import { findIgdbTimeToBeat } from "./igdb";
+import type { IgdbGameLookup } from "@/lib/igdb/games";
 import { generateTimeEstimates } from "@/lib/ai";
 import { TIME_TO_BEAT_MOCKS_ENABLED, mockTimeEstimates } from "./mocks";
 
@@ -50,7 +51,12 @@ const EMPTY: TimeEstimates = { beatMinutes: null, completeMinutes: null, source:
  */
 export async function fetchTimeEstimates(
   gameName: string,
-  context: { platform?: string | null; releaseYear?: number | null } = {},
+  context: {
+    platform?: string | null;
+    releaseYear?: number | null;
+    /** El match con IGDB que ya hizo la ficha (se comparte con los estudios). */
+    igdbGame?: IgdbGameLookup;
+  } = {},
 ): Promise<TimeEstimatesOutcome> {
   if (TIME_TO_BEAT_MOCKS_ENABLED) {
     const mocked = mockTimeEstimates(gameName);
@@ -63,7 +69,7 @@ export async function fetchTimeEstimates(
     };
   }
 
-  const lookup = await findIgdbTimeToBeat(gameName);
+  const lookup = await findIgdbTimeToBeat(gameName, context.igdbGame);
   if (lookup.status === "ok") {
     return {
       beatMinutes: lookup.times.beatMinutes,

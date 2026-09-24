@@ -92,6 +92,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn.akamai.steamstatic.com" },
       // Capturas que suben los usuarios (bucket público de Supabase Storage).
       { protocol: "https", hostname: "*.supabase.co" },
+      // Carátulas y logos de estudios de IGDB (issue #193).
+      { protocol: "https", hostname: "images.igdb.com" },
     ],
   },
 };

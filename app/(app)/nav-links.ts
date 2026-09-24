@@ -28,7 +28,13 @@ const BIBLIOTECA: NavLink = {
   // Las listas pregeneradas (#192) se descubren en Biblioteca › Listas.
   alsoActiveOn: ["/juegos", "/listas/sistema"],
 };
-const BUSCAR: NavLink = { href: "/buscar", label: "Buscar", icon: "search" };
+const BUSCAR: NavLink = {
+  href: "/buscar",
+  label: "Buscar",
+  icon: "search",
+  // Los estudios (#193) se descubren desde la ficha y desde Buscar (#194).
+  alsoActiveOn: ["/estudios"],
+};
 const ACTIVIDAD: NavLink = { href: "/actividad", label: "Actividad", icon: "bolt" };
 const PERFIL: NavLink = {
   href: "/perfil",
@@ -76,6 +82,7 @@ export function isActiveLink(pathname: string, link: NavLink): boolean {
 export function sectionTitle(pathname: string): string | null {
   if (matchesPrefix(pathname, "/configuracion")) return "Configuración";
   if (matchesPrefix(pathname, "/listas")) return "Listas";
+  if (matchesPrefix(pathname, "/estudios")) return "Estudio";
   if (matchesPrefix(pathname, "/juegos")) return null;
   for (const link of [BIBLIOTECA, BUSCAR, ACTIVIDAD, PERFIL]) {
     if (isActiveLink(pathname, link)) return link.label;

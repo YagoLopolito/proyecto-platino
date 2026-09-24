@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { GameArt } from "@/components/game/GameArt";
 import type { GameCardData } from "@/lib/catalog/details";
 import { TimeToBeat, timeToBeatProps } from "@/components/game/TimeToBeat";
@@ -54,9 +55,16 @@ export function GameHero({
   const meta = [
     game.releaseYear !== null ? String(game.releaseYear) : null,
     game.platform,
-    // Texto por ahora: los estudios linkeables llegan con el sub-issue #193.
-    game.developer,
+    // Sin estudios de IGDB (juego que no conoce, o todavía sin consultar)
+    // queda la desarrolladora en texto que trae RAWG.
+    game.studios.length === 0 ? game.developer : null,
   ].filter((value): value is string => Boolean(value));
+
+  // Estudios linkeables (issue #193): desarrolladoras primero, después
+  // publishers. Un estudio que desarrolla y publica aparece una sola vez.
+  const studios = game.studios
+    .filter((studio) => studio.role === "developer" || studio.role === "publisher")
+    .filter((studio, index, all) => all.findIndex((s) => s.slug === studio.slug) === index);
 
   return (
     <div className="relative">
@@ -112,6 +120,21 @@ export function GameHero({
             {badges}
           </h1>
           {meta.length > 0 && <p className="type-overline text-ink-faint">{meta.join(" · ")}</p>}
+          {studios.length > 0 && (
+            <p aria-label="Estudios" className="flex flex-wrap gap-x-2 type-overline text-ink-faint">
+              {studios.map((studio, index) => (
+                <span key={studio.slug}>
+                  <Link
+                    href={`/estudios/${encodeURIComponent(studio.slug)}`}
+                    className="text-ink-muted hover:text-accent-ink hover:underline"
+                  >
+                    {studio.name}
+                  </Link>
+                  {index < studios.length - 1 && <span aria-hidden="true"> ·</span>}
+                </span>
+              ))}
+            </p>
+          )}
           {playtime && (
             <p className="inline-flex items-center gap-1.5 rounded-chip border border-border bg-surface/70 px-2.5 py-1 type-meta text-ink-muted">
               <Icon name="clock" className="h-3.5 w-3.5 text-ink-faint" />

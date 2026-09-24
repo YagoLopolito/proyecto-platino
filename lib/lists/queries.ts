@@ -141,7 +141,16 @@ export async function countPlayed(
   viewerId: string,
   gameIds: string[],
 ): Promise<number> {
-  if (gameIds.length === 0) return 0;
+  return (await getPlayedGameIds(supabase, viewerId, gameIds)).size;
+}
+
+/** Cuáles de `gameIds` jugó quien mira (mismo criterio que `countPlayed`). */
+export async function getPlayedGameIds(
+  supabase: Client,
+  viewerId: string,
+  gameIds: string[],
+): Promise<Set<string>> {
+  if (gameIds.length === 0) return new Set();
   const wanted = new Set(gameIds);
 
   const [{ data: stats }, { data: diary }] = await Promise.all([
@@ -158,7 +167,7 @@ export async function countPlayed(
     if (!wanted.has(row.game_id)) continue;
     if (row.platinum > 0 || (row.total > 0 && row.obtained === row.total)) played.add(row.game_id);
   }
-  return played.size;
+  return played;
 }
 
 /** En cuántas de tus listas está el juego (el estado del toggle "Lista" de la ficha). */
