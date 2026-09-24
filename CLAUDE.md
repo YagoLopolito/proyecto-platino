@@ -1022,6 +1022,38 @@ El cuarto botón: un log de frases, como la Activity de Letterboxd. Tabs **Amigo
   el trofeo que aportó el dueño del proyecto (`scripts/generate-platinum-trophy.mjs` le saca el
   damero pintado del PNG original).
 
+## Perfil › Perfil (epic #183, issue #196)
+
+La tab principal del quinto botón, en el orden de la app de Letterboxd: cabecera (avatar
+centrado y bio en mobile; la banda degradada queda sólo en escritorio), **Favoritos** (el Top 5
+de siempre), **Jugando ahora** (sólo si hay algo), **Últimas reseñas** (5 pósters con estrellas
+y el ícono `note` si hay texto, más "Ver todas tus reseñas"), **Tus puntuaciones** y
+**Estadísticas**. En `lg` las dos últimas van en un sidebar; el orden del DOM es el de mobile.
+
+- **`users.bio`** (160 caracteres, migración `20260929000000_users_bio.sql`, también en
+  `public_profiles`): se edita en **Configuración › Perfil** (`saveBio`, doble capa con el
+  `check` y `users_update_own`). `MAX_BIO_LENGTH` vive en `lib/profile/constants.ts`.
+- **`lib/profile/stats.ts` es puro** (se testea desde el spec): histograma de 10 escalones de
+  media estrella con el **último rating puntuado** de cada juego (criterio de `game_scores`),
+  `entriesForRatingStep` (el filtro de `/perfil/resenas?rating=N`, mismo criterio para que la
+  barra y la lista coincidan), `summarizePlayed` ("jugado" = platino, 100% o diario, sin contar
+  dos veces) y los años. Una `date` se corta como string; un `timestamptz` (platino, 100%) se
+  resuelve en **`APP_TIME_ZONE`** (Buenos Aires), no en la zona del proceso: en Vercel es UTC
+  y corría a enero los platinos de la noche del 31/12.
+- `lib/profile/summary.ts` (`getOwnProfileSummary`, con `cache()`) junta diario + platinos
+  (`user_trophies`, privado: **sólo perfil propio**) + 100% (`game_diary_entries.completed_at`)
+  y lo comparten la pantalla y los expandidos. `lib/profile/overview.ts` tiene los contadores
+  (`getProfileCounts`), seguidores, likes dados y la bio.
+- **Estadísticas** (`ProfileStatsMenu`, filas con chevron): Juegos jugados, Platinos, 100% en
+  Steam (sólo con Steam o algún 100%), Diario, Reseñas, Playlist, Listas, Likes, Siguiendo,
+  Seguidores y Resumen del año. Platinos y 100% **nunca se suman**. Los expandidos
+  (`/perfil/jugados`, `/platinos`, `/completados`, `/resenas`, `/likes`, `/siguiendo`,
+  `/seguidores`) viven en el grupo `app/(app)/perfil/(expandidos)/`, **fuera** de las
+  `SwipeTabs` de `(propio)`: no son tabs. El nivel de PSN y la `TrophyTypeStrip` se mudaron al
+  expandido de Platinos.
+- `FriendsStrip` ya no está en el perfil propio (lo reemplaza Siguiendo); sigue en
+  `/perfil/[id]` hasta #197.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -1033,6 +1065,7 @@ El cuarto botón: un log de frases, como la Activity de Letterboxd. Tabs **Amigo
 - `guide_steps` — pasos de una guía, opcionalmente ligados a un `trophy_id`.
 - `user_guide_progress` — checklist de pasos completados por el usuario, independiente de si el trofeo ya sincronizó.
 - `ai_game_plans` — planes generados por el advisor de IA por juego (`payload_json` con la estructura de `lib/ai/schema.ts`, `user_id` nullable si el plan es genérico/compartible). Ver `PRODUCT_SPEC.md` sección 6 para el detalle de columnas y RLS.
+- `users.bio` — bio corta del perfil (160), pública vía `public_profiles`.
 - `steam_accounts` — vínculo user ↔ Steam (steam_id64, persona_name, avatar, visibilidad del perfil,
   última sync). Planeado, ver sección de Steam arriba.
 - `now_playing` — rachas de "Jugando ahora" (inicio, fin y motivo), públicas. Ver la sección de arriba.

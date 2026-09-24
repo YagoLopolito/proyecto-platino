@@ -20,6 +20,8 @@ export interface DiaryTimelineEntry {
    * columna que escribe la auto-detección del sync (`completed_at`).
    */
   isCompleted: boolean;
+  /** Cuándo llegó al 100% (fecha del último logro), o `null`. */
+  completedAt: string | null;
 }
 
 export type DiaryTimelineOutcome =
@@ -75,6 +77,7 @@ export async function getUserDiaryEntries(
         playthroughNumber: row.playthrough_number,
         isPlatinum: platinumGameIds.has(row.game_id),
         isCompleted: row.completed_at !== null,
+        completedAt: row.completed_at,
       };
     }),
   };

@@ -1,5 +1,6 @@
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
+import { testGameTitle } from "../helpers/ids";
 
 /**
  * Perfil: Top 5 elegido por el usuario y perfil público de otro usuario
@@ -18,7 +19,7 @@ test.describe.serial("Perfil", () => {
   test("PROF-06: el perfil ya no muestra 'Últimos jugados'", async ({ page }) => {
     await page.goto("/perfil");
 
-    await expect(page.getByRole("heading", { name: "Top 5" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Favoritos" })).toBeVisible();
     await expect(page.getByText("Últimos jugados")).toHaveCount(0);
   });
 
@@ -86,8 +87,17 @@ test.describe.serial("Perfil", () => {
 
     await page.goto("/perfil");
 
-    const entries = page.getByTestId("profile-diary-entry");
-    await expect(entries.filter({ hasText: "[E2E] Reseña de prueba del perfil" })).toHaveCount(1);
+    // Desde #196 la fila muestra estrellas y el ícono de "tiene reseña"; el
+    // texto vive en /perfil/resenas.
+    const entry = page
+      .getByTestId("profile-diary-entry")
+      .filter({ has: page.getByRole("link", { name: testGameTitle("Perfil Diario") }) });
+    await expect(entry).toHaveCount(1);
+    await expect(entry.getByRole("img", { name: "Tiene reseña" })).toBeVisible();
+    await page.goto("/perfil/resenas");
+    await expect(
+      page.getByTestId("own-review").filter({ hasText: "[E2E] Reseña de prueba del perfil" }),
+    ).toHaveCount(1);
   });
 
   test("PROF-09: el perfil de otro usuario muestra su Top 5 y sus reseñas", async ({

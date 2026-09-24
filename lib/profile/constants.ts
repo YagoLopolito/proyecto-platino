@@ -6,3 +6,6 @@
  * desde el cliente rompe el build (misma razón que `lib/catalog/constants.ts`).
  */
 export const MAX_FAVORITE_GAMES = 5;
+
+/** Largo máximo de la bio del perfil. Coincide con el `check` de `users.bio`. */
+export const MAX_BIO_LENGTH = 160;

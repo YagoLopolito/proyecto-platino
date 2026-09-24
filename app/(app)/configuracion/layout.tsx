@@ -2,15 +2,18 @@ import type { ReactNode } from "react";
 import { ConfigTabs } from "./ConfigTabs";
 
 /**
- * Configuración es la casa de todo lo que no es contenido: por ahora solo
- * Conexiones, pero la estructura de tabs ya está lista para el nombre de
+ * Configuración es la casa de todo lo que no es contenido: Conexiones y
+ * Perfil (la bio, #196). La estructura de tabs ya está lista para el nombre de
  * usuario, las preferencias del diario y el borrado de cuenta.
  *
  * `max-w-2xl`: es el ancho de las pantallas de formulario (Configuración y
  * las de auth), contra el `max-w-5xl` de las de listado. Son los dos únicos
  * anchos de contenedor de la app.
  */
-const TABS = [{ href: "/configuracion/conexiones", label: "Conexiones" }];
+const TABS = [
+  { href: "/configuracion/conexiones", label: "Conexiones" },
+  { href: "/configuracion/perfil", label: "Perfil" },
+];
 
 export default function ConfiguracionLayout({ children }: { children: ReactNode }) {
   return (

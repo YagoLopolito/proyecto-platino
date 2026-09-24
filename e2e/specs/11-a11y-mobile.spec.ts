@@ -172,7 +172,7 @@ test.describe("Mobile", () => {
 
     // Con o sin favoritos elegidos, lo que se verifica es la grilla: cinco
     // columnas, para que el Top 5 no se lea como "hay más abajo".
-    const heading = page.getByRole("heading", { name: "Top 5" });
+    const heading = page.getByRole("heading", { name: "Favoritos" });
     await expect(heading).toBeVisible();
 
     const columns = await page.evaluate(() => {

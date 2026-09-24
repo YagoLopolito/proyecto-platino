@@ -1205,18 +1205,21 @@ export type Database = {
       };
       users: {
         Row: {
+          bio: string | null;
           created_at: string;
           display_name: string | null;
           id: string;
           updated_at: string;
         };
         Insert: {
+          bio?: string | null;
           created_at?: string;
           display_name?: string | null;
           id: string;
           updated_at?: string;
         };
         Update: {
+          bio?: string | null;
           created_at?: string;
           display_name?: string | null;
           id?: string;
@@ -1229,6 +1232,7 @@ export type Database = {
       public_profiles: {
         Row: {
           avatar_url: string | null;
+          bio: string | null;
           display_name: string | null;
           earned_bronze: number | null;
           earned_gold: number | null;

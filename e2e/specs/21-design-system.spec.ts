@@ -79,10 +79,11 @@ test.describe("Sistema de diseño", () => {
   });
 
   test("DS-03: la escala tipográfica está compilada y produce jerarquía real", async ({ page }) => {
-    await page.goto("/perfil");
+    await page.goto("/perfil/platinos");
 
-    // La tira de stats del perfil usa los dos extremos de la escala: el número
-    // grande (`type-stat`) y la etiqueta en versalitas (`type-overline`).
+    // La tira de trofeos por tipo (en Perfil › Platinos desde #196) usa los dos
+    // extremos de la escala: el número grande (`type-stat`) y la etiqueta en
+    // versalitas (`type-overline`).
     const stat = page.locator(".type-stat").first();
     const overline = page.locator(".type-overline").first();
     await expect(stat).toBeVisible();
