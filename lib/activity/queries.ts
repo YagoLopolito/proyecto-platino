@@ -89,14 +89,14 @@ export async function getActivityPage(
     actorIds.length
       ? supabase
           .from("public_profiles")
-          .select("id, display_name, psn_online_id, avatar_url")
+          .select("id, display_name, profile_name, profile_avatar_url")
           .in("id", actorIds)
       : Promise.resolve({
           data: [] as {
             id: string | null;
             display_name: string | null;
-            psn_online_id: string | null;
-            avatar_url: string | null;
+            profile_name: string | null;
+            profile_avatar_url: string | null;
           }[],
         }),
   ]);
@@ -111,8 +111,8 @@ export async function getActivityPage(
               profile.id,
               {
                 id: profile.id,
-                name: profile.psn_online_id ?? profile.display_name ?? "Usuario sin nombre",
-                avatarUrl: profile.avatar_url,
+                name: profile.profile_name ?? profile.display_name ?? "Usuario sin nombre",
+                avatarUrl: profile.profile_avatar_url,
               },
             ] as const,
           ]

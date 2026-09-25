@@ -75,7 +75,7 @@ async function getAuthorProfiles(
 
   const { data } = await supabase
     .from("public_profiles")
-    .select("id, display_name, psn_online_id, avatar_url")
+    .select("id, display_name, profile_name, profile_avatar_url")
     .in("id", authorIds);
 
   for (const profile of data ?? []) {
@@ -83,9 +83,9 @@ async function getAuthorProfiles(
     out.set(profile.id, {
       label: profileLabel({
         displayName: profile.display_name,
-        psnOnlineId: profile.psn_online_id,
+        profileName: profile.profile_name,
       }),
-      avatarUrl: profile.avatar_url,
+      avatarUrl: profile.profile_avatar_url,
     });
   }
   return out;

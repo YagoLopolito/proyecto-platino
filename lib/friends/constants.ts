@@ -5,10 +5,10 @@
  */
 export const USER_SEARCH_LIMIT = 30;
 
-/** Nombre a mostrar de un usuario: PSN primero, después el nombre de la app. */
+/** Nombre a mostrar de un usuario: nombre de la plataforma elegida (PSN o Steam) primero, después el nombre de la app. */
 export function profileLabel(profile: {
   displayName: string | null;
-  psnOnlineId: string | null;
+  profileName: string | null;
 }): string {
-  return profile.psnOnlineId ?? profile.displayName ?? "Usuario sin nombre";
+  return profile.profileName ?? profile.displayName ?? "Usuario sin nombre";
 }

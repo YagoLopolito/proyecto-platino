@@ -89,15 +89,15 @@ export async function getFollowers(supabase: Client, userId: string): Promise<Fr
 
   const { data: profiles } = await supabase
     .from("public_profiles")
-    .select("id, display_name, psn_online_id, avatar_url")
+    .select("id, display_name, profile_name, profile_avatar_url")
     .in("id", ids);
   return (profiles ?? []).flatMap((profile) =>
     profile.id
       ? {
           id: profile.id,
           displayName: profile.display_name,
-          psnOnlineId: profile.psn_online_id,
-          avatarUrl: profile.avatar_url,
+          profileName: profile.profile_name,
+          avatarUrl: profile.profile_avatar_url,
         }
       : [],
   );

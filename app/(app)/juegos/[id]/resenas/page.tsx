@@ -73,7 +73,7 @@ export default async function GameReviewsTab({
     authorIds.length
       ? supabase
           .from("public_profiles")
-          .select("id, display_name, psn_online_id")
+          .select("id, display_name, profile_name")
           .in("id", authorIds)
       : Promise.resolve({ data: [] }),
     getReviewLikes(
@@ -85,7 +85,7 @@ export default async function GameReviewsTab({
   const nameById = new Map(
     (profiles ?? []).map((profile) => [
       profile.id,
-      profileLabel({ displayName: profile.display_name, psnOnlineId: profile.psn_online_id }),
+      profileLabel({ displayName: profile.display_name, profileName: profile.profile_name }),
     ]),
   );
 

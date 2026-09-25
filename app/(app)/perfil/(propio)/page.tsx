@@ -48,6 +48,7 @@ export default async function PerfilPage() {
     summary,
     counts,
     bio,
+    { data: shownProfile },
   ] = await Promise.all([
     supabase
       .from("psn_accounts")
@@ -67,6 +68,13 @@ export default async function PerfilPage() {
     getOwnProfileSummary(supabase, user.id),
     getProfileCounts(supabase, user.id),
     getOwnBio(supabase, user.id),
+    // Nombre y foto según la plataforma elegida en Configuración › Perfil
+    // (resuelto en `public_profiles`, igual que lo ven los demás).
+    supabase
+      .from("public_profiles")
+      .select("profile_name, profile_avatar_url")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   const statsByGame = new Map((statsRows ?? []).map((row) => [row.game_id, row]));
@@ -147,10 +155,10 @@ export default async function PerfilPage() {
     <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-8">
         <ProfileHeader
-          name={psnAccount?.online_id ?? "Perfil"}
+          name={shownProfile?.profile_name ?? "Perfil"}
           subtitle={user.email}
           bio={bio}
-          avatarUrl={psnAccount?.avatar_url ?? null}
+          avatarUrl={shownProfile?.profile_avatar_url ?? null}
           badges={
             <>
               {psnAccount && (

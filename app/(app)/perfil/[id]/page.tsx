@@ -93,10 +93,12 @@ export default async function PerfilAjenoPage({ params }: { params: Promise<{ id
           subtitle={isFriend ? "Lo seguís: sus reseñas aparecen en tu actividad." : undefined}
           avatarUrl={profile.avatarUrl}
           badges={
-            profile.psnOnlineId ? (
-              <ProfileBadge icon="gamepad">PSN · {profile.psnOnlineId}</ProfileBadge>
+            profile.profilePlatform && profile.profileName ? (
+              <ProfileBadge icon={profile.profilePlatform === "steam" ? "monitor" : "gamepad"}>
+                {profile.profilePlatform === "steam" ? "Steam" : "PSN"} · {profile.profileName}
+              </ProfileBadge>
             ) : (
-              <ProfileBadge>Sin PSN conectada</ProfileBadge>
+              <ProfileBadge>Sin cuentas conectadas</ProfileBadge>
             )
           }
           actions={<FollowButton userId={profile.id} isFriend={isFriend} />}
