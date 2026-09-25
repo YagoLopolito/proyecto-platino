@@ -94,8 +94,16 @@ function cachedGameCount(cache: unknown): number | null {
   return ids.size;
 }
 
-/** Los estudios ya guardados en `companies` más la búsqueda de IGDB, sin repetir. */
-export async function searchStudios(supabase: Client, query: string): Promise<StudioSearch> {
+/**
+ * Los estudios ya guardados en `companies` más la búsqueda de IGDB, sin
+ * repetir. Con `withIgdb: false` (la tab "Todo") sólo los guardados: IGDB es
+ * la consulta más lenta y la tab Estudios está a un toque.
+ */
+export async function searchStudios(
+  supabase: Client,
+  query: string,
+  { withIgdb = true }: { withIgdb?: boolean } = {},
+): Promise<StudioSearch> {
   const pattern = `%${query.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
   const [{ data: cached }, igdb] = await Promise.all([
     supabase
@@ -103,7 +111,7 @@ export async function searchStudios(supabase: Client, query: string): Promise<St
       .select("igdb_id, name, slug, logo_url, games_cache")
       .ilike("name", pattern)
       .limit(20),
-    searchCompanies(query),
+    withIgdb ? searchCompanies(query) : Promise.resolve(null),
   ]);
 
   const byIgdbId = new Map<number, StudioHit>();
@@ -115,7 +123,7 @@ export async function searchStudios(supabase: Client, query: string): Promise<St
       gameCount: cachedGameCount(row.games_cache),
     });
   }
-  if (igdb.status === "ok") {
+  if (igdb?.status === "ok") {
     for (const hit of igdb.value) {
       const current = byIgdbId.get(hit.igdbId);
       // IGDB sabe el total aunque el caché todavía no se haya llenado.
@@ -129,7 +137,7 @@ export async function searchStudios(supabase: Client, query: string): Promise<St
   }
   return {
     hits: [...byIgdbId.values()].sort((a, b) => (b.gameCount ?? 0) - (a.gameCount ?? 0)),
-    igdbUnavailable: igdb.status === "unavailable",
+    igdbUnavailable: igdb?.status === "unavailable",
   };
 }
 

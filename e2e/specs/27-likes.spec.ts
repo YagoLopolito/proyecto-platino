@@ -76,7 +76,7 @@ test.describe("Likes", () => {
   }) => {
     const { gameId, entryId } = await seedReviewOfB(supabase, users);
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/resenas`);
     const row = page.getByRole("listitem").filter({ hasText: REVIEW });
     const heart = row.getByRole("button", { name: /^Me gusta la reseña de / });
     await expect(heart).toHaveAttribute("aria-pressed", "false");
@@ -115,7 +115,7 @@ test.describe("Likes", () => {
     const listId = await seedListOfB(supabase, users.userA.id, "[E2E] Lista propia", "public");
 
     // En la UI, sobre lo tuyo no hay corazón que tocar.
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/resenas`);
     await expect(page.getByText(OWN_REVIEW)).toBeVisible();
     await expect(page.getByRole("button", { name: /^Me gusta la reseña de / })).toHaveCount(1);
     await page.goto(`/listas/${listId}`);

@@ -241,7 +241,9 @@ export async function toggleGameInList(
     .eq("id", list.id)
     .eq("user_id", user.id);
 
+  // La ficha no se revalida: revalidar la página que se está viendo hace que
+  // la action espere su re-render entero (segundos por toque). El panel
+  // actualiza su estado solo (`AddToListPanel` → `onChange`).
   revalidateLists(list.id);
-  revalidatePath(`/juegos/${ids.data.gameId}`, "layout");
   return { error: null, containsGame: !alreadyIn };
 }

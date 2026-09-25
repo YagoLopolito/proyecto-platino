@@ -292,7 +292,7 @@ test.describe("Sistema de diseño", () => {
     // `SwipeTabs`, no una fila de pills con ancla. Los cuatro emojis que las
     // encabezaban antes del remake (issue #176 §3.3) no pueden volver.
     const tabs = page.getByRole("tablist", { name: "Ficha del juego" });
-    await expect(tabs.getByRole("tab")).toHaveText(["Reseñas", "Trofeos", "Guías e IA"]);
+    await expect(tabs.getByRole("tab")).toHaveText(["Trofeos", "Reseñas", "Guías e IA"]);
     for (const emoji of ["🏆", "✨", "🔗", "📔"]) {
       await expect(tabs).not.toContainText(emoji);
     }
@@ -410,7 +410,7 @@ test.describe("Sistema de diseño", () => {
     const review = "[E2E] Resena en serif de lectura";
     await seedDiaryEntry(supabase, users.userA.id, gameId, review);
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/resenas`);
 
     // La reseña es el otro texto editorial de la app, junto con el nombre del
     // juego (issue #176 §3.2): si cae a la sans, el contraste que justifica
@@ -432,7 +432,7 @@ test.describe("Sistema de diseño", () => {
     });
     await seedDiaryEntry(supabase, users.userA.id, gameId, "[E2E] Resena con rating");
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/resenas`);
 
     // ★ y ☆ son dingbats: cada sistema los dibuja con su propia forma y su
     // propio ancho, así que las cinco estrellas no alineaban entre
@@ -712,7 +712,7 @@ test.describe("Sistema de diseño", () => {
     });
     await seedDiaryEntry(supabase, users.userA.id, gameId, "[E2E] Rating propio");
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/resenas`);
 
     const own = page.getByLabel("9/10").first();
     await expect(own).toBeVisible();
@@ -744,7 +744,7 @@ test.describe("Sistema de diseño", () => {
       { onConflict: "user_id,game_id,playthrough_number" },
     );
 
-    await page.goto(`/juegos/${gameId}`);
+    await page.goto(`/juegos/${gameId}/resenas`);
 
     const others = page.getByLabel("7/10").first();
     await expect(others).toBeVisible();

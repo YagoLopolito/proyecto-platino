@@ -1,10 +1,11 @@
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
 import { testGameTitle } from "../helpers/ids";
+import { SYNOPSIS_MAX_CHARS, toSynopsis } from "@/lib/catalog/synopsis";
 
 /**
  * Ficha de juego unificada con tabs (epic #183, issue #186). Casos
- * FICHA-01..FICHA-05 de TESTING_PRD.md §6.20.
+ * FICHA-01..FICHA-07 de TESTING_PRD.md §6.20.
  *
  * Los IDs son `FICHA-` y no los `GAME-0x` que proponía el issue: esos ya
  * existen en §6.4 (`04-game-detail.spec.ts`) y significan otra cosa.
@@ -28,15 +29,12 @@ test.describe("Ficha de juego unificada", () => {
     try {
       await page.goto(`/juegos/${gameId}`);
       await expect(page.getByRole("heading", { name: testGameTitle("Ficha Ajena") })).toBeVisible();
-      await expect(page.getByRole("tab", { name: "Reseñas" })).toHaveAttribute(
+      // Trofeos es la tab default: existe, pero sin datos (`user_trophies` es
+      // privado y el juego no está en la biblioteca de quien mira).
+      await expect(page.getByRole("tab", { name: "Trofeos" })).toHaveAttribute(
         "aria-selected",
         "true",
       );
-
-      // La tab Trofeos existe, pero sin datos: `user_trophies` es privado y el
-      // juego no está en la biblioteca de quien mira.
-      await page.getByRole("tab", { name: "Trofeos" }).click();
-      await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/trofeos$`));
       await expect(page.getByText(/no está en tu biblioteca/)).toBeVisible();
       await expect(page.getByText("Ficha Ajena - Trofeo 1")).toHaveCount(0);
     } finally {
@@ -56,8 +54,16 @@ test.describe("Ficha de juego unificada", () => {
     });
 
     await page.goto(`/juegos/${gameId}/diario`);
-    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}$`));
+    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/resenas$`));
     await expect(page.getByRole("tab", { name: "Reseñas" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    // `/trofeos` era la tab antes de que Trofeos pasara a ser la default.
+    await page.goto(`/juegos/${gameId}/trofeos`);
+    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}$`));
+    await expect(page.getByRole("tab", { name: "Trofeos" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -83,11 +89,12 @@ test.describe("Ficha de juego unificada", () => {
 
     await page.goto(`/juegos/${gameId}`);
     const tablist = page.getByRole("tablist", { name: "Ficha del juego" });
-    await tablist.getByRole("tab", { name: "Reseñas" }).focus();
+    // Trofeos es la default.
+    await expect(page.getByText("Ficha Tabs - Trofeo 1")).toBeVisible();
+    await tablist.getByRole("tab", { name: "Trofeos" }).focus();
 
     await page.keyboard.press("ArrowRight");
-    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/trofeos$`));
-    await expect(page.getByText("Ficha Tabs - Trofeo 1")).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/resenas$`));
 
     await page.keyboard.press("ArrowRight");
     await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/guias$`));
@@ -171,5 +178,59 @@ test.describe("Ficha de juego unificada", () => {
       .eq("user_id", users.userA.id)
       .eq("game_id", gameId);
     expect(count).toBe(1);
+  });
+
+  test("FICHA-06: la carátula se abre a pantalla completa y se cierra con Escape", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Ficha Pantalla Completa",
+      np: 2306,
+    });
+    await supabase.from("games").update({ cover_url: "/logo.webp" }).eq("id", gameId);
+
+    await page.goto(`/juegos/${gameId}`);
+    const title = testGameTitle("Ficha Pantalla Completa");
+    await page
+      .getByRole("button", { name: `Ver la carátula de ${title} en pantalla completa` })
+      .click();
+    const viewer = page.getByRole("dialog", { name: title });
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByRole("img", { name: title })).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(viewer).toHaveCount(0);
+  });
+
+  test("FICHA-07: la descripción es una sinopsis corta, no el texto entero", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Ficha Sinopsis",
+      np: 2307,
+    });
+    const first = "Primera oración de la sinopsis. Segunda oración corta.";
+    const rest = "Segundo párrafo con detalles de mecánicas que no van en la ficha.";
+    await supabase
+      .from("games")
+      .update({ description: `${first}\n\n${rest}`, description_source: "rawg" })
+      .eq("id", gameId);
+
+    await page.goto(`/juegos/${gameId}`);
+    await expect(page.getByText(first)).toBeVisible();
+    await expect(page.getByText(rest)).toHaveCount(0);
+
+    // La regla, pura: primer párrafo y cortado en una oración completa.
+    const long = `${"Una oración bastante larga que describe el juego. ".repeat(10)}`;
+    const synopsis = toSynopsis(long)!;
+    expect(synopsis.length).toBeLessThanOrEqual(SYNOPSIS_MAX_CHARS);
+    expect(synopsis.endsWith(".")).toBe(true);
+    expect(toSynopsis("   ")).toBeNull();
   });
 });

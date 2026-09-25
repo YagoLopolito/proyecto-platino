@@ -8,9 +8,11 @@ export type PlaylistActionResult = { error: string | null };
 
 const gameIdSchema = z.string().uuid();
 
-function revalidatePlaylist(gameId: string) {
+function revalidatePlaylist() {
   revalidatePath("/perfil", "layout");
-  revalidatePath(`/juegos/${gameId}`, "layout");
+  // La ficha (`/juegos/[id]`) no se revalida a propósito: el toggle del panel
+  // lleva su propio estado, y revalidar la página que se está viendo hace que
+  // la action espere el re-render entero de la ficha (segundos por toque).
 }
 
 /**
@@ -39,7 +41,7 @@ export async function addToPlaylist(gameId: string): Promise<PlaylistActionResul
     );
   if (error) return { error: `No se pudo agregar a la Playlist: ${error.message}` };
 
-  revalidatePlaylist(parsed.data);
+  revalidatePlaylist();
   return { error: null };
 }
 
@@ -60,6 +62,6 @@ export async function removeFromPlaylist(gameId: string): Promise<PlaylistAction
     .eq("game_id", parsed.data);
   if (error) return { error: `No se pudo sacar de la Playlist: ${error.message}` };
 
-  revalidatePlaylist(parsed.data);
+  revalidatePlaylist();
   return { error: null };
 }

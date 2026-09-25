@@ -16,8 +16,9 @@ import { countOwnListsWithGame } from "@/lib/lists/queries";
  * cada una con su propio hero.
  *
  * El layout monta lo que no cambia entre tabs -- el hero y el panel de
- * acciones -- y cada tab es una ruta: Reseñas (`/juegos/[id]`, la default),
- * Trofeos (`/trofeos`) y Guías e IA (`/guias`). Al cambiar de tab Next sólo
+ * acciones -- y cada tab es una ruta: Trofeos (`/juegos/[id]`, la default:
+ * al abrir un juego lo primero que se busca es el progreso), Reseñas
+ * (`/resenas`) y Guías e IA (`/guias`). Al cambiar de tab Next sólo
  * renderiza la página nueva; el hero no se vuelve a pedir.
  *
  * La ficha ya no exige que el juego esté en tu biblioteca: cualquier juego del
@@ -64,8 +65,8 @@ export default async function GameLayout({
   const isSteam = base.source === "steam";
 
   const tabs = [
-    { href: `/juegos/${gameId}`, label: "Reseñas" },
-    { href: `/juegos/${gameId}/trofeos`, label: isSteam ? "Logros" : "Trofeos" },
+    { href: `/juegos/${gameId}`, label: isSteam ? "Logros" : "Trofeos" },
+    { href: `/juegos/${gameId}/resenas`, label: "Reseñas" },
     { href: `/juegos/${gameId}/guias`, label: "Guías e IA" },
   ];
 

@@ -5,8 +5,8 @@ import type { GameCardData } from "@/lib/catalog/details";
 import { TimeToBeat, timeToBeatProps } from "@/components/game/TimeToBeat";
 import { formatPlaytime } from "@/lib/playtime";
 import { Icon } from "@/components/ui/Icon";
-
-const DESCRIPTION_PREVIEW_CHARS = 340;
+import { toSynopsis } from "@/lib/catalog/synopsis";
+import { ExpandableImage } from "@/components/ui/ImageLightbox";
 
 /**
  * Encabezado de la ficha de juego (epic #183, issue #186).
@@ -44,8 +44,8 @@ export function GameHero({
   aside?: ReactNode;
 }) {
   const playtime = formatPlaytime(playtimeMinutes);
-  const description = game.description?.trim() || null;
-  const isLong = description !== null && description.length > DESCRIPTION_PREVIEW_CHARS;
+  // Una sinopsis de un par de oraciones, no la descripción entera de RAWG.
+  const description = toSynopsis(game.description);
 
   // Sin wallpaper propio queda la carátula, que estirada a banner se ve mal:
   // en ese caso se difumina. El wallpaper real va nítido, como en Letterboxd.
@@ -88,6 +88,19 @@ export function GameHero({
           <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background" />
         </div>
       )}
+      {/* El backdrop es decorativo (`pointer-events-none`, detrás del
+          contenido); para verlo entero hay un botón propio arriba a la derecha.
+          Sólo con wallpaper real: la carátula difuminada ya se abre desde el póster. */}
+      {game.backgroundUrl && (
+        <ExpandableImage
+          src={game.backgroundUrl}
+          alt={`Fondo de ${game.name}`}
+          label={`Ver el fondo de ${game.name} en pantalla completa`}
+          className="absolute right-0 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-background/60 text-ink-muted hover:text-ink sm:top-4"
+        >
+          <Icon name="expand" className="h-4 w-4" />
+        </ExpandableImage>
+      )}
 
       <div
         className={`relative z-10 grid grid-cols-[auto_1fr] gap-x-4 gap-y-4 sm:gap-x-6 lg:grid-cols-[13rem_1fr_16rem] ${
@@ -98,14 +111,22 @@ export function GameHero({
             proporciones muy distintas y sin marco la ficha bailaba. */}
         <div className="relative aspect-[3/4] w-28 self-start overflow-hidden rounded-card border border-border-strong bg-surface shadow-lg min-[420px]:w-32 sm:w-44 lg:row-span-2 lg:w-full">
           {game.coverUrl ? (
-            <GameArt
+            // Tocar la carátula la abre a pantalla completa.
+            <ExpandableImage
               src={game.coverUrl}
               alt={game.name}
-              priority
-              sizes="(max-width: 420px) 112px, (max-width: 640px) 128px, 208px"
-              className="object-cover"
-              fallback={<CoverPlaceholder />}
-            />
+              label={`Ver la carátula de ${game.name} en pantalla completa`}
+              className="absolute inset-0 block h-full w-full"
+            >
+              <GameArt
+                src={game.coverUrl}
+                alt={game.name}
+                priority
+                sizes="(max-width: 420px) 112px, (max-width: 640px) 128px, 208px"
+                className="object-cover"
+                fallback={<CoverPlaceholder />}
+              />
+            </ExpandableImage>
           ) : (
             <CoverPlaceholder />
           )}
@@ -121,7 +142,10 @@ export function GameHero({
           </h1>
           {meta.length > 0 && <p className="type-overline text-ink-faint">{meta.join(" · ")}</p>}
           {studios.length > 0 && (
-            <p aria-label="Estudios" className="flex flex-wrap gap-x-2 type-overline text-ink-faint">
+            <p
+              aria-label="Estudios"
+              className="flex flex-wrap gap-x-2 type-overline text-ink-faint"
+            >
               {studios.map((studio, index) => (
                 <span key={studio.slug}>
                   <Link
@@ -148,12 +172,7 @@ export function GameHero({
             no dos copias escondidas por breakpoint: duplicado, el texto
             aparecería dos veces para un lector de pantalla y para los tests. */}
         <div className="col-span-2 space-y-3 lg:col-span-1 lg:col-start-2 lg:row-start-2">
-          <GameAbout
-            game={game}
-            description={description}
-            isLong={isLong}
-            hasPlatinum={hasPlatinum}
-          />
+          <GameAbout game={game} description={description} hasPlatinum={hasPlatinum} />
         </div>
 
         {aside && (
@@ -166,16 +185,14 @@ export function GameHero({
   );
 }
 
-/** Tiempos estimados + descripción, con "Ver más" si es larga. */
+/** Tiempos estimados + sinopsis. */
 function GameAbout({
   game,
   description,
-  isLong,
   hasPlatinum,
 }: {
   game: GameCardData;
   description: string | null;
-  isLong: boolean;
   hasPlatinum: boolean;
 }) {
   return (
@@ -183,23 +200,7 @@ function GameAbout({
       <TimeToBeat {...timeToBeatProps(game)} hasPlatinum={hasPlatinum} />
 
       {description ? (
-        isLong ? (
-          // flex-col + order: con el detalle abierto, el "Ver menos" tiene que
-          // quedar DEBAJO del texto, pero un <summary> siempre va primero en el
-          // DOM (es el disparador del <details>).
-          <details className="group flex flex-col type-review text-ink-muted">
-            <summary className="order-2 cursor-pointer list-none">
-              <span className="group-open:hidden">
-                {description.slice(0, DESCRIPTION_PREVIEW_CHARS).trimEnd()}…{" "}
-                <span className="text-accent-ink">Ver más</span>
-              </span>
-              <span className="hidden text-accent-ink group-open:inline">Ver menos</span>
-            </summary>
-            <p className="order-1 mb-1 whitespace-pre-line">{description}</p>
-          </details>
-        ) : (
-          <p className="type-review text-ink-muted">{description}</p>
-        )
+        <p className="type-review text-ink-muted">{description}</p>
       ) : (
         <p className="type-body text-ink-faint">Sin descripción disponible para este juego.</p>
       )}

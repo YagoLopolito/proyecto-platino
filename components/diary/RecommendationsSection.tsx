@@ -4,8 +4,9 @@ import { GamePoster } from "@/components/game/GamePoster";
 import { PosterRow, PosterRowItem } from "@/components/game/PosterGrid";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Icon } from "@/components/ui/Icon";
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import {
+  dismissKeepPlaying,
   generateRecommendations,
   type RecommendationsActionState,
 } from "@/app/(app)/diario/recommendation-actions";
@@ -60,19 +61,49 @@ export default function RecommendationsSection({
   recommendations,
   games,
   generatedAt,
+  excludeGameIds = [],
 }: {
   recommendations: AiRecommendations | null;
   games: RecommendationGame[];
   generatedAt: string | null;
+  /**
+   * Juegos que ya se muestran en otra fila de la pantalla ("Cerca del
+   * platino"): no se repiten en "Seguí jugando".
+   */
+  excludeGameIds?: string[];
 }) {
   const [state, formAction, pending] = useActionState<RecommendationsActionState, FormData>(
     generateRecommendations,
     initialState,
   );
 
+  // Sacados con la ✕ en esta visita: se esconden al toque (optimista); la
+  // próxima carga ya vienen filtrados del server.
+  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+  const [dismissError, setDismissError] = useState<string | null>(null);
+  const [, startDismiss] = useTransition();
+
+  function dismiss(gameId: string) {
+    setDismissError(null);
+    setDismissed((current) => new Set(current).add(gameId));
+    startDismiss(async () => {
+      const result = await dismissKeepPlaying(gameId);
+      if (result.error) {
+        setDismissError(result.error);
+        setDismissed((current) => {
+          const next = new Set(current);
+          next.delete(gameId);
+          return next;
+        });
+      }
+    });
+  }
+
+  const excluded = new Set(excludeGameIds);
   const gamesById = new Map(games.map((game) => [game.id, game]));
-  const keepPlaying = (recommendations?.seguir_jugando ?? []).filter((item) =>
-    gamesById.has(item.juego_id),
+  const keepPlaying = (recommendations?.seguir_jugando ?? []).filter(
+    (item) =>
+      gamesById.has(item.juego_id) && !excluded.has(item.juego_id) && !dismissed.has(item.juego_id),
   );
   const fresh = recommendations?.nuevos ?? [];
 
@@ -124,28 +155,46 @@ export default function RecommendationsSection({
           {keepPlaying.length > 0 && (
             <div className="space-y-2">
               <h3 className="type-meta font-semibold text-ink-muted">Seguí jugando</h3>
+              {dismissError && (
+                <p role="alert" className="type-caption text-danger">
+                  {dismissError}
+                </p>
+              )}
               <PosterRow>
                 {keepPlaying.map((item) => {
                   const game = gamesById.get(item.juego_id)!;
                   return (
                     <PosterRowItem key={item.juego_id}>
-                      <GamePoster
-                        href={`/juegos/${game.id}`}
-                        name={game.name}
-                        imageUrl={game.imageUrl}
-                        progress={game.total > 0 ? game : null}
-                        showName
-                        overlay={
-                          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-background/85 px-1.5 py-1">
-                            <span className="type-caption tabular-nums text-ink-muted">
-                              {game.percent}%
-                            </span>
-                            <EffortBadge effort={item.esfuerzo} />
-                          </div>
-                        }
-                        caption={<span className="line-clamp-3">{item.motivo}</span>}
-                        sizes="(max-width: 640px) 26vw, 170px"
-                      />
+                      <div className="relative">
+                        {/* Hermano del póster y no adentro: el póster es un
+                          link, y un botón dentro de un link es HTML inválido. */}
+                        <button
+                          type="button"
+                          onClick={() => dismiss(game.id)}
+                          aria-label={`Sacar ${game.name} de Seguí jugando`}
+                          title="No lo voy a jugar más"
+                          className="absolute right-1 top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-background/85 text-ink-muted hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                        >
+                          <Icon name="close" className="h-3.5 w-3.5" />
+                        </button>
+                        <GamePoster
+                          href={`/juegos/${game.id}`}
+                          name={game.name}
+                          imageUrl={game.imageUrl}
+                          progress={game.total > 0 ? game : null}
+                          showName
+                          overlay={
+                            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-background/85 px-1.5 py-1">
+                              <span className="type-caption tabular-nums text-ink-muted">
+                                {game.percent}%
+                              </span>
+                              <EffortBadge effort={item.esfuerzo} />
+                            </div>
+                          }
+                          caption={<span className="line-clamp-3">{item.motivo}</span>}
+                          sizes="(max-width: 640px) 26vw, 170px"
+                        />
+                      </div>
                     </PosterRowItem>
                   );
                 })}

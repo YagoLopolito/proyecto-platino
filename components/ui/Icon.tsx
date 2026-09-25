@@ -53,6 +53,7 @@ export const ICON_NAMES = [
   "search",
   "arrow-down",
   "close",
+  "expand",
   "chevron-down",
   "chevron-right",
   "filters",
@@ -97,6 +98,7 @@ const STROKE_ICONS = new Set<IconName>([
   "plus",
   "logout",
   "heart-outline",
+  "expand",
 ]);
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -254,6 +256,8 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   /** Cerrar un modal, limpiar un campo. Reemplaza al carácter ✕ suelto. */
   close: <path d="M6 6l12 12M18 6 6 18" />,
+  /** Ver una imagen en pantalla completa. */
+  expand: <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />,
   /** Desplegable: `<select>`, disclosure de filtros. */
   "chevron-down": <path d="m6 9 6 6 6-6" />,
   /** Fila de menú que abre otra pantalla (estadísticas del perfil). */

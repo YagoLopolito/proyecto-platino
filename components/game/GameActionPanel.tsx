@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import AddDiaryEntryForm from "@/components/diary/AddDiaryEntryForm";
 import { GameScore } from "@/components/diary/GameScore";
 import { StarRatingDisplay } from "@/components/diary/StarRating";
@@ -24,21 +24,19 @@ function ActionToggle({
   label,
   hint,
   pressed = false,
-  pending = false,
   onClick,
 }: {
   icon: IconName;
   label: string;
   hint?: string;
   pressed?: boolean;
-  pending?: boolean;
   onClick?: () => void;
 }) {
   return (
     <button
       type="button"
       aria-pressed={pressed}
-      disabled={!onClick || pending}
+      disabled={!onClick}
       title={hint}
       onClick={onClick}
       className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 rounded-chip px-2 py-2 type-caption transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink disabled:cursor-not-allowed ${
@@ -110,39 +108,62 @@ export function GameActionPanel({
   const openListDialog = () =>
     setListDialog(window.matchMedia("(min-width: 640px)").matches ? "modal" : "sheet");
   const closeListDialog = () => setListDialog(null);
-  const [playingError, setPlayingError] = useState<string | null>(null);
-  const [playingPending, startPlayingTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   /** Aviso de un efecto colateral, como "Sacado de tu Playlist" (#188). */
   const [notice, setNotice] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
 
-  // El estado que se ve es el del server (la action revalida la ficha): no se
-  // lleva una copia optimista que pueda quedar desfasada si la escritura falla.
+  // Los tres toggles son optimistas: cambian al tocar y la action corre
+  // detrás. Antes "Jugando" esperaba al server y las actions revalidaban la
+  // ficha entera, así que el cambio se veía segundos después del toque. Si la
+  // action falla se vuelve al valor anterior y se muestra el error.
+  //
+  // Las props son la verdad del server: si cambian (otra navegación, un
+  // refresh), el estado local las sigue. Se ajusta durante el render, no en un
+  // effect (ver Convenciones de código).
+  const [playing, setPlaying] = useState(isPlaying);
+  const [playlisted, setPlaylisted] = useState(inPlaylist);
+  const [listCount, setListCount] = useState(inOwnLists);
+  const [serverState, setServerState] = useState({ isPlaying, inPlaylist, inOwnLists });
+  if (
+    serverState.isPlaying !== isPlaying ||
+    serverState.inPlaylist !== inPlaylist ||
+    serverState.inOwnLists !== inOwnLists
+  ) {
+    setServerState({ isPlaying, inPlaylist, inOwnLists });
+    setPlaying(isPlaying);
+    setPlaylisted(inPlaylist);
+    setListCount(inOwnLists);
+  }
+
   function togglePlaying() {
-    setPlayingError(null);
+    setError(null);
     setNotice(null);
-    startPlayingTransition(async () => {
-      const result = isPlaying ? await stopPlaying(gameId) : await startPlaying(gameId);
-      if (result.error) setPlayingError(result.error);
-      else if (result.removedFromPlaylist) setNotice("Sacado de tu Playlist.");
+    const next = !playing;
+    setPlaying(next);
+    startTransition(async () => {
+      const result = next ? await startPlaying(gameId) : await stopPlaying(gameId);
+      if (result.error) {
+        setPlaying(!next);
+        setError(result.error);
+      } else if (result.removedFromPlaylist) {
+        setPlaylisted(false);
+        setNotice("Sacado de tu Playlist.");
+      }
     });
   }
 
-  // La Playlist sí es optimista (lo pide el issue #188): agregar un juego es
-  // un gesto de un toque y tiene que responder al instante. Si la action falla,
-  // `useOptimistic` vuelve solo al valor del server al terminar la transición,
-  // y se muestra el error: ese es el rollback.
-  const [optimisticInPlaylist, setOptimisticInPlaylist] = useOptimistic(inPlaylist);
-  const [playlistError, setPlaylistError] = useState<string | null>(null);
-  const [, startPlaylistTransition] = useTransition();
-
   function togglePlaylist() {
-    setPlaylistError(null);
+    setError(null);
     setNotice(null);
-    const next = !optimisticInPlaylist;
-    startPlaylistTransition(async () => {
-      setOptimisticInPlaylist(next);
+    const next = !playlisted;
+    setPlaylisted(next);
+    startTransition(async () => {
       const result = next ? await addToPlaylist(gameId) : await removeFromPlaylist(gameId);
-      if (result.error) setPlaylistError(result.error);
+      if (result.error) {
+        setPlaylisted(!next);
+        setError(result.error);
+      }
     });
   }
   const close = () => setDialog(null);
@@ -162,27 +183,26 @@ export function GameActionPanel({
           <ActionToggle
             icon="gamepad"
             label="Jugando"
-            hint={isPlaying ? "Dejé de jugarlo" : "Marcar como jugando"}
-            pressed={isPlaying}
-            pending={playingPending}
+            hint={playing ? "Dejé de jugarlo" : "Marcar como jugando"}
+            pressed={playing}
             onClick={togglePlaying}
           />
           <ActionToggle
-            icon={optimisticInPlaylist ? "playlist-check" : "playlist-add"}
+            icon={playlisted ? "playlist-check" : "playlist-add"}
             label="Playlist"
-            hint={optimisticInPlaylist ? "Sacar de tu Playlist" : "Agregar a tu Playlist"}
-            pressed={optimisticInPlaylist}
+            hint={playlisted ? "Sacar de tu Playlist" : "Agregar a tu Playlist"}
+            pressed={playlisted}
             onClick={togglePlaylist}
           />
           <ActionToggle
             icon="list"
             label="Lista"
             hint="Agregar a una lista"
-            pressed={inOwnLists > 0}
+            pressed={listCount > 0}
             onClick={openListDialog}
           />
         </div>
-        <FormError>{playingError ?? playlistError}</FormError>
+        <FormError>{error}</FormError>
         {notice && (
           <p role="status" className="text-center type-caption text-ink-muted">
             {notice}
@@ -274,10 +294,18 @@ export function GameActionPanel({
         onClose={closeListDialog}
         title={LIST_DIALOG_TITLE}
       >
-        <AddToListPanel gameId={gameId} onDone={closeListDialog} />
+        <AddToListPanel
+          gameId={gameId}
+          onDone={closeListDialog}
+          onChange={(delta) => setListCount((count) => Math.max(0, count + delta))}
+        />
       </BottomSheet>
       <Modal open={listDialog === "modal"} onClose={closeListDialog} title={LIST_DIALOG_TITLE}>
-        <AddToListPanel gameId={gameId} onDone={closeListDialog} />
+        <AddToListPanel
+          gameId={gameId}
+          onDone={closeListDialog}
+          onChange={(delta) => setListCount((count) => Math.max(0, count + delta))}
+        />
       </Modal>
       <BottomSheet open={dialog === "sheet"} onClose={close} title={DIALOG_TITLE}>
         <AddDiaryEntryForm gameId={gameId} />

@@ -972,6 +972,7 @@ export type Database = {
           added_at: string;
           game_id: string;
           id: string;
+          keep_playing_dismissed_at: string | null;
           last_played_at: string | null;
           play_suggestion_dismissed_at: string | null;
           playtime_minutes: number | null;
@@ -981,6 +982,7 @@ export type Database = {
           added_at?: string;
           game_id: string;
           id?: string;
+          keep_playing_dismissed_at?: string | null;
           last_played_at?: string | null;
           play_suggestion_dismissed_at?: string | null;
           playtime_minutes?: number | null;
@@ -990,6 +992,7 @@ export type Database = {
           added_at?: string;
           game_id?: string;
           id?: string;
+          keep_playing_dismissed_at?: string | null;
           last_played_at?: string | null;
           play_suggestion_dismissed_at?: string | null;
           playtime_minutes?: number | null;

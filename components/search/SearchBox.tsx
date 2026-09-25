@@ -7,7 +7,7 @@ import { MIN_QUERY_LENGTH } from "@/lib/catalog/constants";
 import { searchHref, type SearchScope } from "@/lib/search/scopes";
 
 /** Espera entre la última tecla y la búsqueda. */
-const DEBOUNCE_MS = 350;
+const DEBOUNCE_MS = 300;
 
 /**
  * El campo de `/buscar` (issue #194). Tipear busca con debounce y deja la
@@ -19,21 +19,33 @@ const DEBOUNCE_MS = 350;
 export function SearchBox({ query, scope }: { query: string; scope: SearchScope }) {
   const router = useRouter();
   const [value, setValue] = useState(query);
+  // La última búsqueda que pidió este campo. Cuando la URL llega con ella es
+  // el eco de lo que ya se tipeó, y el campo NO se pisa: mientras el server
+  // resolvía "insom", el usuario pudo seguir escribiendo "insomniac", y pisar
+  // el campo con la URL le borraba lo último que tipeó (o lo hacía buscar
+  // algo que ya no quería).
+  const [requested, setRequested] = useState(query);
   // Si la URL cambia desde afuera (una reciente, "atrás"), el campo la sigue.
   // Se ajusta durante el render, no en un effect (ver Convenciones de código).
   const [lastQuery, setLastQuery] = useState(query);
   if (query !== lastQuery) {
     setLastQuery(query);
-    setValue(query);
+    if (query.trim() !== requested.trim()) {
+      setRequested(query);
+      setValue(query);
+    }
   }
 
   useEffect(() => {
     const term = value.trim();
-    if (term === query.trim()) return;
+    if (term === requested.trim()) return;
     if (term !== "" && term.length < MIN_QUERY_LENGTH) return;
-    const timer = setTimeout(() => router.replace(searchHref(term, scope)), DEBOUNCE_MS);
+    const timer = setTimeout(() => {
+      setRequested(term);
+      router.replace(searchHref(term, scope), { scroll: false });
+    }, DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [value, query, scope, router]);
+  }, [value, requested, scope, router]);
 
   return (
     <form action="/buscar/ir" method="get" role="search">

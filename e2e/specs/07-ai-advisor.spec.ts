@@ -125,7 +125,7 @@ test.describe("Advisor con IA", () => {
     const chip = advisor.getByRole("link", { name: /Advisor Cuatro - Trofeo 1/ }).first();
     await expect(chip).toBeVisible();
     await chip.click();
-    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/trofeos\\?trofeo=${trophyIds[0]}$`));
+    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}\\?trofeo=${trophyIds[0]}$`));
 
     // El trofeo de la lista queda enfocado y con la ayuda ya pedida: el
     // usuario no tiene que buscarlo ni volver a clickear "Cómo desbloquearlo".

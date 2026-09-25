@@ -63,7 +63,8 @@ export const IGDB_CATALOG_PREFIX = "igdb:";
 export const GAME_CARD_COLUMNS =
   "id, name, platform, cover_url, icon_url, background_url, description, description_source, developer, release_year, external_catalog_id, time_to_beat_minutes, time_to_complete_minutes, time_estimates_source, time_estimates_checked_at, igdb_id, companies_checked_at";
 
-function toCardData(game: GameRow): GameCardData {
+/** La ficha con lo que ya está guardado en la fila, sin consultar nada afuera. */
+export function toCardData(game: GameRow): GameCardData {
   return {
     id: game.id,
     name: game.name,
@@ -147,7 +148,13 @@ export async function getGameCardData(
   const needsTimeEstimates = game.time_estimates_checked_at === null;
   // Estudios (issue #193): misma regla, con su propia marca.
   const needsCompanies = game.companies_checked_at === null;
-  if (!needsDescription && !needsBackground && !needsCover && !needsTimeEstimates && !needsCompanies)
+  if (
+    !needsDescription &&
+    !needsBackground &&
+    !needsCover &&
+    !needsTimeEstimates &&
+    !needsCompanies
+  )
     return base;
 
   try {
