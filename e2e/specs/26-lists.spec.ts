@@ -198,8 +198,10 @@ test.describe("Listas", () => {
     await row.click();
     await expect(row).toHaveAttribute("aria-pressed", "true");
 
-    const items = await listItems(supabase, listId);
-    expect(items.map((item) => item.game_id)).toEqual([other.gameId, target.gameId]);
+    // El tilde es optimista: la escritura puede llegar un instante después.
+    await expect
+      .poll(async () => (await listItems(supabase, listId)).map((item) => item.game_id))
+      .toEqual([other.gameId, target.gameId]);
   });
 
   test("LIST-04: una lista privada no la ve otro usuario", async ({ browser, supabase, users }) => {
