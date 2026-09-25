@@ -6,7 +6,9 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 export interface PublicProfile {
   id: string;
   displayName: string | null;
-  psnOnlineId: string | null;
+  profileName: string | null;
+  /** Plataforma con la que se muestra (nombre y foto); null sin cuentas. */
+  profilePlatform: "psn" | "steam" | null;
   avatarUrl: string | null;
   trophyLevel: number | null;
   trophyProgress: number | null;
@@ -33,7 +35,7 @@ export async function getPublicProfile(
   const { data } = await supabase
     .from("public_profiles")
     .select(
-      "id, display_name, psn_online_id, avatar_url, trophy_level, trophy_progress, earned_platinum, earned_gold, earned_silver, earned_bronze",
+      "id, display_name, profile_name, profile_avatar_url, profile_platform, trophy_level, trophy_progress, earned_platinum, earned_gold, earned_silver, earned_bronze",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -48,8 +50,12 @@ export async function getPublicProfile(
   return {
     id: data.id,
     displayName: data.display_name,
-    psnOnlineId: data.psn_online_id,
-    avatarUrl: data.avatar_url,
+    profileName: data.profile_name,
+    profilePlatform:
+      data.profile_platform === "psn" || data.profile_platform === "steam"
+        ? data.profile_platform
+        : null,
+    avatarUrl: data.profile_avatar_url,
     trophyLevel: data.trophy_level,
     trophyProgress: data.trophy_progress,
     earned: hasTrophyCounts

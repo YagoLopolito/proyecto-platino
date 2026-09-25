@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { MAX_BIO_LENGTH } from "@/lib/profile/constants";
+import { MAX_BIO_LENGTH, PROFILE_PLATFORMS } from "@/lib/profile/constants";
 
 export interface BioActionState {
   error: string | null;
@@ -44,4 +44,41 @@ export async function saveBio(
   revalidatePath("/perfil");
   revalidatePath("/configuracion/perfil");
   return { error: null, success: "Bio guardada." };
+}
+
+export interface ProfilePlatformActionState {
+  error: string | null;
+  success: string | null;
+}
+
+const platformSchema = z.enum(PROFILE_PLATFORMS);
+
+/**
+ * Elige con qué cuenta (PSN o Steam) se muestra el perfil: nombre y foto.
+ * Sólo tiene sentido con las dos conectadas; con una sola, `public_profiles`
+ * usa esa sin importar la preferencia. Doble capa: el valor se valida acá y en
+ * el `check` de `users.profile_platform`; la RLS exige que la fila sea propia.
+ */
+export async function saveProfilePlatform(
+  _prevState: ProfilePlatformActionState,
+  formData: FormData,
+): Promise<ProfilePlatformActionState> {
+  const parsed = platformSchema.safeParse(formData.get("platform"));
+  if (!parsed.success) return { error: "Plataforma inválida.", success: null };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Tu sesión expiró. Volvé a iniciar sesión.", success: null };
+
+  const { error } = await supabase
+    .from("users")
+    .update({ profile_platform: parsed.data })
+    .eq("id", user.id);
+  if (error) return { error: "No se pudo guardar. Probá de nuevo.", success: null };
+
+  revalidatePath("/perfil", "layout");
+  revalidatePath("/configuracion/perfil");
+  return { error: null, success: "Listo: tu perfil se muestra con esa cuenta." };
 }

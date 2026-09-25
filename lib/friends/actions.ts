@@ -36,7 +36,7 @@ export async function searchUsers(query: string): Promise<SearchUsersOutcome> {
 
   let profilesQuery = supabase
     .from("public_profiles")
-    .select("id, display_name, psn_online_id, avatar_url")
+    .select("id, display_name, profile_name, profile_avatar_url")
     .neq("id", user.id)
     .limit(USER_SEARCH_LIMIT);
 
@@ -44,7 +44,9 @@ export async function searchUsers(query: string): Promise<SearchUsersOutcome> {
     // `%` y `,` romperían el filtro `or` de PostgREST, que separa condiciones
     // por coma; se escapan antes de armarlo.
     const safe = term.replace(/[%,]/g, " ");
-    profilesQuery = profilesQuery.or(`psn_online_id.ilike.%${safe}%,display_name.ilike.%${safe}%`);
+    profilesQuery = profilesQuery.or(
+      `psn_online_id.ilike.%${safe}%,steam_persona_name.ilike.%${safe}%,display_name.ilike.%${safe}%`,
+    );
   }
 
   const [{ data: profiles, error }, { data: friendRows }] = await Promise.all([
@@ -65,8 +67,8 @@ export async function searchUsers(query: string): Promise<SearchUsersOutcome> {
       .map((profile) => ({
         id: profile.id,
         displayName: profile.display_name,
-        psnOnlineId: profile.psn_online_id,
-        avatarUrl: profile.avatar_url,
+        profileName: profile.profile_name,
+        avatarUrl: profile.profile_avatar_url,
         isFriend: friendIds.has(profile.id),
       })),
   };

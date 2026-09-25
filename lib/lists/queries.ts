@@ -90,7 +90,7 @@ export async function getList(supabase: Client, listId: string): Promise<ListDet
 
   const { data: author } = await supabase
     .from("public_profiles")
-    .select("display_name, psn_online_id, avatar_url")
+    .select("display_name, profile_name, profile_avatar_url")
     .eq("id", list.user_id)
     .maybeSingle();
 
@@ -121,8 +121,8 @@ export async function getList(supabase: Client, listId: string): Promise<ListDet
     createdAt: list.created_at,
     updatedAt: list.updated_at,
     author: {
-      name: author?.psn_online_id ?? author?.display_name ?? "Usuario sin nombre",
-      avatarUrl: author?.avatar_url ?? null,
+      name: author?.profile_name ?? author?.display_name ?? "Usuario sin nombre",
+      avatarUrl: author?.profile_avatar_url ?? null,
     },
     items,
   };
@@ -240,7 +240,7 @@ async function toListRows(
   const [{ data: profiles }, { data: likes }] = await Promise.all([
     supabase
       .from("public_profiles")
-      .select("id, display_name, psn_online_id, avatar_url")
+      .select("id, display_name, profile_name, profile_avatar_url")
       .in("id", ownerIds),
     supabase
       .from("list_likes")
@@ -268,8 +268,8 @@ async function toListRows(
         name:
           list.user_id === viewerId
             ? "Vos"
-            : (profile?.psn_online_id ?? profile?.display_name ?? "Usuario sin nombre"),
-        avatarUrl: profile?.avatar_url ?? null,
+            : (profile?.profile_name ?? profile?.display_name ?? "Usuario sin nombre"),
+        avatarUrl: profile?.profile_avatar_url ?? null,
       },
       itemCount: items.length,
       covers: items

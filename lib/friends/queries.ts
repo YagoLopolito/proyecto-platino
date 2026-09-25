@@ -6,7 +6,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 export interface FriendProfile {
   id: string;
   displayName: string | null;
-  psnOnlineId: string | null;
+  profileName: string | null;
   avatarUrl: string | null;
 }
 
@@ -29,7 +29,7 @@ export async function getFriends(
 
   const { data: profiles } = await supabase
     .from("public_profiles")
-    .select("id, display_name, psn_online_id, avatar_url")
+    .select("id, display_name, profile_name, profile_avatar_url")
     .in("id", friendIds);
 
   return (profiles ?? [])
@@ -37,7 +37,7 @@ export async function getFriends(
     .map((profile) => ({
       id: profile.id,
       displayName: profile.display_name,
-      psnOnlineId: profile.psn_online_id,
-      avatarUrl: profile.avatar_url,
+      profileName: profile.profile_name,
+      avatarUrl: profile.profile_avatar_url,
     }));
 }

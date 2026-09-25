@@ -1078,6 +1078,13 @@ y el ícono `note` si hay texto, más "Ver todas tus reseñas"), **Tus puntuacio
   `/seguidores`) viven en el grupo `app/(app)/perfil/(expandidos)/`, **fuera** de las
   `SwipeTabs` de `(propio)`: no son tabs. El nivel de PSN y la `TrophyTypeStrip` se mudaron al
   expandido de Platinos.
+- **Perfil como PSN o Steam**: `users.profile_platform` (`psn` / `steam` / NULL = automático,
+  migración `20261001000000_users_profile_platform.sql`). `public_profiles` la resuelve en
+  `profile_platform`, `profile_name` y `profile_avatar_url`: con una sola cuenta conectada se
+  usa esa (sólo Steam → nombre y foto de Steam), con las dos se respeta la elección (default
+  PSN). Todo lo que muestra el nombre o la foto de un usuario lee esas columnas, nunca
+  `psn_online_id` / `avatar_url` directo. Se elige en Configuración › Perfil, que muestra el
+  selector sólo con las dos cuentas conectadas.
 - `FriendsStrip` ya no está en el perfil propio (lo reemplaza Siguiendo) ni, desde #197, en
   el ajeno.
 

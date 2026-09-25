@@ -9,3 +9,7 @@ export const MAX_FAVORITE_GAMES = 5;
 
 /** Largo máximo de la bio del perfil. Coincide con el `check` de `users.bio`. */
 export const MAX_BIO_LENGTH = 160;
+
+/** Plataformas con las que se puede mostrar el perfil (`users.profile_platform`). */
+export const PROFILE_PLATFORMS = ["psn", "steam"] as const;
+export type ProfilePlatform = (typeof PROFILE_PLATFORMS)[number];
