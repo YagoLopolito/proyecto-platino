@@ -79,7 +79,7 @@ export async function getRecommendationCandidates(
     supabase
       .from("user_games")
       .select(
-        "playtime_minutes, keep_playing_dismissed_at, games!inner (id, name, platform, cover_url, icon_url, source)",
+        "playtime_minutes, last_played_at, keep_playing_dismissed_at, games!inner (id, name, platform, cover_url, icon_url, source)",
       )
       .eq("user_id", userId),
     supabase.rpc("get_library_trophy_stats"),
@@ -155,8 +155,8 @@ export async function getRecommendationCandidates(
     // Un juego sin trofeos sincronizados todavía no tiene nada que "seguir":
     // no se puede estimar cuánto le falta ni si lo empezó.
     if (stats.total === 0) continue;
-    // El usuario lo sacó de "Seguí jugando": no lo va a jugar más.
-    if (row.keep_playing_dismissed_at !== null) continue;
+    // El usuario lo sacó de "Seguí jugando" y no lo volvió a jugar desde entonces.
+    if (isKeepPlayingDismissed(row)) continue;
     // Más del 80% ya sale en "Cerca del platino", justo debajo: repetirlo en
     // "Seguí jugando" gastaba lugares de la fila en lo que ya está a la vista.
     const percent = Math.round((stats.obtained / stats.total) * 100);
@@ -214,6 +214,20 @@ function comparePlayedSignal(a: RecommendationPlayedGame, b: RecommendationPlaye
   return (b.percent ?? 0) - (a.percent ?? 0);
 }
 
+/**
+ * Sacado de "Seguí jugando" y sin sesiones nuevas desde entonces. La marca
+ * guarda el `last_played_at` del momento de sacarlo: si el sync trae uno
+ * posterior, lo volvió a jugar y vuelve a la fila.
+ */
+function isKeepPlayingDismissed(row: {
+  last_played_at: string | null;
+  keep_playing_dismissed_at: string | null;
+}): boolean {
+  if (row.keep_playing_dismissed_at === null) return false;
+  if (row.last_played_at === null) return true;
+  return Date.parse(row.last_played_at) <= Date.parse(row.keep_playing_dismissed_at);
+}
+
 export type CachedRecommendations = {
   recommendations: AiRecommendations;
   /** Los juegos de `seguir_jugando`, resueltos para poder mostrar carátula y progreso. */
@@ -247,7 +261,7 @@ export async function getCachedRecommendations(
     // Los que el usuario sacó de "Seguí jugando" después de generarlas.
     supabase
       .from("user_games")
-      .select("game_id")
+      .select("game_id, last_played_at, keep_playing_dismissed_at")
       .eq("user_id", userId)
       .not("keep_playing_dismissed_at", "is", null),
   ]);
@@ -257,7 +271,9 @@ export async function getCachedRecommendations(
   const parsed = aiRecommendationsSchema.safeParse(row.payload_json);
   if (!parsed.success) return null;
 
-  const dismissedIds = new Set((dismissed ?? []).map((r) => r.game_id));
+  const dismissedIds = new Set(
+    (dismissed ?? []).filter(isKeepPlayingDismissed).map((r) => r.game_id),
+  );
   const recommendations: AiRecommendations = {
     ...parsed.data,
     seguir_jugando: parsed.data.seguir_jugando.filter((item) => !dismissedIds.has(item.juego_id)),

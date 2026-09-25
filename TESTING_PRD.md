@@ -307,7 +307,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | LIB-10 | Secciones de `/biblioteca` (`28-library-home.spec.ts`) | Recomendados → Cerca del platino → Tu biblioteca, con Jugando ahora antes si hay algo; `?q=` y `?fuente=` siguen filtrando la grilla | P1 |
 | LIB-11 | Recomendaciones en la Biblioteca | "Recomendados para vos" se ve en `/biblioteca` (mock de Groq) y ya no en `/perfil/diario` | P1 |
 | LIB-12 | Cerca del platino | Un juego a más del 80% sin platino aparece; uno platinado al 91% y uno al 50% no; `selectNearPlatinum` ordena por % y en Steam cierra al 100% (test puro) | P1 |
-| LIB-13 | Seguí jugando | Un juego a más del 80% recomendado para seguir no se repite en "Seguí jugando" (ya está en Cerca del platino); la ✕ saca un juego, escribe `user_games.keep_playing_dismissed_at` y no vuelve al recargar | P1 |
+| LIB-13 | Seguí jugando | Un juego a más del 80% recomendado para seguir no se repite en "Seguí jugando" (ya está en Cerca del platino); la ✕ saca un juego, escribe `user_games.keep_playing_dismissed_at` y no vuelve al recargar, salvo que el sync traiga un `last_played_at` posterior | P1 |
 | SYNC-09 | Orden por última jugada | Sin recarga de página (PR #49) | P2 |
 | SYNC-10 | Juegos `source='catalog'` no aparecen | Un juego de catálogo del diario no se lista en `/juegos` | P1 |
 | SYNC-11 | `/api/cron/sync` sin `CRON_SECRET` | 401 | **P0 (seguridad)** |

@@ -1336,10 +1336,11 @@ inferido por IA a partir de los juegos ya platinados (PSN) o al 100% (Steam).
   lista desde las props del server y usa estado local solo para el error y el pending.
 - **"Seguí jugando" no repite "Cerca del platino"**: la sección recibe los ids de esa fila
   (`excludeGameIds`) y los esconde, y los candidatos que se le mandan a la IA ya excluyen lo
-  que está a más del 80%. La ✕ de cada carátula saca el juego para siempre
-  (`dismissKeepPlaying`, escribe `user_games.keep_playing_dismissed_at`, migración
-  `20260930000000_user_games_keep_playing_dismissed.sql`): se filtra al leer la última
-  generación y no vuelve a ser candidato.
+  que está a más del 80%. La ✕ de cada carátula saca el juego (`dismissKeepPlaying`,
+  migración `20260930000000_user_games_keep_playing_dismissed.sql`):
+  `user_games.keep_playing_dismissed_at` guarda el `last_played_at` del juego en ese
+  momento, y mientras el sync no traiga una sesión posterior se filtra al leer la última
+  generación y no es candidato. **Si lo vuelve a jugar, vuelve solo** (decisión de producto).
 - Los juegos de "Para probar" no existen en `games` (el usuario no los tiene), así que van como
   tarjetas de texto y no como grilla de carátulas: no hay ficha adónde linkear.
 

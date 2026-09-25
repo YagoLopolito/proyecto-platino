@@ -214,6 +214,15 @@ test.describe("Biblioteca › Seguí jugando", () => {
 
       await page.reload();
       await expect(recos.getByRole("link", { name: /Seguir A Medias/ })).toHaveCount(0);
+
+      // Si el sync trae una sesión posterior (lo volvió a jugar), vuelve solo.
+      await supabase
+        .from("user_games")
+        .update({ last_played_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() })
+        .eq("user_id", users.userA.id)
+        .eq("game_id", half.gameId);
+      await page.reload();
+      await expect(recos.getByRole("link", { name: /Seguir A Medias/ })).toBeVisible();
     } finally {
       await supabase.from("ai_recommendations").delete().eq("id", row.id);
     }
