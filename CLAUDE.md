@@ -663,9 +663,10 @@ su hero, y sólo abrían juegos de tu `user_games`.
 - **`app/(app)/juegos/[id]/layout.tsx`** monta lo que no cambia entre tabs: `GameHero` (el único
   hero: backdrop, póster, título en `type-display`, metadatos, horas, `TimeToBeat`, descripción)
   y `GameActionPanel` (tercera columna en escritorio, debajo de los datos en mobile). Cada tab
-  es una ruta con su `page.tsx` y `SwipeTabs` las recorre: **Reseñas** (`/juegos/[id]`, la
-  default: tus partidas editables, las de tus amigos primero y después el resto, con el nombre
-  de quien reseñó), **Trofeos** (`/trofeos`: tira de progreso + `TrophyList`) y **Guías e IA**
+  es una ruta con su `page.tsx` y `SwipeTabs` las recorre: **Trofeos** (`/juegos/[id]`, la
+  default: al abrir un juego lo primero que se busca es el progreso; tira de progreso +
+  `TrophyList`), **Reseñas** (`/resenas`: tus partidas editables, las de tus amigos primero y
+  después el resto, con el nombre de quien reseñó) y **Guías e IA**
   (`/guias`: advisor, enlaces externos y capturas; declara `maxDuration = 60` porque de ahí se
   invocan las actions del LLM y de Steam).
 - **`lib/game-page/data.ts`** tiene los loaders compartidos con `cache()` de React
@@ -692,8 +693,24 @@ su hero, y sólo abrían juegos de tu `user_games`.
   del advisor son links a `/juegos/[id]/trofeos?trofeo=<id>` (`focusTrophy.ts`) y `TrophyList`
   lee el parámetro durante el render (no en un effect), limpia filtros y enfoca.
 - Las actions revalidan con `revalidatePath("/juegos/<id>", "layout")`, que cubre las tres tabs.
-- Rutas viejas: `/juegos/[id]/diario` → `/juegos/[id]` y `/juegos/[id]/enlaces` →
-  `/juegos/[id]/guias` (`redirects()` de `next.config.ts`). Sus Server Actions quedaron en esas
+- Rutas viejas: `/juegos/[id]/diario` → `/juegos/[id]/resenas`, `/juegos/[id]/trofeos` →
+  `/juegos/[id]` y `/juegos/[id]/enlaces` → `/juegos/[id]/guias` (`redirects()` de
+  `next.config.ts`).
+- **Los toggles del panel (Jugando, Playlist, Lista) son optimistas y sus actions no
+  revalidan `/juegos/[id]`.** `revalidatePath` desde una Server Action re-renderiza la página
+  que se está viendo dentro de la respuesta de la action, y en la ficha eso eran segundos por
+  toque (hero, datos externos, trofeos). El panel lleva su estado local, resincronizado con
+  las props durante el render; si la action falla, vuelve al valor anterior.
+- **Primera apertura con tope** (`CARD_DATA_BUDGET_MS` en `lib/game-page/data.ts`): si los
+  datos externos de `getGameCardData` tardan más de 2,5 s, la ficha sale con lo que ya está en
+  la fila y la consulta termina con `after()` (guarda el caché para la próxima visita).
+- **La descripción es una sinopsis**: `lib/catalog/synopsis.ts` (`toSynopsis`, puro) toma el
+  primer párrafo y lo corta en una oración completa dentro de 280 caracteres. Se aplica al
+  mostrar, no al guardar, así también se arreglan las descripciones largas de RAWG ya cacheadas.
+- **Imágenes a pantalla completa**: `components/ui/ImageLightbox.tsx` (`FullscreenImage` +
+  `ExpandableImage`). La carátula del hero se toca para abrirla, el wallpaper tiene su botón
+  (el backdrop es `pointer-events-none`) y las capturas de la galería se abren desde el
+  lightbox con anterior/siguiente. Sus Server Actions quedaron en esas
   carpetas. `GameBreadcrumb` y `GameDiarySection` se borraron: las tabs y el panel los
   reemplazan.
 
@@ -968,9 +985,19 @@ La tab Lists de Letterboxd: primero lo de tus amigos, después lo que arma Plati
 ## Buscar (epic #183, issue #194): `lib/search/`
 
 El segundo botón de la barra. `/buscar` sin query muestra el campo enfocado y **Búsquedas
-recientes**; con query (≥ `MIN_QUERY_LENGTH`, con debounce) muestra tabs **Juegos · Estudios ·
-Listas · Usuarios**, con todo en la URL (`/buscar?q=insomniac&en=estudios`). Sólo se consulta la
-tab abierta.
+recientes**; con query (≥ `MIN_QUERY_LENGTH`, con debounce) muestra tabs **Todo · Juegos ·
+Estudios · Listas · Usuarios**, con todo en la URL (`/buscar?q=insomniac&en=estudios`). Sólo se
+consulta la tab abierta.
+
+- **Todo es la default** (sin `en`): hasta 5 resultados por ámbito con "Ver todo" a su tab, en
+  paralelo. Estudios ahí sale sólo de `companies` (IGDB es la consulta lenta; la tab Estudios
+  sí lo consulta).
+- **El campo no se pisa con el eco de la URL** (`SearchBox`): guarda la última búsqueda que
+  pidió (`requested`) y sólo sigue a la URL cuando cambia desde afuera (una reciente, "atrás").
+  Antes, la respuesta de "insom" llegaba mientras el usuario ya iba por "insomniac" y le borraba
+  lo tipeado. Los resultados van en un `Suspense` propio y **no hay `loading.tsx`**: con él,
+  cada búsqueda podía reemplazar la pantalla entera, campo incluido.
+- `/buscar/ir` guarda la reciente con `after()`: el redirect sale sin esperar a la base.
 
 - `lib/search/scopes.ts` (puro): ámbitos (`todo` es lo del header, abre Juegos), `searchHref`,
   `saveAndGoHref` y `safeInternalPath`. `queries.ts` (server-only): `searchGames` (`searchCatalog`
@@ -1307,6 +1334,13 @@ inferido por IA a partir de los juegos ya platinados (PSN) o al 100% (Steam).
   route; sigue en esa carpeta aunque la sección se mudó) y hace
   `revalidatePath("/biblioteca")`: por eso `RecommendationsSection.tsx` renderiza la
   lista desde las props del server y usa estado local solo para el error y el pending.
+- **"Seguí jugando" no repite "Cerca del platino"**: la sección recibe los ids de esa fila
+  (`excludeGameIds`) y los esconde, y los candidatos que se le mandan a la IA ya excluyen lo
+  que está a más del 80%. La ✕ de cada carátula saca el juego (`dismissKeepPlaying`,
+  migración `20260930000000_user_games_keep_playing_dismissed.sql`):
+  `user_games.keep_playing_dismissed_at` guarda el `last_played_at` del juego en ese
+  momento, y mientras el sync no traiga una sesión posterior se filtra al leer la última
+  generación y no es candidato. **Si lo vuelve a jugar, vuelve solo** (decisión de producto).
 - Los juegos de "Para probar" no existen en `games` (el usuario no los tiene), así que van como
   tarjetas de texto y no como grilla de carátulas: no hay ficha adónde linkear.
 

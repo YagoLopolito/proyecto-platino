@@ -1,8 +1,14 @@
 import "server-only";
 import { cache } from "react";
+import { after } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getGameCardData, GAME_CARD_COLUMNS, type GameCardData } from "@/lib/catalog/details";
+import {
+  getGameCardData,
+  toCardData,
+  GAME_CARD_COLUMNS,
+  type GameCardData,
+} from "@/lib/catalog/details";
 import { getGameStudios } from "@/lib/studios/store";
 import { getGameDiarySummary, type GameDiarySummaryOutcome } from "@/lib/diary/queries";
 
@@ -18,6 +24,16 @@ import { getGameDiarySummary, type GameDiarySummaryOutcome } from "@/lib/diary/q
  */
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Cuánto espera la ficha a que se completen los datos externos (RAWG,
+ * SteamGridDB, IGDB, la descripción por IA) la primera vez que alguien la
+ * abre. Pasado eso se muestra con lo que ya hay en la fila y la consulta
+ * termina en segundo plano (`after`): guarda en caché y la próxima visita ya
+ * sale completa. Sin tope, abrir un juego nuevo desde el buscador podía
+ * tardar varios segundos esperando a proveedores lentos.
+ */
+const CARD_DATA_BUDGET_MS = 2500;
 
 export interface GamePageBase {
   supabase: SupabaseServerClient;
@@ -57,7 +73,20 @@ export const getGamePageBase = cache(async (gameId: string): Promise<GamePageBas
   ]);
   if (!game) notFound();
 
-  const fetched = await getGameCardData(supabase, game);
+  const pending = getGameCardData(supabase, game);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const fetched = await Promise.race([
+    pending,
+    new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), CARD_DATA_BUDGET_MS);
+    }),
+  ]).then((result) => {
+    clearTimeout(timer);
+    if (result) return result;
+    // Que termine (y guarde el caché) después de responder.
+    after(() => pending.then(() => undefined));
+    return toCardData(game);
+  });
   // Los estudios recién traídos de IGDB (primera visita) ganan a los guardados.
   const card = {
     ...fetched,

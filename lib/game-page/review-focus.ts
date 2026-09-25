@@ -1,6 +1,6 @@
 /**
  * "Leer más" del feed de Biblioteca › Reseñas (epic #183, issue #191): abre la
- * ficha del juego en su tab Reseñas (la default) con esa reseña enfocada.
+ * ficha del juego en su tab Reseñas (`/juegos/[id]/resenas`) con esa reseña enfocada.
  *
  * Puro y sin `server-only`: lo usan el feed (cliente) y la tab (server). El
  * foco viaja en la URL, igual que el de un trofeo (`focusTrophy.ts`): el
@@ -14,5 +14,5 @@ export function reviewAnchorId(entryId: string): string {
 }
 
 export function reviewFocusHref(gameId: string, entryId: string): string {
-  return `/juegos/${gameId}?${FOCUS_REVIEW_PARAM}=${entryId}#${reviewAnchorId(entryId)}`;
+  return `/juegos/${gameId}/resenas?${FOCUS_REVIEW_PARAM}=${entryId}#${reviewAnchorId(entryId)}`;
 }

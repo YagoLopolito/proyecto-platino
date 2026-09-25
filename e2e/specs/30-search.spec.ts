@@ -5,7 +5,7 @@ import { testGameTitle } from "../helpers/ids";
 
 /**
  * Búsqueda con búsquedas recientes (epic #183, issue #194). Casos
- * SEARCH-01..07 de TESTING_PRD.md §6.26.
+ * SEARCH-01..08 de TESTING_PRD.md §6.26.
  *
  * En serie: todos leen o escriben las `recent_searches` de userA, y cada test
  * que las mira arranca borrándolas. Los estudios salen del mock de
@@ -186,5 +186,42 @@ test.describe("Buscar", () => {
     await expect(
       page.getByRole("list", { name: "Usuarios" }).or(page.getByText(/No encontramos nada/)),
     ).toBeVisible();
+  });
+
+  test("SEARCH-08: la búsqueda arranca en la tab Todo y 'Ver todo' lleva a la tab del ámbito", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const suffix = `Todo ${users.runId}`;
+    await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: suffix,
+      np: 3008,
+    });
+
+    await page.goto("/buscar");
+    await page.getByRole("searchbox", { name: "Buscar", exact: true }).fill(testGameTitle(suffix));
+    await expect(page).toHaveURL(/\/buscar\?q=[^&]+$/);
+    await expect(page.getByRole("tab", { name: "Todo" })).toHaveAttribute("aria-selected", "true");
+    await expect(
+      page
+        .getByRole("list", { name: "Juegos" })
+        .getByRole("link", { name: literal(testGameTitle(suffix)) }),
+    ).toBeVisible();
+
+    await page
+      .getByRole("region", { name: "Juegos" })
+      .getByRole("link", { name: "Ver todo" })
+      .click();
+    await expect(page).toHaveURL(/\/buscar\?q=.*en=juegos/);
+    await expect(page.getByRole("tab", { name: "Juegos" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    // El campo conserva lo tipeado al cambiar de tab.
+    await expect(page.getByRole("searchbox", { name: "Buscar", exact: true })).toHaveValue(
+      testGameTitle(suffix),
+    );
   });
 });

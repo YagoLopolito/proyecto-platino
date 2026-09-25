@@ -13,5 +13,5 @@
 export const FOCUS_TROPHY_PARAM = "trofeo";
 
 export function trophyFocusHref(gameId: string, trophyId: string): string {
-  return `/juegos/${gameId}/trofeos?${FOCUS_TROPHY_PARAM}=${encodeURIComponent(trophyId)}`;
+  return `/juegos/${gameId}?${FOCUS_TROPHY_PARAM}=${encodeURIComponent(trophyId)}`;
 }

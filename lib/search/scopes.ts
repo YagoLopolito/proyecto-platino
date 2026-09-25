@@ -2,15 +2,15 @@
  * Ámbitos de la búsqueda (epic #183, issue #194). Puro, sin `server-only`: lo
  * usan la pantalla, el header y la Server Action.
  *
- * `todo` es lo que se busca desde el header de escritorio, sin elegir ámbito;
- * en `/buscar` abre la tab Juegos.
+ * `todo` es el ámbito por defecto (el del header y el de `/buscar` sin `en`):
+ * una tab que muestra un poco de cada cosa. Para buscar sólo estudios, listas
+ * o usuarios se entra a su tab.
  */
 export const SEARCH_SCOPES = ["todo", "juegos", "estudios", "listas", "usuarios"] as const;
 export type SearchScope = (typeof SEARCH_SCOPES)[number];
 
-/** Los que tienen tab propia en `/buscar`, en orden. */
-export const SEARCH_TABS = ["juegos", "estudios", "listas", "usuarios"] as const;
-export type SearchTab = (typeof SEARCH_TABS)[number];
+/** Las tabs de `/buscar`, en orden: "Todo" primero y es la default. */
+export const SEARCH_TABS = SEARCH_SCOPES;
 
 export const SCOPE_LABELS: Record<SearchScope, string> = {
   todo: "Todo",
@@ -33,11 +33,6 @@ export const MAX_QUERY_LENGTH = 100;
 
 export function parseSearchScope(raw: string | null | undefined): SearchScope {
   return SEARCH_SCOPES.includes(raw as SearchScope) ? (raw as SearchScope) : "todo";
-}
-
-/** La tab que abre un ámbito: `todo` cae en Juegos. */
-export function tabOfScope(scope: SearchScope): SearchTab {
-  return scope === "todo" ? "juegos" : scope;
 }
 
 /** `/buscar?q=…&en=…`. Sin `en` para `todo`, así el link del header queda corto. */

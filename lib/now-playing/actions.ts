@@ -21,11 +21,13 @@ export type NowPlayingActionResult = {
 const gameIdSchema = z.string().uuid();
 
 /** Todo lo que muestra "Jugando ahora": perfil, biblioteca y la ficha. */
-function revalidateNowPlaying(gameId: string) {
+function revalidateNowPlaying() {
   // "layout": el perfil propio tiene sub-tabs (la Playlist, #188).
   revalidatePath("/perfil", "layout");
   revalidatePath("/biblioteca");
-  revalidatePath(`/juegos/${gameId}`, "layout");
+  // La ficha (`/juegos/[id]`) no se revalida a propósito: el toggle del panel
+  // lleva su propio estado, y revalidar la página que se está viendo hace que
+  // la action espere el re-render entero de la ficha (segundos por toque).
 }
 
 async function requireUser() {
@@ -75,7 +77,7 @@ export async function startPlaying(gameId: string): Promise<NowPlayingActionResu
     removeFromPlaylistIfPresent(supabase, user.id, parsed.data),
   ]);
 
-  revalidateNowPlaying(parsed.data);
+  revalidateNowPlaying();
   return { error: null, removedFromPlaylist };
 }
 
@@ -90,7 +92,7 @@ export async function stopPlaying(gameId: string): Promise<NowPlayingActionResul
   const { error } = await endNowPlaying(supabase, user.id, parsed.data, "manual");
   if (error) return { error: `No se pudo actualizar: ${error}` };
 
-  revalidateNowPlaying(parsed.data);
+  revalidateNowPlaying();
   return { error: null };
 }
 

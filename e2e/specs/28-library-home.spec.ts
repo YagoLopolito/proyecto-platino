@@ -6,7 +6,7 @@ import { selectNearPlatinum } from "@/lib/library/near-platinum";
 import { decodeReviewCursor, encodeReviewCursor } from "@/lib/friends/review-cursor";
 
 /**
- * Biblioteca › Juegos y Reseñas (epic #183, issue #191). Casos LIB-10..12 de
+ * Biblioteca › Juegos y Reseñas (epic #183, issue #191). Casos LIB-10..13 de
  * TESTING_PRD.md §6.3 y REV-01..03 de §6.9.
  *
  * En serie: los REV escriben el diario de userC (el amigo de userA en estos
@@ -146,6 +146,89 @@ test.describe("Biblioteca › Juegos", () => {
   });
 });
 
+test.describe("Biblioteca › Seguí jugando", () => {
+  test("LIB-13: 'Seguí jugando' no repite lo de 'Cerca del platino' y se puede sacar un juego", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const near = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 11,
+      nameSuffix: "Seguir Cerca",
+      np: 1915,
+    });
+    // 9/11 = 82% sin platino: sale en "Cerca del platino".
+    await unlock(supabase, users.userA.id, near.gameId, ({ type }) => type !== "platinum");
+    const half = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 4,
+      nameSuffix: "Seguir A Medias",
+      np: 1916,
+    });
+    await unlock(supabase, users.userA.id, half.gameId, ({ index }) => index < 2);
+
+    // Una generación guardada que recomienda los dos (sin pasar por el LLM).
+    const { data: row, error } = await supabase
+      .from("ai_recommendations")
+      .insert({
+        user_id: users.userA.id,
+        model: "e2e",
+        payload_json: {
+          perfil: "[E2E] Perfil de prueba",
+          seguir_jugando: [
+            { juego_id: near.gameId, motivo: "[E2E] Te falta poco", esfuerzo: "poco" },
+            { juego_id: half.gameId, motivo: "[E2E] Va por la mitad", esfuerzo: "medio" },
+          ],
+          nuevos: [],
+        },
+      })
+      .select("id")
+      .single();
+    if (error || !row) throw new Error(`No se pudo seedear la recomendación: ${error?.message}`);
+
+    try {
+      await page.goto("/biblioteca");
+      const recos = page.getByRole("region", { name: "Recomendados para vos" });
+      await expect(recos.getByRole("link", { name: /Seguir A Medias/ })).toBeVisible();
+      await expect(recos.getByRole("link", { name: /Seguir Cerca/ })).toHaveCount(0);
+      await expect(
+        page.getByRole("region", { name: "Cerca del platino" }).getByRole("link", {
+          name: /Seguir Cerca/,
+        }),
+      ).toBeVisible();
+
+      await recos
+        .getByRole("button", { name: `Sacar ${testGameTitle("Seguir A Medias")} de Seguí jugando` })
+        .click();
+      await expect(recos.getByRole("link", { name: /Seguir A Medias/ })).toHaveCount(0);
+      await expect
+        .poll(async () => {
+          const { data } = await supabase
+            .from("user_games")
+            .select("keep_playing_dismissed_at")
+            .eq("user_id", users.userA.id)
+            .eq("game_id", half.gameId)
+            .single();
+          return data?.keep_playing_dismissed_at ?? null;
+        })
+        .not.toBeNull();
+
+      await page.reload();
+      await expect(recos.getByRole("link", { name: /Seguir A Medias/ })).toHaveCount(0);
+
+      // Si el sync trae una sesión posterior (lo volvió a jugar), vuelve solo.
+      await supabase
+        .from("user_games")
+        .update({ last_played_at: new Date(Date.now() + 60 * 60 * 1000).toISOString() })
+        .eq("user_id", users.userA.id)
+        .eq("game_id", half.gameId);
+      await page.reload();
+      await expect(recos.getByRole("link", { name: /Seguir A Medias/ })).toBeVisible();
+    } finally {
+      await supabase.from("ai_recommendations").delete().eq("id", row.id);
+    }
+  });
+});
+
 test.describe("Biblioteca › Reseñas", () => {
   test("REV-01: el feed muestra sólo reseñas de amigos con texto, de la más nueva a la más vieja", async ({
     page,
@@ -244,7 +327,7 @@ test.describe("Biblioteca › Reseñas", () => {
       .first()
       .click();
 
-    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}\\?resena=${entry!.id}#`));
+    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/resenas\\?resena=${entry!.id}#`));
     const focused = page.locator(`li[aria-current="true"]`);
     await expect(focused).toHaveCount(1);
     // En la ficha la reseña va entera, incluido el último párrafo.

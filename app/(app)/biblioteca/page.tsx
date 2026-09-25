@@ -262,6 +262,7 @@ export default async function BibliotecaJuegosPage({
           recommendations={cachedRecommendations?.recommendations ?? null}
           games={[...(cachedRecommendations?.gamesById.values() ?? [])]}
           generatedAt={cachedRecommendations?.createdAt ?? null}
+          excludeGameIds={nearPlatinum.map((game) => game.id)}
         />
 
         {nearPlatinum.length > 0 && (

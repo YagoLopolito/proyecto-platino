@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { saveRecentSearch } from "@/lib/search/save";
 import { parseSearchScope, safeInternalPath, searchHref } from "@/lib/search/scopes";
@@ -24,6 +24,9 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL("/login", request.url));
 
-  if (query) await saveRecentSearch(supabase, query, scope);
+  // Guardar va con `after()`: se escribe después de mandar el redirect, así
+  // abrir un resultado no espera a la base (era un round-trip más antes de
+  // empezar a cargar la ficha).
+  if (query) after(() => saveRecentSearch(supabase, query, scope));
   return NextResponse.redirect(new URL(target, request.url), 303);
 }

@@ -9,6 +9,7 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { FormError } from "@/components/FormError";
 import { Icon } from "@/components/ui/Icon";
+import { FullscreenImage } from "@/components/ui/ImageLightbox";
 import { MAX_CAPTION_LENGTH } from "@/lib/diary/screenshot-constants";
 import {
   deleteScreenshot,
@@ -38,6 +39,7 @@ export default function ScreenshotGallery({
   const [error, setError] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
@@ -59,6 +61,7 @@ export default function ScreenshotGallery({
 
   function close() {
     setOpenIndex(null);
+    setFullscreen(false);
     setError(null);
   }
 
@@ -134,7 +137,17 @@ export default function ScreenshotGallery({
           description={new Date(current.createdAt).toLocaleDateString("es-AR")}
         >
           <div className="space-y-3">
-            <div className="relative aspect-video w-full overflow-hidden rounded-card bg-background">
+            {/* Tocar la captura la abre a pantalla completa. */}
+            <button
+              type="button"
+              aria-label="Ver la captura en pantalla completa"
+              aria-haspopup="dialog"
+              onClick={() => setFullscreen(true)}
+              className="group relative block aspect-video w-full cursor-zoom-in overflow-hidden rounded-card bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+            >
+              <span className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/70 text-ink">
+                <Icon name="expand" className="h-4 w-4" />
+              </span>
               <GameArt
                 src={current.url}
                 alt={current.caption ?? `Captura subida por ${current.authorLabel}`}
@@ -146,7 +159,7 @@ export default function ScreenshotGallery({
                   </span>
                 }
               />
-            </div>
+            </button>
 
             {screenshots.length > 1 && (
               <div className="flex items-center justify-between gap-2">
@@ -203,6 +216,38 @@ export default function ScreenshotGallery({
             <FormError>{error}</FormError>
           </div>
         </Modal>
+      )}
+
+      {current && fullscreen && (
+        <FullscreenImage
+          src={current.url}
+          alt={current.caption ?? `Captura subida por ${current.authorLabel}`}
+          onClose={() => setFullscreen(false)}
+        >
+          {screenshots.length > 1 && (
+            <div className="flex items-center justify-between gap-2 text-white">
+              <button
+                type="button"
+                onClick={() => move(-1)}
+                aria-label="Captura anterior"
+                className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10"
+              >
+                <Icon name="arrow-left" className="h-5 w-5" />
+              </button>
+              <span className="type-caption tabular-nums">
+                {(openIndex ?? 0) + 1} / {screenshots.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => move(1)}
+                aria-label="Captura siguiente"
+                className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10"
+              >
+                <Icon name="arrow-right" className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+        </FullscreenImage>
       )}
     </>
   );

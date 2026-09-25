@@ -36,8 +36,10 @@ const nextConfig: NextConfig = {
       { source: "/diario", destination: "/perfil/diario", permanent: false },
       { source: "/diario/amigos", destination: "/biblioteca/resenas", permanent: false },
       // Ficha de juego unificada (issue #186): la de diario y la de enlaces
-      // pasaron a ser tabs de `/juegos/[id]` (Reseñas es la default).
-      { source: "/juegos/:id/diario", destination: "/juegos/:id", permanent: false },
+      // pasaron a ser tabs de `/juegos/[id]`. Trofeos es la default y Reseñas
+      // vive en `/resenas`; `/trofeos` quedó como alias viejo.
+      { source: "/juegos/:id/diario", destination: "/juegos/:id/resenas", permanent: false },
+      { source: "/juegos/:id/trofeos", destination: "/juegos/:id", permanent: false },
       { source: "/juegos/:id/enlaces", destination: "/juegos/:id/guias", permanent: false },
     ];
   },

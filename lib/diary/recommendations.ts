@@ -1,6 +1,7 @@
 import "server-only";
 import type { createClient } from "@/lib/supabase/server";
 import { isVisibleInLibrary } from "@/lib/library/visibility";
+import { NEAR_PLATINUM_MIN_PERCENT } from "@/lib/library/near-platinum";
 import { aiRecommendationsSchema, type AiRecommendations } from "@/lib/ai";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -77,7 +78,9 @@ export async function getRecommendationCandidates(
   const [{ data: library }, { data: statsRows }, { data: diaryRatings }] = await Promise.all([
     supabase
       .from("user_games")
-      .select("playtime_minutes, games!inner (id, name, platform, cover_url, icon_url, source)")
+      .select(
+        "playtime_minutes, last_played_at, keep_playing_dismissed_at, games!inner (id, name, platform, cover_url, icon_url, source)",
+      )
       .eq("user_id", userId),
     supabase.rpc("get_library_trophy_stats"),
     supabase
@@ -130,8 +133,7 @@ export async function getRecommendationCandidates(
     const rating = ratingByGame.get(game.id) ?? null;
     const completed = stats.total > 0 && (stats.platinum > 0 || stats.obtained >= stats.total);
     const inDiary = diaryGameIds.has(game.id);
-    const wasPlayed =
-      completed || inDiary || stats.obtained > 0 || (row.playtime_minutes ?? 0) > 0;
+    const wasPlayed = completed || inDiary || stats.obtained > 0 || (row.playtime_minutes ?? 0) > 0;
 
     if (wasPlayed) {
       played.push({
@@ -153,6 +155,12 @@ export async function getRecommendationCandidates(
     // Un juego sin trofeos sincronizados todavía no tiene nada que "seguir":
     // no se puede estimar cuánto le falta ni si lo empezó.
     if (stats.total === 0) continue;
+    // El usuario lo sacó de "Seguí jugando" y no lo volvió a jugar desde entonces.
+    if (isKeepPlayingDismissed(row)) continue;
+    // Más del 80% ya sale en "Cerca del platino", justo debajo: repetirlo en
+    // "Seguí jugando" gastaba lugares de la fila en lo que ya está a la vista.
+    const percent = Math.round((stats.obtained / stats.total) * 100);
+    if (percent > NEAR_PLATINUM_MIN_PERCENT) continue;
 
     inProgress.push({
       id: game.id,
@@ -161,7 +169,7 @@ export async function getRecommendationCandidates(
       imageUrl: game.cover_url ?? game.icon_url,
       obtained: stats.obtained,
       total: stats.total,
-      percent: Math.round((stats.obtained / stats.total) * 100),
+      percent,
     });
   }
 
@@ -206,6 +214,20 @@ function comparePlayedSignal(a: RecommendationPlayedGame, b: RecommendationPlaye
   return (b.percent ?? 0) - (a.percent ?? 0);
 }
 
+/**
+ * Sacado de "Seguí jugando" y sin sesiones nuevas desde entonces. La marca
+ * guarda el `last_played_at` del momento de sacarlo: si el sync trae uno
+ * posterior, lo volvió a jugar y vuelve a la fila.
+ */
+function isKeepPlayingDismissed(row: {
+  last_played_at: string | null;
+  keep_playing_dismissed_at: string | null;
+}): boolean {
+  if (row.keep_playing_dismissed_at === null) return false;
+  if (row.last_played_at === null) return true;
+  return Date.parse(row.last_played_at) <= Date.parse(row.keep_playing_dismissed_at);
+}
+
 export type CachedRecommendations = {
   recommendations: AiRecommendations;
   /** Los juegos de `seguir_jugando`, resueltos para poder mostrar carátula y progreso. */
@@ -227,21 +249,37 @@ export async function getCachedRecommendations(
   userId: string,
   knownStats?: Database["public"]["Functions"]["get_library_trophy_stats"]["Returns"],
 ): Promise<CachedRecommendations | null> {
-  const { data: row } = await supabase
-    .from("ai_recommendations")
-    .select("payload_json, created_at")
-    .eq("user_id", userId)
-    .eq("status", "ok")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: row }, { data: dismissed }] = await Promise.all([
+    supabase
+      .from("ai_recommendations")
+      .select("payload_json, created_at")
+      .eq("user_id", userId)
+      .eq("status", "ok")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Los que el usuario sacó de "Seguí jugando" después de generarlas.
+    supabase
+      .from("user_games")
+      .select("game_id, last_played_at, keep_playing_dismissed_at")
+      .eq("user_id", userId)
+      .not("keep_playing_dismissed_at", "is", null),
+  ]);
 
   if (!row) return null;
 
   const parsed = aiRecommendationsSchema.safeParse(row.payload_json);
   if (!parsed.success) return null;
 
-  const gameIds = parsed.data.seguir_jugando.map((item) => item.juego_id);
+  const dismissedIds = new Set(
+    (dismissed ?? []).filter(isKeepPlayingDismissed).map((r) => r.game_id),
+  );
+  const recommendations: AiRecommendations = {
+    ...parsed.data,
+    seguir_jugando: parsed.data.seguir_jugando.filter((item) => !dismissedIds.has(item.juego_id)),
+  };
+
+  const gameIds = recommendations.seguir_jugando.map((item) => item.juego_id);
   const gamesById = new Map<string, RecommendationGame>();
 
   if (gameIds.length > 0) {
@@ -267,5 +305,5 @@ export async function getCachedRecommendations(
     }
   }
 
-  return { recommendations: parsed.data, gamesById, createdAt: row.created_at };
+  return { recommendations, gamesById, createdAt: row.created_at };
 }

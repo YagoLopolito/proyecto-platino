@@ -307,6 +307,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | LIB-10 | Secciones de `/biblioteca` (`28-library-home.spec.ts`) | Recomendados → Cerca del platino → Tu biblioteca, con Jugando ahora antes si hay algo; `?q=` y `?fuente=` siguen filtrando la grilla | P1 |
 | LIB-11 | Recomendaciones en la Biblioteca | "Recomendados para vos" se ve en `/biblioteca` (mock de Groq) y ya no en `/perfil/diario` | P1 |
 | LIB-12 | Cerca del platino | Un juego a más del 80% sin platino aparece; uno platinado al 91% y uno al 50% no; `selectNearPlatinum` ordena por % y en Steam cierra al 100% (test puro) | P1 |
+| LIB-13 | Seguí jugando | Un juego a más del 80% recomendado para seguir no se repite en "Seguí jugando" (ya está en Cerca del platino); la ✕ saca un juego, escribe `user_games.keep_playing_dismissed_at` y no vuelve al recargar, salvo que el sync traiga un `last_played_at` posterior | P1 |
 | SYNC-09 | Orden por última jugada | Sin recarga de página (PR #49) | P2 |
 | SYNC-10 | Juegos `source='catalog'` no aparecen | Un juego de catálogo del diario no se lista en `/juegos` | P1 |
 | SYNC-11 | `/api/cron/sync` sin `CRON_SECRET` | 401 | **P0 (seguridad)** |
@@ -631,11 +632,13 @@ enfoca el trofeo" que listaba el issue es AI-10 (§6.7), actualizado.
 
 | ID | Caso | Resultado esperado | Prio |
 | --- | --- | --- | --- |
-| FICHA-01 | Juego fuera de tu biblioteca | userB abre la ficha de un juego que sólo tiene userA: se ve el hero y la tab Reseñas; la tab Trofeos explica que no está en su biblioteca y no muestra trofeos | P0 |
-| FICHA-02 | Redirects de las fichas viejas | `/juegos/[id]/diario` → `/juegos/[id]` (Reseñas) y `/juegos/[id]/enlaces` → `/juegos/[id]/guias` | P0 |
-| FICHA-03 | Tabs en la URL | → con el teclado recorre Reseñas → Trofeos → Guías e IA cambiando la URL; recargar conserva la tab | P1 |
+| FICHA-01 | Juego fuera de tu biblioteca | userB abre la ficha de un juego que sólo tiene userA: se ve el hero y la tab Trofeos (la default), que explica que no está en su biblioteca y no muestra trofeos | P0 |
+| FICHA-02 | Redirects de las fichas viejas | `/juegos/[id]/diario` → `/juegos/[id]/resenas`, `/juegos/[id]/trofeos` → `/juegos/[id]` (Trofeos) y `/juegos/[id]/enlaces` → `/juegos/[id]/guias` | P0 |
+| FICHA-03 | Tabs en la URL | Abre en Trofeos; → con el teclado recorre Trofeos → Reseñas → Guías e IA cambiando la URL; recargar conserva la tab | P1 |
 | FICHA-04 | Materializar un juego de catálogo | `/juegos/catalogo/[rawgId]` (RAWG mockeado) redirige a la ficha; abrirlo dos veces deja **una** fila `source = 'catalog'` y no vincula el juego a `user_games` | P0 |
 | FICHA-05 | Registrar desde el panel | Jugando, Playlist y Lista arrancan con `aria-pressed="false"` (cada uno con su caso: PLAY-02, PLIST-01, LIST-03); "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
+| FICHA-06 | Imagen a pantalla completa | Tocar la carátula de la ficha abre un visor (`role="dialog"`) con la imagen; Escape lo cierra. Mismo visor que las capturas de la galería | P1 |
+| FICHA-07 | Sinopsis corta | Una descripción de varios párrafos muestra sólo el primero; `toSynopsis` corta en una oración completa dentro de 280 caracteres (test puro) | P1 |
 
 ### 6.21 Jugando ahora (`24-now-playing.spec.ts`)
 
@@ -733,13 +736,14 @@ y búsquedas recientes (`recent_searches`, privadas, tope de 20). Guardar pasa s
 
 | ID | Caso | Resultado esperado | Prio |
 | --- | --- | --- | --- |
-| SEARCH-01 | Buscar un juego | Tipear el nombre (sin Enter) muestra el juego en la tab Juegos y tocarlo abre `/juegos/[id]` | P0 |
+| SEARCH-01 | Buscar un juego | Tipear el nombre (sin Enter) muestra el juego en la sección Juegos de la tab Todo y tocarlo abre `/juegos/[id]` | P0 |
 | SEARCH-02 | Recientes con ámbito | Enter en la tab Estudios guarda la búsqueda con el chip "Estudios"; repetirla deja una sola fila y tocarla vuelve a esa tab | P0 |
 | SEARCH-03 | Borrar recientes | ✕ borra una fila y "Borrar todo" vacía la sección | P1 |
 | SEARCH-04 | Tab Estudios | "[E2E] Estudio" aparece con "2 juegos" y lleva a `/estudios/e2e-estudio` | P1 |
 | SEARCH-05 | Listas privadas | La tab Listas muestra la lista pública de otro usuario y no su privada | P0 |
 | SEARCH-06 | Tope de 20 | Con 20 recientes, una búsqueda nueva deja 20 y se va la más vieja | P1 |
 | SEARCH-07 | URL | `?q=&en=usuarios` después de recargar conserva el campo y la tab Usuarios | P1 |
+| SEARCH-08 | Tab Todo | Tipear sin elegir ámbito deja la tab Todo seleccionada con el juego en la sección Juegos; "Ver todo" lleva a `en=juegos` y el campo conserva lo tipeado | P0 |
 
 ### 6.27 Actividad (`31-activity.spec.ts`)
 

@@ -111,3 +111,40 @@ export async function generateRecommendations(
     return { recommendations: null, error: "No se pudieron generar las recomendaciones." };
   }
 }
+
+export type DismissKeepPlayingResult = { error: string | null };
+
+/**
+ * Saca un juego de "Seguí jugando": el usuario decidió que no lo va a jugar
+ * más. Vuelve solo si lo juega de nuevo: se guarda el `last_played_at` que
+ * tenía el juego al sacarlo (no la hora actual, mismo criterio que
+ * `dismissPlaySuggestion`), y una sesión posterior que traiga el sync lo
+ * reactiva.
+ *
+ * Sin `revalidatePath`: la fila lo esconde sola (optimista), y revalidar la
+ * biblioteca desde acá haría esperar su re-render entero.
+ */
+export async function dismissKeepPlaying(gameId: string): Promise<DismissKeepPlayingResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) return { error: "Falta el juego." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Tenés que iniciar sesión." };
+
+  const { data: row } = await supabase
+    .from("user_games")
+    .select("last_played_at")
+    .eq("user_id", user.id)
+    .eq("game_id", gameId)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("user_games")
+    .update({ keep_playing_dismissed_at: row?.last_played_at ?? new Date().toISOString() })
+    .eq("user_id", user.id)
+    .eq("game_id", gameId);
+  if (error) return { error: `No se pudo sacar el juego: ${error.message}` };
+  return { error: null };
+}
