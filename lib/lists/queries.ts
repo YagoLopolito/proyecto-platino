@@ -204,29 +204,36 @@ export interface ListRowData {
   covers: (string | null)[];
   /** `null` = no se likea (las pregeneradas). */
   likeCount: number | null;
+  /** Lista privada: sólo aparece en el perfil de su dueño, con candado (#197). */
+  isPrivate?: boolean;
 }
 
 const LIST_ROW_SELECT =
-  "id, user_id, title, description, created_at, user_list_items (position, games (cover_url, icon_url))";
+  "id, user_id, title, description, visibility, created_at, user_list_items (position, games (cover_url, icon_url))";
 
 type ListRowSource = {
   id: string;
   user_id: string;
   title: string;
   description: string | null;
+  visibility: string;
   user_list_items: {
     position: number;
     games: { cover_url: string | null; icon_url: string | null } | null;
   }[];
 };
 
-/** Arma las filas con su autor y sus likes. Las listas sin juegos se descartan. */
+/**
+ * Arma las filas con su autor y sus likes. Las listas sin juegos se descartan
+ * al descubrir (no hay nada que mirar), pero no en el perfil de su dueño.
+ */
 async function toListRows(
   supabase: Client,
   viewerId: string,
   lists: ListRowSource[],
+  { keepEmpty = false }: { keepEmpty?: boolean } = {},
 ): Promise<ListRowData[]> {
-  const withItems = lists.filter((list) => list.user_list_items.length > 0);
+  const withItems = keepEmpty ? lists : lists.filter((list) => list.user_list_items.length > 0);
   if (withItems.length === 0) return [];
 
   const ownerIds = [...new Set(withItems.map((list) => list.user_id))];
@@ -269,8 +276,31 @@ async function toListRows(
         .slice(0, ROW_COVERS)
         .map((item) => item.games?.cover_url ?? item.games?.icon_url ?? null),
       likeCount: likeCount.get(list.id) ?? 0,
+      isPrivate: list.visibility === "private",
     };
   });
+}
+
+/**
+ * Perfil › Listas (#197): las listas de un usuario como filas, la última
+ * editada primero. Con `publicOnly` (perfil ajeno) se piden sólo las públicas
+ * de forma explícita, aunque la RLS ya esconda las privadas: igual que en
+ * `getFriendsLists`, no se hereda.
+ */
+export async function getProfileListRows(
+  supabase: Client,
+  viewerId: string,
+  ownerId: string,
+  { publicOnly }: { publicOnly: boolean },
+): Promise<ListRowData[]> {
+  let query = supabase
+    .from("user_lists")
+    .select(LIST_ROW_SELECT)
+    .eq("user_id", ownerId)
+    .order("updated_at", { ascending: false });
+  if (publicOnly) query = query.eq("visibility", "public");
+  const { data } = await query;
+  return toListRows(supabase, viewerId, data ?? [], { keepEmpty: !publicOnly });
 }
 
 /**

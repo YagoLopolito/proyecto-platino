@@ -116,9 +116,12 @@ test.describe("Playlist", () => {
     const context = await browser.newContext({ storageState: "e2e/.auth/user-b.json" });
     const page = await context.newPage();
     try {
-      await page.goto(`/perfil/${users.userA.id}`);
+      // Desde #197 la Playlist ajena es su propia tab, como la propia.
+      await page.goto(`/perfil/${users.userA.id}/playlist`);
       await expect(
-        page.getByRole("region", { name: /^Playlist/ }).getByRole("link", { name: title }),
+        page
+          .getByRole("list", { name: /^Juegos de la Playlist de / })
+          .getByRole("link", { name: title }),
       ).toBeVisible();
     } finally {
       await context.close();

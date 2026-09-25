@@ -9,6 +9,8 @@ export interface DiaryTimelineEntry {
   gameName: string;
   platform: string | null;
   imageUrl: string | null;
+  /** Año de salida del juego (RAWG/IGDB), para la fila del diario (#197). */
+  releaseYear: number | null;
   finishedOn: string;
   rating: number | null;
   review: string | null;
@@ -42,7 +44,7 @@ export async function getUserDiaryEntries(
   let query = supabase
     .from("game_diary_entries")
     .select(
-      "id, game_id, playthrough_number, rating, review, finished_on, completed_at, games (id, name, platform, cover_url, icon_url)",
+      "id, game_id, playthrough_number, rating, review, finished_on, completed_at, games (id, name, platform, cover_url, icon_url, release_year)",
     )
     .eq("user_id", userId)
     .order("finished_on", { ascending: false })
@@ -71,6 +73,7 @@ export async function getUserDiaryEntries(
         gameName: game.name,
         platform: game.platform,
         imageUrl: game.cover_url ?? game.icon_url,
+        releaseYear: game.release_year,
         finishedOn: row.finished_on,
         rating: row.rating,
         review: row.review,

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { GameArt } from "@/components/game/GameArt";
 import { FriendAvatar } from "@/components/friends/FriendAvatar";
 import { LikeCount } from "@/components/likes/LikeButton";
+import { Icon } from "@/components/ui/Icon";
 import type { ListRowData } from "@/lib/lists/queries";
 
 /** Cuántas carátulas lleva la tira: las 8 pegadas en mobile, solapadas en escritorio. */
@@ -29,8 +30,11 @@ export function ListRow({ list, prefetch }: { list: ListRowData; prefetch?: bool
       className="group block space-y-3 rounded-card py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
     >
       <span className="flex items-start justify-between gap-3">
-        <span className="min-w-0 type-subtitle text-ink group-hover:text-accent-ink">
-          {list.title}
+        <span className="flex min-w-0 items-center gap-1.5 type-subtitle text-ink group-hover:text-accent-ink">
+          {list.isPrivate && (
+            <Icon name="lock" label="Privada" className="h-4 w-4 shrink-0 text-ink-muted" />
+          )}
+          <span className="min-w-0">{list.title}</span>
         </span>
         <span className="flex shrink-0 items-center gap-2 type-caption text-ink-muted">
           {list.author ? (

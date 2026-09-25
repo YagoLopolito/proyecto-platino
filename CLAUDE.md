@@ -485,7 +485,7 @@ heroes primos que había (`GameDetailHero` y `diary/GameHero`) se fusionaron en
 **se eliminó**: la reemplazó la grilla de carátulas.
 
 `components/profile/` son las piezas del perfil (`ProfileHeader`,
-`ProfileStatStrip`, `FavoriteGamesSection`, `DiaryPreviewSection`,
+`ProfileStatStrip`, `FavoriteGamesSection`, `RecentReviewsSection`,
 `FriendsStrip`), compartidas entre el perfil propio y el de otro usuario — ver la
 sección de perfil más abajo.
 
@@ -763,7 +763,7 @@ lo **querés jugar**.
   badges (acá la carátula es un recordatorio), contador en la cabecera y orden en `?orden=`
   (`recientes` / `nombre` / `anio` / `tiempo`, este último por `time_to_beat_minutes`: "qué me
   da tiempo a jugar"). Lo que no tiene el dato va siempre al final. En `/perfil/[id]` va como
-  fila de pósters (`PlaylistSection`), y la ficha dice "Está en la Playlist de N amigos".
+  tab propia (`/perfil/[id]/playlist`, misma `PlaylistView` que la tuya), y la ficha dice "Está en la Playlist de N amigos".
 - **Afuera por ahora**: el long-press / menú contextual "Agregar a Playlist" sobre cualquier
   póster. El issue lo marcaba opcional, y un long-press sobre un `<Link>` choca con el menú
   nativo del sistema en mobile; se agrega cuando haya un menú de póster compartido.
@@ -803,7 +803,7 @@ son #190.
 - **"Agregar a una lista"**: el toggle "Lista" del panel de la ficha (`aria-pressed` si el juego
   está en alguna de tus listas) abre `AddToListPanel` (hoja en mobile, modal en escritorio), que
   pide tus listas al abrirse y marca cada una con un toggle.
-- Perfil › Listas muestra tus listas (`ListCard`: cuatro carátulas superpuestas); "Nueva lista"
+- Perfil › Listas muestra tus listas como `ListRow` (desde #197; las privadas con candado); "Nueva lista"
   es un botón en escritorio y un botón flotante en mobile (`NewListButton`), también en
   Biblioteca › Listas mientras esa pantalla sigue en placeholder.
 
@@ -831,7 +831,7 @@ juegos (para eso están el rating y el Top 5) ni comentarios.
 - Dónde: filas de reseña de la ficha (las tuyas sólo con contador), el feed de Biblioteca ›
   Reseñas (el corazón va **al lado** del link de la fila: un botón dentro de un link es HTML
   inválido), la ficha de una lista (la propia sólo con contador) y, sólo como contador, las
-  carátulas de "Últimas reseñas" del perfil y las `ListCard`.
+  carátulas de "Últimas reseñas" del perfil y las `ListRow`.
 
 ## Biblioteca › Juegos y Reseñas (epic #183, issue #191)
 
@@ -1051,8 +1051,43 @@ y el ícono `note` si hay texto, más "Ver todas tus reseñas"), **Tus puntuacio
   `/seguidores`) viven en el grupo `app/(app)/perfil/(expandidos)/`, **fuera** de las
   `SwipeTabs` de `(propio)`: no son tabs. El nivel de PSN y la `TrophyTypeStrip` se mudaron al
   expandido de Platinos.
-- `FriendsStrip` ya no está en el perfil propio (lo reemplaza Siguiendo); sigue en
-  `/perfil/[id]` hasta #197.
+- `FriendsStrip` ya no está en el perfil propio (lo reemplaza Siguiendo) ni, desde #197, en
+  el ajeno.
+
+## Perfil › Diario / Listas / Playlist y perfil ajeno (epic #183, issue #197)
+
+Cierra el epic. Las cuatro tabs del perfil (Perfil · Diario · Listas · Playlist) existen igual
+para el propio (`app/(app)/perfil/(propio)/`) y para el de otro usuario (`/perfil/[id]/...`).
+
+- **Diario** (`components/diary/DiaryTimeline.tsx`): el formato del diario de Letterboxd.
+  Cabecera de mes **`sticky`** en versalitas sobre `surface-raised` a ancho completo y, por
+  partida, una fila con el **día** en un recuadro `border-strong` (`type-stat`), carátula 3:4
+  chica, nombre en la serif (`type-headline`) + año (`games.release_year`, nuevo en
+  `DiaryTimelineEntry`) y las marcas: estrellas, `note`, platino / 100% y `repeat` si es
+  rejugada. La fila entera linkea a la ficha con la entrada enfocada (`reviewFocusHref`). Los
+  filtros siguen siendo client-side y en la URL; en mobile van en una `BottomSheet` detrás del
+  ícono de filtro (con el globito de cuántos hay puestos), en escritorio en línea. Lo que se
+  muestra sin entradas lo decide quien lo monta (`empty`): el propio invita a registrar.
+- El **feed de amigos salió del diario** (`FriendsDiaryGrid` y `getFriendsDiaryFeed` se
+  borraron): eso es Biblioteca › Reseñas y Actividad. "Resumen del año", "Importar capturas" e
+  "Importar mis platinos" van en el menú ⋮ (`DiaryActionsMenu`, estado propio para cerrar al
+  tocar afuera y con Escape, como el menú de cuenta). Íconos nuevos: `more` y `lock`.
+- **Listas** (`components/lists/ProfileLists.tsx` + `getProfileListRows`): filas `ListRow`, la
+  última editada primero. En el propio van las privadas con candado (`ListRowData.isPrivate`) y
+  también las vacías; en el ajeno se piden **sólo las públicas de forma explícita**, aunque la
+  RLS ya esconda las privadas. `ListCard` se borró.
+- **Playlist**: `components/playlist/PlaylistView.tsx`, compartida; `PlaylistSection` (la fila
+  del perfil ajeno) se borró.
+- **Perfil ajeno** (`app/(app)/perfil/[id]/`): el `layout.tsx` monta las `SwipeTabs`
+  (`otherProfileTabs`) y resuelve el contexto con `getOtherProfileContext`
+  (`lib/profile/other.ts`, con `cache()`: sin sesión al login, el id propio a `/perfil`, sin
+  perfil 404). Mismas secciones que el propio, sin editores ni engranaje, con **Seguir /
+  Siguiendo** (`FollowButton`, `aria-pressed`). Las estadísticas son **sólo públicas**:
+  "Juegos jugados" cuenta el diario y "Platinos" es el `earned_platinum` de `public_profiles`,
+  y cada fila lo aclara (`ProfileStatRow.note`); sin 100%, likes ni seguidores (la RLS de
+  `friendships` sólo deja ver las filas donde participa quien mira). El histograma va sin links
+  (`linkToReviews={false}`): `/perfil/resenas` es del propio.
+- `DiaryPreviewSection` se borró: las dos pantallas usan `RecentReviewsSection`, con `tone`.
 
 ## Modelo de datos (borrador)
 
@@ -1134,10 +1169,8 @@ y el ícono `note` si hay texto, más "Ver todas tus reseñas"), **Tus puntuacio
   (le escribe `np_comm_id` y `source = 'psn'`) en vez de crear un duplicado en `games`, así no
   se pierden las entradas de diario ya cargadas. Solo funciona sobre filas propias
   (`created_by`), que es lo que deja actualizar la RLS de `games`.
-- `/diario` muestra primero el feed corto de amigos (`FriendsDiaryGrid`, grilla de carátulas
-  con las últimas 10 partidas, cada una linkeando al diario de ese juego donde está la reseña)
-  y después el timeline propio: el propio crece sin techo y empujaba el feed fuera de pantalla.
-  Las reseñas completas de amigos viven en Biblioteca › Reseñas (`/biblioteca/resenas`, antes
+- El diario propio (`/perfil/diario`) ya no muestra el feed de amigos (#197): las reseñas de
+  amigos viven en Biblioteca › Reseñas (`/biblioteca/resenas`, antes
   `/diario/amigos`, que redirige; ver "Biblioteca › Juegos y Reseñas"). El diario propio se
   mudó a `/perfil/diario` (epic #183).
 - El fondo de `GameHero` es un backdrop a ancho completo de la ventana (w-screen + left-1/2 +
@@ -1320,8 +1353,9 @@ lo que el usuario **elige** mostrar.
   hace falta drag & drop. `MAX_FAVORITE_GAMES` vive en `lib/profile/constants.ts`
   y no en `queries.ts` porque ese módulo es `server-only` (misma razón que
   `lib/catalog/constants.ts`).
-- **`/perfil/[id]` es el perfil de otro usuario**: su Top 5, sus últimas
-  partidas terminadas con reseña y el nivel/totales de trofeos que informa PSN.
+- **`/perfil/[id]` es el perfil de otro usuario**, con las mismas cuatro tabs que
+  el propio (ver la sección de #197): su Top 5, jugando, sus últimas reseñas, su
+  histograma y estadísticas públicas.
   Todo eso es público por diseño. Lo que **no** se puede mostrar es cualquier
   número derivado de `user_trophies` (privado): no hay progreso por juego ni
   "juegos en biblioteca", que desde la sesión del que mira darían cero. `/perfil`
@@ -1459,7 +1493,7 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     el lint que prohíbe los colores literales). Ver el issue para el detalle por pantalla.
 
 12. Platinoob como Letterboxd (epic #183): navegación de 5 tabs, listas, playlist, jugando
-    ahora, estudios (IGDB), actividad y perfil nuevo, en 14 sub-issues (#184-#197). 🔄
+    ahora, estudios (IGDB), actividad y perfil nuevo, en 14 sub-issues (#184-#197). ✅
     **#184 completo**: paleta refinada (chrome, superficies a pasos parejos, `rating` /
     `rating-muted` / `like`). **#185 completo**: shell de navegación de 5 botones, header
     web, `SwipeTabs`, rutas nuevas con placeholders y redirects. **#186 completo**: ficha de
@@ -1476,7 +1510,10 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     ficha `/listas/sistema/[slug]`. **#193 completo**: estudios de IGDB (`lib/igdb/`,
     `/estudios/[slug]`, estudios linkeables en la ficha). **#194 completo**: Buscar con tabs por
     ámbito y búsquedas recientes (`recent_searches`, popover en el header). **#195 completo**:
-    Actividad (Amigos / Vos / Recibido) derivada por RPC, sin tabla de eventos. Ver el epic para el orden y las decisiones ya tomadas.
+    Actividad (Amigos / Vos / Recibido) derivada por RPC, sin tabla de eventos. **#196
+    completo**: Perfil › Perfil (favoritos, histograma, estadísticas y expandidos). **#197
+    completo**: Perfil › Diario / Listas / Playlist con el formato de Letterboxd y el perfil
+    ajeno con las mismas cuatro tabs. ✅ **Epic completo.**
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

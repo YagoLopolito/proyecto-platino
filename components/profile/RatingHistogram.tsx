@@ -23,16 +23,28 @@ function starsPhrase(step: number): string {
  * forma, no la información: el número exacto va en el `aria-label` de cada link
  * y, para un lector de pantalla, en la tabla equivalente (`sr-only`).
  */
-export function RatingHistogram({ histogram }: { histogram: Histogram }) {
+export function RatingHistogram({
+  histogram,
+  title = "Tus puntuaciones",
+  emptyMessage = "Todavía no puntuaste ningún juego. Tus puntuaciones van a aparecer acá.",
+  linkToReviews = true,
+}: {
+  histogram: Histogram;
+  title?: string;
+  emptyMessage?: string;
+  /**
+   * Las barras linkean a `/perfil/resenas?rating=N`, que es del perfil propio.
+   * En el de otro usuario (#197) son sólo forma.
+   */
+  linkToReviews?: boolean;
+}) {
   const max = Math.max(1, ...histogram.counts);
 
   return (
     <section className="space-y-3" aria-labelledby="ratings-heading">
-      <SectionHeader title={<span id="ratings-heading">Tus puntuaciones</span>} />
+      <SectionHeader title={<span id="ratings-heading">{title}</span>} />
       {histogram.total === 0 ? (
-        <p className="type-meta text-ink-muted">
-          Todavía no puntuaste ningún juego. Tus puntuaciones van a aparecer acá.
-        </p>
+        <p className="type-meta text-ink-muted">{emptyMessage}</p>
       ) : (
         <>
           <div className="flex items-end gap-3">
@@ -46,17 +58,26 @@ export function RatingHistogram({ histogram }: { histogram: Histogram }) {
                 const height = count === 0 ? 0 : Math.max(6, Math.round((count / max) * 100));
                 return (
                   <li key={step} className="flex h-full flex-1">
-                    <Link
-                      href={`/perfil/resenas?rating=${step}`}
-                      aria-label={`${gamesLabel(count)} con ${starsPhrase(step)}`}
-                      data-count={count}
-                      className="group flex h-full w-full items-end rounded-chip focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
-                    >
-                      <span
-                        className="block w-full rounded-t-chip border-b border-border-strong bg-ink-faint transition-colors group-hover:bg-rating"
-                        style={{ height: `${height}%` }}
-                      />
-                    </Link>
+                    {linkToReviews ? (
+                      <Link
+                        href={`/perfil/resenas?rating=${step}`}
+                        aria-label={`${gamesLabel(count)} con ${starsPhrase(step)}`}
+                        data-count={count}
+                        className="group flex h-full w-full items-end rounded-chip focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
+                      >
+                        <span
+                          className="block w-full rounded-t-chip border-b border-border-strong bg-ink-faint transition-colors group-hover:bg-rating"
+                          style={{ height: `${height}%` }}
+                        />
+                      </Link>
+                    ) : (
+                      <span data-count={count} className="flex h-full w-full items-end">
+                        <span
+                          className="block w-full rounded-t-chip border-b border-border-strong bg-ink-faint"
+                          style={{ height: `${height}%` }}
+                        />
+                      </span>
+                    )}
                   </li>
                 );
               })}

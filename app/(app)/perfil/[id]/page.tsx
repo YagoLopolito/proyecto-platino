@@ -1,97 +1,96 @@
-import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { getPublicProfile, getFavoriteGames } from "@/lib/profile/queries";
+import { getFavoriteGames } from "@/lib/profile/queries";
 import { getUserDiaryEntries } from "@/lib/diary/queries";
-import { getReviewLikes } from "@/lib/likes/queries";
-import { profileLabel } from "@/lib/friends/constants";
-import { ProfileHeader, ProfileBadge } from "@/components/profile/ProfileHeader";
-import { ProfileStatStrip } from "@/components/profile/ProfileStatStrip";
-import { FavoriteGamesSection } from "@/components/profile/FavoriteGamesSection";
-import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
+import { getOtherProfileContext } from "@/lib/profile/other";
 import { getNowPlaying } from "@/lib/now-playing/queries";
-import { getPlaylist } from "@/lib/playlist/queries";
-import {
-  PlaylistSection,
-  PROFILE_PLAYLIST_PREVIEW_LIMIT,
-} from "@/components/playlist/PlaylistSection";
-import {
-  DiaryPreviewSection,
-  PROFILE_DIARY_PREVIEW_LIMIT,
-} from "@/components/profile/DiaryPreviewSection";
+import { ProfileHeader, ProfileBadge } from "@/components/profile/ProfileHeader";
+import { FavoriteGamesSection } from "@/components/profile/FavoriteGamesSection";
+import { RecentReviewsSection } from "@/components/profile/RecentReviewsSection";
+import { RatingHistogram } from "@/components/profile/RatingHistogram";
+import { ProfileStatsMenu, type ProfileStatRow } from "@/components/profile/ProfileStatsMenu";
+import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
 import { FollowButton } from "@/components/profile/FollowButton";
-import { SectionHeader, SectionAction } from "@/components/ui/SectionHeader";
 import { ErrorState } from "@/components/ErrorState";
-import { PSN_TROPHY_TYPES } from "@/components/TrophyTypeIcon";
-import { TrophyTypeStrip } from "@/components/profile/TrophyTypeStrip";
+import { countWithYear, currentYear, ratingHistogram, yearOfDate } from "@/lib/profile/stats";
 
 /**
- * Perfil público de otro usuario: su Top 5, sus últimas partidas terminadas con
- * reseña, y el nivel/totales de trofeos que informa PSN.
+ * Perfil › Perfil de otro usuario (epic #183, issue #197): las mismas
+ * secciones que el propio (Favoritos, Jugando ahora, Últimas reseñas,
+ * puntuaciones y Estadísticas), sin editores y con "Seguir" en la cabecera.
  *
- * Todo lo que se muestra acá es público por diseño: `game_diary_entries` y
- * `user_favorite_games` tienen `select using (true)`, y el resto sale de la
- * vista `public_profiles`. Lo que **no** se puede mostrar es cualquier número
- * derivado de `user_trophies` (privado): de ahí que no haya progreso por juego
- * ni "juegos en biblioteca", que serían cero desde la sesión del que mira.
+ * Todo sale de datos públicos: el diario, el Top 5, jugando, la playlist, las
+ * listas públicas y los totales de PSN de `public_profiles`. **Nada derivado de
+ * `user_trophies`** (privado): desde la sesión de quien mira daría cero. Por eso
+ * "Juegos jugados" cuenta sólo el diario y "Platinos" es el total que informa
+ * PSN, y cada fila lo aclara. Seguidores/Siguiendo tampoco: la RLS de
+ * `friendships` sólo deja ver las filas donde participa quien mira.
  */
-export default async function PerfilPublicoPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PerfilAjenoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, viewerId, profile, name } = await getOtherProfileContext(id);
 
-  if (!user) {
-    redirect("/login");
-  }
+  const head = { count: "exact" as const, head: true };
+  const [
+    favorites,
+    nowPlaying,
+    diaryOutcome,
+    { data: friendRow },
+    { count: playlistCount },
+    { count: listCount },
+  ] = await Promise.all([
+    getFavoriteGames(supabase, id),
+    getNowPlaying(supabase, id),
+    getUserDiaryEntries(supabase, id),
+    supabase
+      .from("friendships")
+      .select("friend_id")
+      .eq("user_id", viewerId)
+      .eq("friend_id", id)
+      .maybeSingle(),
+    supabase.from("user_playlist").select("game_id", head).eq("user_id", id),
+    supabase.from("user_lists").select("id", head).eq("user_id", id).eq("visibility", "public"),
+  ]);
 
-  // El perfil propio tiene su propia pantalla (con el editor del Top 5, el
-  // email y las acciones de la cuenta): un link a `/perfil/<mi id>` va ahí.
-  if (id === user.id) {
-    redirect("/perfil");
-  }
-
-  const [profile, favorites, nowPlaying, playlist, diaryOutcome, { data: friendRow }] =
-    await Promise.all([
-      getPublicProfile(supabase, id),
-      getFavoriteGames(supabase, id),
-      getNowPlaying(supabase, id),
-      getPlaylist(supabase, id),
-      getUserDiaryEntries(supabase, id, PROFILE_DIARY_PREVIEW_LIMIT),
-      supabase
-        .from("friendships")
-        .select("friend_id")
-        .eq("user_id", user.id)
-        .eq("friend_id", id)
-        .maybeSingle(),
-    ]);
-
-  if (!profile) {
-    notFound();
-  }
-
-  const name = profileLabel(profile);
-  const reviewLikes =
-    diaryOutcome.status === "ok"
-      ? await getReviewLikes(
-          supabase,
-          user.id,
-          diaryOutcome.entries.slice(0, PROFILE_DIARY_PREVIEW_LIMIT).map((entry) => entry.id),
-        )
-      : new Map();
-  // En una variable aparte para que el narrowing sobreviva dentro de los
-  // callbacks de más abajo (`profile.earned` es una propiedad opcional).
-  const earned = profile.earned;
   const isFriend = friendRow !== null;
-  const totalTrophies = earned ? PSN_TROPHY_TYPES.reduce((sum, type) => sum + earned[type], 0) : 0;
+  const entries = diaryOutcome.status === "ok" ? diaryOutcome.entries : [];
+  const year = currentYear();
+  const diary = countWithYear(
+    entries.map((entry) => yearOfDate(entry.finishedOn)),
+    year,
+  );
+  // Juegos distintos del diario, con el año de su primera partida registrada
+  // (las entradas vienen de la más nueva a la más vieja: la última gana).
+  const firstYearByGame = new Map<string, number>();
+  for (const entry of entries) firstYearByGame.set(entry.gameId, yearOfDate(entry.finishedOn));
+  const played = countWithYear([...firstYearByGame.values()], year);
+
+  const statRows: ProfileStatRow[] = [
+    {
+      label: "Juegos jugados",
+      note: "según su diario",
+      href: `/perfil/${id}/diario`,
+      value: played.total,
+      thisYear: played.thisYear,
+    },
+    ...(profile.earned
+      ? [{ label: "Platinos", note: "total que informa PSN", value: profile.earned.platinum }]
+      : []),
+    {
+      label: "Diario",
+      href: `/perfil/${id}/diario`,
+      value: diary.total,
+      thisYear: diary.thisYear,
+    },
+    { label: "Reseñas", value: entries.filter((entry) => entry.review?.trim()).length },
+    { label: "Playlist", href: `/perfil/${id}/playlist`, value: playlistCount ?? 0 },
+    { label: "Listas", href: `/perfil/${id}/listas`, value: listCount ?? 0 },
+  ];
 
   return (
     <div className="flex flex-1 flex-col bg-background px-4 py-6 text-ink sm:py-12">
       <div className="mx-auto w-full max-w-5xl space-y-8">
         <ProfileHeader
           name={name}
-          subtitle={isFriend ? "Lo tenés agregado: sus partidas aparecen en tu diario." : undefined}
+          subtitle={isFriend ? "Lo seguís: sus reseñas aparecen en tu actividad." : undefined}
           avatarUrl={profile.avatarUrl}
           badges={
             profile.psnOnlineId ? (
@@ -103,60 +102,37 @@ export default async function PerfilPublicoPage({ params }: { params: Promise<{ 
           actions={<FollowButton userId={profile.id} isFriend={isFriend} />}
         />
 
-        {earned && (
-          <ProfileStatStrip
-            stats={[
-              {
-                label: "Nivel PSN",
-                value: profile.trophyLevel ?? "—",
-                progressPercent: profile.trophyProgress,
-              },
-              { label: "Trofeos", value: totalTrophies },
-              { label: "Platinos", value: earned.platinum },
-            ]}
-          />
-        )}
-
-        <FavoriteGamesSection
-          games={favorites}
-          emptyMessage={`${name} todavía no eligió su Top 5.`}
-        />
-
-        <NowPlayingSection games={nowPlaying} />
-
-        <PlaylistSection
-          games={playlist.slice(0, PROFILE_PLAYLIST_PREVIEW_LIMIT)}
-          total={playlist.length}
-        />
-
-        {diaryOutcome.status === "error" ? (
-          <ErrorState message={`No se pudo cargar el diario: ${diaryOutcome.message}`} />
-        ) : (
-          <DiaryPreviewSection
-            entries={diaryOutcome.entries}
-            ratingTone="others"
-            likes={reviewLikes}
-            emptyMessage={`${name} todavía no marcó ninguna partida como terminada.`}
-            action={
-              <Link href="/biblioteca/resenas">
-                <SectionAction>Ver actividad</SectionAction>
-              </Link>
-            }
-          />
-        )}
-
-        {earned && (
-          <section className="space-y-3" aria-labelledby="psn-trophies-heading">
-            <SectionHeader
-              title={<span id="psn-trophies-heading">PlayStation Network · trofeos por tipo</span>}
+        <div className="space-y-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-10 lg:space-y-0">
+          <div className="space-y-8">
+            <FavoriteGamesSection
+              games={favorites}
+              emptyMessage={`${name} todavía no eligió sus favoritos.`}
             />
-            <TrophyTypeStrip counts={earned} />
-            <p className="type-caption text-ink-faint">
-              Totales tal cual los informa PSN. El progreso por juego es privado: solo lo ve cada
-              usuario en su propia biblioteca.
-            </p>
-          </section>
-        )}
+
+            <NowPlayingSection games={nowPlaying} />
+
+            {diaryOutcome.status === "error" ? (
+              <ErrorState message={`No se pudo cargar el diario: ${diaryOutcome.message}`} />
+            ) : (
+              <RecentReviewsSection
+                entries={entries}
+                tone="others"
+                emptyMessage={`${name} todavía no marcó ninguna partida como terminada.`}
+                more={{ href: `/perfil/${id}/diario`, label: "Ver su diario" }}
+              />
+            )}
+          </div>
+
+          <aside className="space-y-8" aria-label="Puntuaciones y estadísticas">
+            <RatingHistogram
+              histogram={ratingHistogram(entries)}
+              title="Sus puntuaciones"
+              emptyMessage={`${name} todavía no puntuó ningún juego.`}
+              linkToReviews={false}
+            />
+            <ProfileStatsMenu rows={statRows} />
+          </aside>
+        </div>
       </div>
     </div>
   );

@@ -246,6 +246,8 @@ test.describe("Steam", () => {
     );
 
     await page.goto("/diario");
+    // Desde #197 el import vive en el menú ⋮ del diario.
+    await page.getByRole("button", { name: "Más acciones del diario" }).click();
     await page.getByRole("button", { name: /Importar mis platinos/i }).click();
     // El resultado del import es texto suelto, no un role=status: se busca por
     // texto para que un backfill que no encuentra nada falle acá y no tres
