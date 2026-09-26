@@ -1,4 +1,5 @@
 import { test, expect } from "../fixtures/test";
+import { createTestUserClient } from "../helpers/supabase";
 
 /**
  * Conexión PSN (`app/(app)/configuracion/conexiones/`). Casos PSN-03, PSN-04,
@@ -82,5 +83,37 @@ test.describe("Conexión PSN", () => {
     for (const body of responses) {
       expect(body).not.toContain(MOCK_VALID_NPSSO);
     }
+  });
+
+  test("PSN-11: el NPSSO cifrado no se puede leer con la sesión del usuario", async ({
+    page,
+    users,
+  }) => {
+    await page.goto(CONNECTIONS);
+    const psnCard = page.getByRole("region", { name: "PlayStation Network" });
+    await psnCard.getByLabel("NPSSO").fill(MOCK_VALID_NPSSO);
+    await psnCard.getByRole("button", { name: /Conectar cuenta PSN/i }).click();
+    await expect(psnCard.getByTestId("connection-status")).toHaveAttribute(
+      "data-status",
+      "connected",
+    );
+
+    // Con la anon key y la sesión del dueño: el resto de la fila se lee (lo usa
+    // Conexiones), la columna del NPSSO no (issue #130).
+    const asUser = await createTestUserClient(users.userA.email, users.userA.password);
+    const { data: visible, error: visibleError } = await asUser
+      .from("psn_accounts")
+      .select("online_id, token_status, last_synced_at")
+      .eq("user_id", users.userA.id)
+      .single();
+    expect(visibleError).toBeNull();
+    expect(visible?.token_status).toBe("valid");
+
+    const { data: secret, error: secretError } = await asUser
+      .from("psn_accounts")
+      .select("npsso_encrypted")
+      .eq("user_id", users.userA.id);
+    expect(secretError).not.toBeNull();
+    expect(secret).toBeNull();
   });
 });
