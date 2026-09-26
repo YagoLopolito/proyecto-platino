@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { encryptSecret, getPsnIdentityFromNpsso, NpssoExpiredError } from "@/lib/psn";
 import {
   resolveSteamProfile,
@@ -58,7 +59,11 @@ export async function connectPsnAccount(
     return { error: "No se pudo validar el NPSSO. Revisá que lo hayas copiado completo." };
   }
 
-  const { error } = await supabase.from("psn_accounts").upsert(
+  // Con service role (issue #130): `npsso_encrypted` no es legible para
+  // `authenticated`, y un upsert con ON CONFLICT DO UPDATE necesita leer la
+  // fila existente. El `user_id` sale de la sesión validada arriba, nunca del
+  // form, así que bypassear RLS acá no deja escribir la cuenta de otro.
+  const { error } = await createServiceClient().from("psn_accounts").upsert(
     {
       user_id: user.id,
       online_id: identity.onlineId,

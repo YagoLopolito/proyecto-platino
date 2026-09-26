@@ -31,7 +31,7 @@ export default async function GameGuidesTab({ params }: { params: Promise<{ id: 
     getGamePageBase(gameId),
     getGameTrophyProgress(gameId),
   ]);
-  const { supabase, userId, card } = base;
+  const { supabase, userId } = base;
 
   const [
     { data: cachedPlanRow },
@@ -105,7 +105,7 @@ export default async function GameGuidesTab({ params }: { params: Promise<{ id: 
           Guías de Steam Community, PowerPyx, PSNProfiles y TrueTrophies. Cada enlace cita su fuente
           y abre en el sitio original.
         </p>
-        <FindExternalGuidesButton gameId={gameId} gameName={card.name} />
+        <FindExternalGuidesButton gameId={gameId} />
         {linksError && (
           <ErrorState message={`No se pudieron cargar los enlaces: ${linksError.message}`} />
         )}

@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../fixtures/test";
+import { seedGameWithTrophies } from "../helpers/seed";
 import {
   isNoiseTitle,
   isReadableLanguage,
@@ -117,5 +118,43 @@ test.describe("Idioma de las guías externas de Steam", () => {
     );
 
     expect(ranked.map((g) => g.id)).toEqual(["3"]);
+  });
+});
+
+/**
+ * LINK-08 (issue #127): la action escribe por service role, así que no puede
+ * confiar en el form. El nombre sale de `games` y un `gameId` que no existe se
+ * rechaza sin escribir nada.
+ */
+test.describe("Validación de la búsqueda de guías externas", () => {
+  test("LINK-08: el form no manda el nombre y un gameId inexistente se rechaza", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Enlaces Validados",
+      np: 815,
+    });
+
+    await page.goto(`/juegos/${gameId}/guias`);
+    const button = page.getByRole("button", { name: "Buscar guías externas" });
+    await expect(button).toBeVisible();
+    const form = page.locator("form", { has: button });
+    await expect(form.locator('input[name="gameName"]')).toHaveCount(0);
+
+    const fakeId = "00000000-0000-4000-8000-000000000815";
+    await form
+      .locator('input[name="gameId"]')
+      .evaluate((input, id) => ((input as HTMLInputElement).value = id), fakeId);
+    await button.click();
+
+    await expect(page.getByText("No se encontró el juego.")).toBeVisible();
+    const { count } = await supabase
+      .from("game_external_guides")
+      .select("id", { count: "exact", head: true })
+      .eq("game_id", fakeId);
+    expect(count ?? 0).toBe(0);
   });
 });
