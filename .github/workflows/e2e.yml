@@ -38,6 +38,17 @@ jobs:
 
   e2e:
     name: Playwright (mocks)
+    # Todas las corridas escriben en el MISMO proyecto de Supabase, y el
+    # teardown borra los usuarios de test: dos corridas en paralelo (varios PRs
+    # abiertos a la vez, o un PR + el push a master) se borran los datos entre
+    # sí y fallan tests que no tienen nada que ver con el cambio
+    # (`games_created_by_fkey` al seedear). Un solo grupo global las pone en
+    # fila. No se cancelan las que están corriendo; ojo que GitHub deja una sola
+    # pendiente por grupo: si se encolan varias, las viejas pendientes se
+    # cancelan y hay que re-correrlas.
+    concurrency:
+      group: e2e-supabase
+      cancel-in-progress: false
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.base_url == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
