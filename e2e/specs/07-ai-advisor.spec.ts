@@ -105,6 +105,35 @@ test.describe("Advisor con IA", () => {
     await expect(page.getByText(/No se puede farmear después/i)).toBeVisible();
   });
 
+  test("AI-15: regenerar el plan antes de 5 minutos se frena sin esconder el anterior", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Advisor Freno",
+      np: 315,
+    });
+
+    await page.goto(`/juegos/${gameId}/guias`);
+    await page.getByRole("button", { name: "Generar plan" }).click();
+    const regenerate = page.getByRole("button", { name: "Regenerar plan" });
+    await expect(regenerate).toBeVisible();
+
+    await regenerate.click();
+    await expect(page.getByText(/Ya generaste un plan hace poco/)).toBeVisible();
+    // El plan anterior sigue en pantalla.
+    await expect(regenerate).toBeVisible();
+
+    const { count } = await supabase
+      .from("ai_game_plans")
+      .select("id", { count: "exact", head: true })
+      .eq("game_id", gameId)
+      .eq("user_id", users.userA.id);
+    expect(count).toBe(1);
+  });
+
   test("AI-10: clickear un trofeo del plan lleva al trofeo y abre su ayuda", async ({
     page,
     supabase,

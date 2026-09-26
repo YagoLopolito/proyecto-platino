@@ -1,4 +1,10 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { test, expect } from "../fixtures/test";
+import {
+  PSN_SYNC_COOLDOWN_MS,
+  cooldownRemainingMs,
+  formatCooldown,
+} from "../../lib/sync/cooldown";
 import { encryptNpssoForFixture } from "../helpers/psn";
 import { E2E_PSN_MOCK_PREFIX } from "../helpers/ids";
 import { seedGameWithTrophies } from "../helpers/seed";
@@ -19,6 +25,11 @@ import { createTestUserClient } from "../helpers/supabase";
  * `playwright.config.ts`, con la storageState de userB.
  */
 const CONNECTIONS = "/configuracion/conexiones";
+
+/** Deja `last_synced_at` fuera de la ventana del freno de frecuencia (#128). */
+async function resetSyncCooldown(supabase: SupabaseClient, userId: string) {
+  await supabase.from("psn_accounts").update({ last_synced_at: null }).eq("user_id", userId);
+}
 const MOCK_VALID_NPSSO = "E2E-VALID-NPSSO";
 
 test.describe.configure({ mode: "serial" });
@@ -77,6 +88,7 @@ test.describe("Sync y biblioteca", () => {
   test("SYNC-04: sincronizar dos veces no duplica juegos ni trofeos", async ({
     page,
     supabase,
+    users,
   }) => {
     await page.goto(CONNECTIONS);
     const psnCard = page.getByRole("region", { name: "PlayStation Network" });
@@ -90,6 +102,10 @@ test.describe("Sync y biblioteca", () => {
     await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
     await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
 
+    // El freno de 10 minutos (#128) bloquearía el segundo sync: se vuelve atrás
+    // `last_synced_at` y se recarga para que el botón lo tome.
+    await resetSyncCooldown(supabase, users.userB.id);
+    await page.reload();
     await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
     await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
 
@@ -147,8 +163,10 @@ test.describe("Sync y biblioteca", () => {
       { user_id: users.userB.id, game_id: inProgress!, started_at: "2026-01-01T00:00:00Z" },
     ]);
 
-    // El mensaje "Sincronizado" del primer sync sigue en pantalla: lo que dice
-    // que terminó el segundo es la base, no la UI.
+    // Sin el freno de 10 minutos (#128) de por medio; la recarga además
+    // limpia el "Sincronizado" del primer sync.
+    await resetSyncCooldown(supabase, users.userB.id);
+    await page.reload();
     await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
     const sessionsByGame = async () => {
       const { data } = await supabase
@@ -161,7 +179,7 @@ test.describe("Sync y biblioteca", () => {
     await expect
       .poll(async () => (await sessionsByGame()).get(platinumed!)?.end_reason)
       .toBe("platinum");
-    await expect(psnCard.getByRole("button", { name: /Sincronizar ahora/i })).toBeEnabled();
+    await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
     expect((await sessionsByGame()).get(inProgress!)?.ended_at).toBeNull();
   });
 
@@ -307,6 +325,43 @@ test.describe("Sync y biblioteca", () => {
       .eq("game_id", gameId)
       .single();
     expect(row?.playtime_minutes).toBe(250);
+  });
+
+  test("SYNC-18: un segundo sync manual antes de 10 minutos se frena", async ({ page }) => {
+    await page.goto(CONNECTIONS);
+    const psnCard = page.getByRole("region", { name: "PlayStation Network" });
+    await psnCard.getByLabel("NPSSO").fill(MOCK_VALID_NPSSO);
+    await psnCard.getByRole("button", { name: /Conectar cuenta PSN/i }).click();
+    await expect(psnCard.getByTestId("connection-status")).toHaveAttribute(
+      "data-status",
+      "connected",
+    );
+    await psnCard.getByRole("button", { name: /Sincronizar ahora/i }).click();
+    await expect(psnCard.getByText(/Sincronizado: 3 juegos/i)).toBeVisible();
+
+    // El botón queda deshabilitado y dice cuánto falta, también después de recargar.
+    await expect(psnCard.getByRole("button", { name: /Sincronizar ahora/i })).toBeDisabled();
+    await page.reload();
+    await expect(psnCard.getByRole("button", { name: /Sincronizar ahora/i })).toBeDisabled();
+    await expect(psnCard.getByText(/Podés volver a sincronizar en 10 minutos/)).toBeVisible();
+
+    // Y la ruta lo rechaza aunque alguien se saltee el botón.
+    const response = await page.request.post("/api/psn/sync");
+    expect(response.status()).toBe(429);
+    expect(response.headers()["retry-after"]).toBeTruthy();
+    expect((await response.json()).error).toMatch(/Podés volver a hacerlo en/);
+  });
+
+  test("SYNC-19: el cálculo del freno de frecuencia", () => {
+    const now = Date.parse("2026-09-25T12:00:00Z");
+    expect(cooldownRemainingMs(null, PSN_SYNC_COOLDOWN_MS, now)).toBe(0);
+    expect(cooldownRemainingMs("no-es-fecha", PSN_SYNC_COOLDOWN_MS, now)).toBe(0);
+    expect(cooldownRemainingMs("2026-09-25T11:45:00Z", PSN_SYNC_COOLDOWN_MS, now)).toBe(0);
+    expect(cooldownRemainingMs("2026-09-25T11:57:00Z", PSN_SYNC_COOLDOWN_MS, now)).toBe(
+      7 * 60_000,
+    );
+    expect(formatCooldown(7 * 60_000)).toBe("7 minutos");
+    expect(formatCooldown(10_000)).toBe("1 minuto");
   });
 
   test("SYNC-11: /api/cron/sync sin CRON_SECRET responde 401", async ({ request }) => {
