@@ -14,8 +14,7 @@ export async function findExternalGuides(
   formData: FormData,
 ): Promise<FindExternalGuidesState> {
   const gameId = String(formData.get("gameId") ?? "");
-  const gameName = String(formData.get("gameName") ?? "");
-  if (!gameId || !gameName) {
+  if (!gameId) {
     return { inserted: null, errors: ["Falta el juego."] };
   }
 
@@ -27,8 +26,22 @@ export async function findExternalGuides(
     return { inserted: null, errors: ["Tenés que iniciar sesión."] };
   }
 
+  // Lo que se escribe va por service role (bypassea RLS) y lo ve todo el
+  // mundo: el nombre sale de `games`, nunca del form, así nadie puede colar
+  // un título arbitrario ni apuntar a un juego que no existe. No se exige que
+  // esté en `user_games`: desde #186 cualquier juego tiene ficha, y estos
+  // enlaces son datos del catálogo compartido.
+  const { data: game } = await supabase
+    .from("games")
+    .select("id, name")
+    .eq("id", gameId)
+    .maybeSingle();
+  if (!game) {
+    return { inserted: null, errors: ["No se encontró el juego."] };
+  }
+
   try {
-    const result = await populateExternalGuidesForGame(gameId, gameName);
+    const result = await populateExternalGuidesForGame(game.id, game.name);
     revalidatePath(`/juegos/${gameId}`, "layout");
     return result;
   } catch (cause) {

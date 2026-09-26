@@ -6,9 +6,11 @@ import {
   generateAiGamePlan,
   AiProviderError,
   AiSchemaValidationError,
+  aiGamePlanSchema,
   type AiGamePlan,
   type AiPlanTrophyInput,
 } from "@/lib/ai";
+import { AI_PLAN_COOLDOWN_MS, cooldownRemainingMs, formatCooldown } from "@/lib/sync/cooldown";
 
 const MODEL = "openai/gpt-oss-120b";
 
@@ -47,6 +49,28 @@ export async function generateAiPlan(
     .single();
   if (gameError || !game) {
     return { plan: null, error: "No se encontró el juego." };
+  }
+
+  // Freno de frecuencia (#128): un plan por juego cada 5 minutos, para no
+  // quemar la cuota de Groq. Sólo cuentan los planes `ok`: después de un
+  // fallo el usuario tiene que poder reintentar. El plan anterior vuelve con
+  // el error para que el panel no lo esconda.
+  const { data: lastPlan } = await supabase
+    .from("ai_game_plans")
+    .select("created_at, payload_json")
+    .eq("game_id", gameId)
+    .eq("user_id", user.id)
+    .eq("status", "ok")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const remainingMs = cooldownRemainingMs(lastPlan?.created_at, AI_PLAN_COOLDOWN_MS);
+  if (remainingMs > 0) {
+    const previous = aiGamePlanSchema.safeParse(lastPlan?.payload_json);
+    return {
+      plan: previous.success ? previous.data : null,
+      error: `Ya generaste un plan hace poco. Podés regenerarlo en ${formatCooldown(remainingMs)}.`,
+    };
   }
 
   const { data: trophies } = await supabase

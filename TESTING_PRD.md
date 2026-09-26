@@ -318,6 +318,8 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-15 | Fallo parcial de horas de PSN | Si una página de la lista de juegos jugados falla, `fetchPsnPlaytime` devuelve las páginas ya obtenidas en vez de perder el mapa entero | P1 |
 | SYNC-16 | RLS de `user_games` | El usuario puede actualizar su propia fila: el segundo upsert del sync (ON CONFLICT DO UPDATE) no lo rechaza la RLS | P0 |
 | SYNC-17 | Cruce de nombres de PSN | `playtimeMatchKey` ignora el sufijo del set de trofeos ("… Trophies") y el de plataforma, sin colapsar juegos distintos | P1 |
+| SYNC-18 | Freno del sync manual (#128) | Un segundo sync antes de 10 minutos: el botón queda deshabilitado con cuánto falta (también tras recargar) y `POST /api/psn/sync` responde 429 con `Retry-After`. El cron no pasa por esa ruta y no queda sujeto al límite | **P0 (seguridad)** |
+| SYNC-19 | Cálculo del freno | `cooldownRemainingMs` devuelve 0 sin fecha, con fecha inválida o pasada la ventana, y lo que falta dentro de ella; `formatCooldown` nunca dice "0 minutos" | P1 |
 
 ### 6.4 Detalle de juego (`04-game-detail.spec.ts`)
 
@@ -355,6 +357,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | LINK-05 | Links con `target=_blank` + `rel=noopener` | Atributos presentes | P2 |
 | LINK-06 | Relevancia de las guías de Steam | Las traducciones, mods y fixes de performance se descartan; las guías de logros/100%/walkthrough/builds quedan y se ordenan primero | P1 |
 | LINK-07 | Idioma de las guías de Steam | Solo quedan títulos en español o en inglés; los de escritura no latina (ruso, chino, coreano) y los de otros idiomas latinos (portugués, italiano, alemán, polaco…) se descartan aunque estén etiquetados | P1 |
+| LINK-08 | La búsqueda no confía en el form (#127) | El nombre del juego sale de `games`, no de un input; un `gameId` inexistente devuelve "No se encontró el juego." y no escribe nada | P0 |
 
 ### 6.7 Advisor con IA (`07-ai-advisor.spec.ts`)
 
@@ -373,6 +376,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | AI-12 | Trofeos de acumulación | El plan lista los trofeos que piden juntar una cantidad, con su objetivo, su categoría y el aviso cuando no se pueden farmear después | P1 |
 | AI-13 | Tamaño del prompt del plan | El prompt de un juego de 53/80/120 trofeos entra en el presupuesto de tokens del free tier, y los trofeos ya obtenidos no se mandan | P0 |
 | AI-14 | Trofeos de historia no son perdibles | El system prompt del plan le prohíbe explícitamente al modelo poner en "missables" los trofeos que se desbloquean solos avanzando la historia, y exige un punto de no retorno concreto para cada missable | P1 |
+| AI-15 | Freno del plan de IA (#128) | Regenerar antes de 5 minutos muestra cuánto falta, no llama al proveedor ni inserta una fila, y el plan anterior sigue visible | P1 |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)
@@ -482,6 +486,7 @@ ninguna API externa.
 | SEC-03 | Server Actions validan autoría | Editar guía / entrada de diario ajena falla del lado del servidor, no solo por UI oculta | P0 |
 | SEC-04 | Sin sesión, las Server Actions rechazan | Invocarlas con las cookies borradas devuelve error de auth | P0 |
 | SEC-05 | Consola limpia | Ningún `console.error` en el recorrido feliz completo | P1 |
+| SEC-06 | La anon key no lee tablas (#129) | Sin sesión, un select con la anon key sobre games, trophies, diario, likes, listas, estudios, etc. no devuelve filas: las policies de select van `to authenticated` | **P0 (seguridad)** |
 
 ### 6.13 Smoke en Vercel (`smoke.spec.ts`)
 
