@@ -287,6 +287,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | PSN-08 | Avatar roto cae al placeholder | Forzar 404 en la URL del avatar | Placeholder visible, sin ícono roto (PR #106) | P2 |
 | PSN-09 | Reconexión con `token_status='expired'` | Banner de "reconectar" en `/psn` y `/perfil` | P1 |
 | PSN-10 | `@live`: NPSSO real | Conexión exitosa corriendo en local | P2 |
+| PSN-11 | NPSSO no legible con la sesión (#130) | Con la anon key y la sesión del dueño se leen `online_id`/`token_status`/`last_synced_at`, pero un select de `npsso_encrypted` da error de permisos. Conectar y sincronizar siguen andando (van por service role) | **P0 (seguridad)** |
 
 ### 6.3 Sync y biblioteca (`03-sync-library.spec.ts`)
 
