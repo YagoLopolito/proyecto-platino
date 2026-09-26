@@ -481,6 +481,7 @@ ninguna API externa.
 | SEC-03 | Server Actions validan autoría | Editar guía / entrada de diario ajena falla del lado del servidor, no solo por UI oculta | P0 |
 | SEC-04 | Sin sesión, las Server Actions rechazan | Invocarlas con las cookies borradas devuelve error de auth | P0 |
 | SEC-05 | Consola limpia | Ningún `console.error` en el recorrido feliz completo | P1 |
+| SEC-06 | La anon key no lee tablas (#129) | Sin sesión, un select con la anon key sobre games, trophies, diario, likes, listas, estudios, etc. no devuelve filas: las policies de select van `to authenticated` | **P0 (seguridad)** |
 
 ### 6.13 Smoke en Vercel (`smoke.spec.ts`)
 
