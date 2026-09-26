@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SyncStatusBadge, type SyncTokenStatus } from "@/components/SyncStatusBadge";
 import { isVisibleInLibrary } from "@/lib/library/visibility";
 import SyncButton from "@/components/psn/SyncButton";
+import { PSN_SYNC_COOLDOWN_MS, cooldownRemainingMs } from "@/lib/sync/cooldown";
 import { NowPlayingSection } from "@/components/now-playing/NowPlayingSection";
 import { PlaySuggestionBanner } from "@/components/now-playing/PlaySuggestionBanner";
 import { getNowPlaying, getPlaySuggestion } from "@/lib/now-playing/queries";
@@ -177,7 +178,10 @@ export default async function BibliotecaJuegosPage({
              * tiene que ser el contenido.
              */}
             {psnAccount?.token_status === "valid" && (
-              <SyncButton reconnectHref="/configuracion/conexiones#reconectar-psn" />
+              <SyncButton
+                reconnectHref="/configuracion/conexiones#reconectar-psn"
+                cooldownMs={cooldownRemainingMs(psnAccount.last_synced_at, PSN_SYNC_COOLDOWN_MS)}
+              />
             )}
           </div>
 

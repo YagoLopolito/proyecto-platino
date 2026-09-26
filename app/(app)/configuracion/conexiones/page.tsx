@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SyncButton from "@/components/psn/SyncButton";
+import { PSN_SYNC_COOLDOWN_MS, cooldownRemainingMs } from "@/lib/sync/cooldown";
 import SteamSyncButton from "@/components/steam/SteamSyncButton";
 import ConnectPsnForm from "@/components/connections/ConnectPsnForm";
 import ConnectSteamForm from "@/components/connections/ConnectSteamForm";
@@ -118,7 +119,10 @@ export default async function ConexionesPage({
                 a un click de más justo cuando la app ya sabe que hace falta. */}
             {psnStatus === "connected" ? (
               <>
-                <SyncButton variant="primary" />
+                <SyncButton
+                  variant="primary"
+                  cooldownMs={cooldownRemainingMs(psnAccount.last_synced_at, PSN_SYNC_COOLDOWN_MS)}
+                />
                 <Disclosure summary="Reconectar con un NPSSO nuevo">
                   <ConnectPsnForm isReconnect />
                 </Disclosure>
