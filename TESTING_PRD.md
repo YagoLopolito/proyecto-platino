@@ -354,6 +354,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | LINK-05 | Links con `target=_blank` + `rel=noopener` | Atributos presentes | P2 |
 | LINK-06 | Relevancia de las guías de Steam | Las traducciones, mods y fixes de performance se descartan; las guías de logros/100%/walkthrough/builds quedan y se ordenan primero | P1 |
 | LINK-07 | Idioma de las guías de Steam | Solo quedan títulos en español o en inglés; los de escritura no latina (ruso, chino, coreano) y los de otros idiomas latinos (portugués, italiano, alemán, polaco…) se descartan aunque estén etiquetados | P1 |
+| LINK-08 | La búsqueda no confía en el form (#127) | El nombre del juego sale de `games`, no de un input; un `gameId` inexistente devuelve "No se encontró el juego." y no escribe nada | P0 |
 
 ### 6.7 Advisor con IA (`07-ai-advisor.spec.ts`)
 
