@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { createServiceClient } from "@/lib/supabase/service";
 import { findCoverUrl } from "@/lib/covers";
 import { normalizeName } from "@/lib/catalog/dedup";
 import { reconcilePlatinumDiaryEntry } from "@/lib/diary/platinum";
@@ -251,6 +252,8 @@ async function syncTitle(
   return { titleSynced: true, trophiesSynced: trophyIdByNpId.size };
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Trae todos los juegos y trofeos reales del usuario desde PSN y los guarda.
  *
@@ -265,7 +268,16 @@ export async function syncTrophiesForUser(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<SyncResult> {
-  const { data: account, error: accountError } = await supabase
+  // El NPSSO cifrado se lee con service role (issue #130): la columna deja de
+  // ser legible para `authenticated`, así un XSS o una extensión no tienen
+  // nada que llevarse. Como bypassea RLS, el `userId` tiene que venir de una
+  // sesión ya validada (la ruta manual) o del propio cron, nunca del cliente;
+  // se revalida acá que sea un uuid antes de filtrar por él. El resto del sync
+  // sigue escribiendo con el cliente que se recibe por parámetro.
+  if (!UUID_PATTERN.test(userId)) {
+    throw new Error("Usuario inválido para sincronizar.");
+  }
+  const { data: account, error: accountError } = await createServiceClient()
     .from("psn_accounts")
     .select("npsso_encrypted, account_id")
     .eq("user_id", userId)
