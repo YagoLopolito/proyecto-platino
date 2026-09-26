@@ -10,10 +10,8 @@ const initialFindExternalGuidesState: FindExternalGuidesState = {
 
 export default function FindExternalGuidesButton({
   gameId,
-  gameName,
 }: {
   gameId: string;
-  gameName: string;
 }) {
   const [state, formAction, pending] = useActionState(
     findExternalGuides,
@@ -24,7 +22,6 @@ export default function FindExternalGuidesButton({
     <div className="space-y-2">
       <form action={formAction}>
         <input type="hidden" name="gameId" value={gameId} />
-        <input type="hidden" name="gameName" value={gameName} />
         <button
           type="submit"
           disabled={pending}
