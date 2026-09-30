@@ -6,6 +6,7 @@ import { mapWithConcurrency } from "@/lib/psn/concurrency";
 import { syncSteamAchievementsForUser, SteamProfilePrivateError } from "@/lib/steam";
 import { refreshSystemLists } from "@/lib/lists/system";
 import { backfillGameCompanies } from "@/lib/studios/backfill";
+import { isValidCronAuthorization } from "@/lib/cron/auth";
 
 /**
  * Igual límite que /api/psn/sync (ver CLAUDE.md): declarar maxDuration no
@@ -25,9 +26,7 @@ const SYNC_CONCURRENCY = 3;
 
 /** Vercel Cron manda `Authorization: Bearer ${CRON_SECRET}` en cada invocación programada. */
 function isAuthorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
+  return isValidCronAuthorization(request.headers.get("authorization"), process.env.CRON_SECRET);
 }
 
 /**
@@ -103,7 +102,7 @@ export async function GET(request: NextRequest) {
         job.platform === "psn"
           ? await syncTrophiesForUser(supabase, job.userId)
           : await syncSteamAchievementsForUser(supabase, job.userId);
-      return { userId: job.userId, platform: job.platform, ok: true as const, ...result };
+      return { platform: job.platform, ok: true as const, ...result };
     } catch (cause) {
       // El sync marca solo `token_status`/`profile_visibility` en la cuenta que
       // falló; acá solo se reporta, para que la corrida siga con las demás.
@@ -115,12 +114,15 @@ export async function GET(request: NextRequest) {
             : cause instanceof Error
               ? cause.message
               : "Error inesperado.";
-      return { userId: job.userId, platform: job.platform, ok: false as const, error: message };
+      // El userId va sólo al log del server, no a la respuesta (#133).
+      console.error(`[cron] falló el sync ${job.platform} de ${job.userId}: ${message}`);
+      return { platform: job.platform, ok: false as const, error: message };
     }
   });
 
   const systemLists = await refreshSystemListsStep(supabase);
 
+  // Sólo conteos y errores: la respuesta no identifica a ningún usuario (#133).
   return NextResponse.json({
     systemLists,
     accountsProcessed: results.length,

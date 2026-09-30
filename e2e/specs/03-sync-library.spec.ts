@@ -1,14 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { test, expect } from "../fixtures/test";
-import {
-  PSN_SYNC_COOLDOWN_MS,
-  cooldownRemainingMs,
-  formatCooldown,
-} from "../../lib/sync/cooldown";
+import { PSN_SYNC_COOLDOWN_MS, cooldownRemainingMs, formatCooldown } from "../../lib/sync/cooldown";
 import { encryptNpssoForFixture } from "../helpers/psn";
 import { E2E_PSN_MOCK_PREFIX } from "../helpers/ids";
 import { seedGameWithTrophies } from "../helpers/seed";
 import { createTestUserClient } from "../helpers/supabase";
+import { isValidCronAuthorization } from "../../lib/cron/auth";
 
 /**
  * Sync y biblioteca (`/juegos`, `POST /api/psn/sync`, `GET /api/cron/sync`).
@@ -357,9 +354,7 @@ test.describe("Sync y biblioteca", () => {
     expect(cooldownRemainingMs(null, PSN_SYNC_COOLDOWN_MS, now)).toBe(0);
     expect(cooldownRemainingMs("no-es-fecha", PSN_SYNC_COOLDOWN_MS, now)).toBe(0);
     expect(cooldownRemainingMs("2026-09-25T11:45:00Z", PSN_SYNC_COOLDOWN_MS, now)).toBe(0);
-    expect(cooldownRemainingMs("2026-09-25T11:57:00Z", PSN_SYNC_COOLDOWN_MS, now)).toBe(
-      7 * 60_000,
-    );
+    expect(cooldownRemainingMs("2026-09-25T11:57:00Z", PSN_SYNC_COOLDOWN_MS, now)).toBe(7 * 60_000);
     expect(formatCooldown(7 * 60_000)).toBe("7 minutos");
     expect(formatCooldown(10_000)).toBe("1 minuto");
   });
@@ -367,5 +362,33 @@ test.describe("Sync y biblioteca", () => {
   test("SYNC-11: /api/cron/sync sin CRON_SECRET responde 401", async ({ request }) => {
     const response = await request.get("/api/cron/sync");
     expect(response.status()).toBe(401);
+  });
+
+  test("SYNC-20: el chequeo del CRON_SECRET es exacto y no acepta vacíos", () => {
+    expect(isValidCronAuthorization("Bearer s3cret", "s3cret")).toBe(true);
+    // Mismo largo, distinto contenido.
+    expect(isValidCronAuthorization("Bearer s3creX", "s3cret")).toBe(false);
+    expect(isValidCronAuthorization("Bearer s3cret-y-mas", "s3cret")).toBe(false);
+    expect(isValidCronAuthorization("s3cret", "s3cret")).toBe(false);
+    expect(isValidCronAuthorization(null, "s3cret")).toBe(false);
+    // Sin secreto configurado, nada pasa (ni siquiera "Bearer ").
+    expect(isValidCronAuthorization("Bearer ", "")).toBe(false);
+    expect(isValidCronAuthorization("Bearer undefined", undefined)).toBe(false);
+  });
+
+  test("SYNC-21: un bearer incorrecto del mismo largo da 401 también en ?paso=", async ({
+    request,
+  }) => {
+    const secret = process.env.CRON_SECRET;
+    test.skip(!secret, "Necesita CRON_SECRET.");
+    const wrong = `Bearer ${"x".repeat(secret!.length)}`;
+    for (const path of [
+      "/api/cron/sync",
+      "/api/cron/sync?paso=listas",
+      "/api/cron/sync?paso=estudios",
+    ]) {
+      const response = await request.get(path, { headers: { authorization: wrong } });
+      expect(response.status(), path).toBe(401);
+    }
   });
 });
