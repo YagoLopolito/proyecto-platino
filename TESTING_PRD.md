@@ -312,7 +312,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-09 | Orden por última jugada | Sin recarga de página (PR #49) | P2 |
 | SYNC-10 | Juegos `source='catalog'` no aparecen | Un juego de catálogo del diario no se lista en `/juegos` | P1 |
 | SYNC-11 | `/api/cron/sync` sin `CRON_SECRET` | 401 | **P0 (seguridad)** |
-| SYNC-12 | `/api/cron/sync` con bearer correcto | 200 con resumen por cuenta | P1 |
+| SYNC-12 | `/api/cron/sync` con bearer correcto | 200 con resumen por plataforma, sin `userId` en la respuesta | P1 |
 | SYNC-13 | Horas jugadas de PSN | `playtime_minutes` guardado desde `playDuration`, visible en la tarjeta de la biblioteca y en el hero de la ficha; un juego sin horas reportadas no muestra nada | P1 |
 | SYNC-14 | Paginación de horas de PSN | `decideNextPage` no corta en la primera página cuando falta `totalItemCount` y recorre una biblioteca grande en páginas chicas | P1 |
 | SYNC-15 | Fallo parcial de horas de PSN | Si una página de la lista de juegos jugados falla, `fetchPsnPlaytime` devuelve las páginas ya obtenidas en vez de perder el mapa entero | P1 |
@@ -320,6 +320,8 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | SYNC-17 | Cruce de nombres de PSN | `playtimeMatchKey` ignora el sufijo del set de trofeos ("… Trophies") y el de plataforma, sin colapsar juegos distintos | P1 |
 | SYNC-18 | Freno del sync manual (#128) | Un segundo sync antes de 10 minutos: el botón queda deshabilitado con cuánto falta (también tras recargar) y `POST /api/psn/sync` responde 429 con `Retry-After`. El cron no pasa por esa ruta y no queda sujeto al límite | **P0 (seguridad)** |
 | SYNC-19 | Cálculo del freno | `cooldownRemainingMs` devuelve 0 sin fecha, con fecha inválida o pasada la ventana, y lo que falta dentro de ella; `formatCooldown` nunca dice "0 minutos" | P1 |
+| SYNC-20 | Chequeo del `CRON_SECRET` (test puro) | `isValidCronAuthorization` compara en tiempo constante; rechaza mismo largo con otro contenido, sin prefijo `Bearer`, header nulo y secreto vacío | **P0 (seguridad)** |
+| SYNC-21 | Bearer incorrecto del mismo largo | 401 en el cron completo, `?paso=listas` y `?paso=estudios` | **P0 (seguridad)** |
 
 ### 6.4 Detalle de juego (`04-game-detail.spec.ts`)
 
