@@ -4,7 +4,7 @@ import type { IgdbGameLookup } from "@/lib/igdb/games";
 import { generateTimeEstimates } from "@/lib/ai";
 import { TIME_TO_BEAT_MOCKS_ENABLED, mockTimeEstimates } from "./mocks";
 
-export { pickIgdbGame, secondsToMinutes } from "./match";
+export { pickIgdbGame, pickIgdbTimes, secondsToMinutes } from "./match";
 
 /**
  * De dónde salieron los tiempos.

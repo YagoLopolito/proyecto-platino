@@ -135,3 +135,33 @@ export function secondsToMinutes(seconds: unknown): number | null {
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds <= 0) return null;
   return Math.round(seconds / 60);
 }
+
+/**
+ * Mínimo de partidas enviadas a IGDB para confiar en su promedio. Con una o
+ * dos, un solo speedrun o una partida abandonada define el número; en ese caso
+ * es preferible la estimación de IA (que la ficha marca como tal).
+ */
+export const MIN_IGDB_SUBMISSIONS = 3;
+
+/**
+ * Traduce una fila de `game_time_to_beats` a los dos tiempos de la ficha,
+ * con los mismos criterios que HowLongToBeat:
+ * - historia = `hastily` (Main Story), cayendo a `normally` si no hay;
+ * - completo = `completely` (Completionist), nunca menor que la historia.
+ *
+ * `null` si no hay datos o hay muy pocas partidas (`count`).
+ */
+export function pickIgdbTimes(
+  row: Record<string, unknown>,
+): { beatMinutes: number | null; completeMinutes: number | null } | null {
+  const count = typeof row.count === "number" ? row.count : null;
+  if (count !== null && count < MIN_IGDB_SUBMISSIONS) return null;
+
+  const beatMinutes = secondsToMinutes(row.hastily) ?? secondsToMinutes(row.normally);
+  let completeMinutes = secondsToMinutes(row.completely);
+  if (beatMinutes === null && completeMinutes === null) return null;
+  if (beatMinutes !== null && completeMinutes !== null && completeMinutes < beatMinutes) {
+    completeMinutes = beatMinutes;
+  }
+  return { beatMinutes, completeMinutes };
+}

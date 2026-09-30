@@ -1,7 +1,7 @@
 import "server-only";
 import { igdbQuery } from "@/lib/igdb/client";
 import { resolveIgdbGame, type IgdbGameLookup } from "@/lib/igdb/games";
-import { secondsToMinutes } from "./match";
+import { pickIgdbTimes } from "./match";
 
 /**
  * Tiempos de IGDB, la única fuente que publica los dos que pide la ficha:
@@ -12,8 +12,14 @@ import { secondsToMinutes } from "./match";
  * del bundle JS del sitio y cambia en cada release -- el mismo problema que el
  * GraphQL de la PS App, más un ToS que no permite scrapearlo. IGDB es de
  * Twitch/Amazon, tiene API oficial documentada, es gratis y su
- * `game_time_to_beat` es exactamente el dato ("hastily" / "normally" /
+ * `game_time_to_beats` es exactamente el dato ("hastily" / "normally" /
  * "completely", agregados de la comunidad).
+ *
+ * Ojo con dos detalles que tuvieron a la sección entera andando sólo con la
+ * IA durante meses: el endpoint es **plural** (`game_time_to_beats`; el
+ * singular no existe y toda consulta fallaba), y el "Main Story" de HLTB es
+ * `hastily` ("hasta los créditos sin extras"), no `normally` (que es "Main +
+ * Extras" y da números bastante más altos).
  *
  * El cliente HTTP y el match por nombre viven en `lib/igdb/` desde el issue
  * #193: los comparten con los estudios.
@@ -58,8 +64,8 @@ export async function findIgdbTimeToBeat(
     if (game.status !== "ok") return game;
 
     const times = await igdbQuery(
-      "game_time_to_beat",
-      `fields normally,completely; where game_id = ${game.id}; limit 1;`,
+      "game_time_to_beats",
+      `fields hastily,normally,completely,count; where game_id = ${game.id}; limit 1;`,
     );
     if ("error" in times) {
       console.error(`[igdb] no se pudieron pedir los tiempos de "${gameName}": ${times.error}`);
@@ -72,13 +78,12 @@ export async function findIgdbTimeToBeat(
 
     const first = times.rows[0];
     if (typeof first !== "object" || first === null) return { status: "not_found" };
-    const { normally, completely } = first as Record<string, unknown>;
-
-    const beatMinutes = secondsToMinutes(normally);
-    const completeMinutes = secondsToMinutes(completely);
-    if (beatMinutes === null && completeMinutes === null) return { status: "not_found" };
-
-    return { status: "ok", times: { beatMinutes, completeMinutes } };
+    const picked = pickIgdbTimes(first as Record<string, unknown>);
+    if (!picked) {
+      console.warn(`[igdb] "${gameName}" (id ${game.id}) tiene tiempos con muy pocas partidas`);
+      return { status: "not_found" };
+    }
+    return { status: "ok", times: picked };
   } catch (cause) {
     // Timeout del AbortSignal, DNS, TLS: no pudimos preguntar, no es que IGDB
     // no sepa. No se cachea.

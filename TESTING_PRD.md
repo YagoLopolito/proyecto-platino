@@ -571,6 +571,7 @@ llama a IGDB.
 | TIME-06 | `@live`: IGDB real | Un juego conocido devuelve `status: "ok"` con los dos tiempos mayores a cero | P2 |
 | TIME-07 | No se pudo consultar IGDB | El juego **no** queda marcado como consultado, para que se reintente cuando el problema se arregle | P0 |
 | TIME-08 | Nombres del catálogo contra IGDB | "Skyrim", "…- Multiplayer" y los que traen ®/™ matchean contra el título real; una entrega distinta de la saga no | P0 |
+| TIME-09 | Criterio HowLongToBeat sobre la fila de IGDB | La historia sale de `hastily` (Main Story, cae a `normally` si falta), el 100% nunca es menor que la historia y con menos de 3 partidas (`count`) no se usa el dato | P0 |
 
 ### 6.18 Sistema de diseño (`21-design-system.spec.ts`)
 

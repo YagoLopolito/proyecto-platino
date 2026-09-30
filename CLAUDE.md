@@ -152,6 +152,14 @@ muestran en el hero de la ficha de juego (`GameHero`, uno solo desde el issue #1
   scrapearlo. La fuente es **IGDB** (`game_time_to_beat`, de Twitch/Amazon): API oficial,
   gratis, y es el único proveedor que publica los **dos** números (`normally` y `completely`,
   en segundos).
+- **El endpoint es `game_time_to_beats` (plural)** y la historia principal es `hastily`, no
+  `normally`. Durante meses se consultó el singular, que no existe: **ningún** juego salió de
+  IGDB y la ficha mostraba sólo estimaciones de IA (migración
+  `20261002000000_reset_time_estimates.sql` borra ese caché). El criterio es el de
+  HowLongToBeat (`pickIgdbTimes` en `match.ts`): historia = `hastily` ("Main Story"; `normally`
+  es "Main + Extras"), 100% = `completely`, nunca menor que la historia, y con `count` < 3
+  partidas el dato se descarta. El prompt de la IA pide los números de HLTB por nombre y va con
+  `temperature: 0`.
 - **IGDB primero y, para lo que no tiene, una estimación del LLM** (`generateTimeEstimates` en
   `lib/ai/`, horas enteras, con el mismo `NO_CONOZCO` que la descripción). La ficha **siempre
   cita la fuente**, y la de IA lleva el ✨ y un "puede tener errores": un agregado de partidas
