@@ -1,6 +1,6 @@
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
-import { comparableName, pickIgdbGame, secondsToMinutes } from "../../lib/time-to-beat/match";
+import { comparableName, pickIgdbGame, pickIgdbTimes, secondsToMinutes } from "../../lib/time-to-beat/match";
 
 /**
  * Tiempos estimados de juego al estilo HowLongToBeat, en la ficha de trofeos y
@@ -63,6 +63,23 @@ test.describe("Elección del juego y unidades", () => {
     expect(secondsToMinutes(-5)).toBeNull();
     expect(secondsToMinutes(undefined)).toBeNull();
     expect(secondsToMinutes(43_200)).toBe(720);
+  });
+
+  test("TIME-09: usa el criterio de HowLongToBeat sobre la fila de IGDB", () => {
+    // Historia = `hastily` (Main Story de HLTB), no `normally` (Main + Extras).
+    expect(
+      pickIgdbTimes({ hastily: 36_000, normally: 54_000, completely: 90_000, count: 40 }),
+    ).toEqual({ beatMinutes: 600, completeMinutes: 1500 });
+    // Sin `hastily`, cae a `normally`.
+    expect(pickIgdbTimes({ normally: 54_000, completely: 90_000, count: 40 })?.beatMinutes).toBe(900);
+    // El 100% nunca es más corto que la historia.
+    expect(pickIgdbTimes({ hastily: 36_000, completely: 18_000, count: 40 })).toEqual({
+      beatMinutes: 600,
+      completeMinutes: 600,
+    });
+    // Con menos de 3 partidas el promedio no es confiable.
+    expect(pickIgdbTimes({ hastily: 36_000, completely: 90_000, count: 2 })).toBeNull();
+    expect(pickIgdbTimes({ hastily: 0, normally: 0, completely: 0, count: 40 })).toBeNull();
   });
 });
 

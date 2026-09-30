@@ -78,16 +78,17 @@ export type TimeEstimatesInput = {
  * es la misma convención que la descripción: preferimos no mostrar nada antes
  * que inventar un número.
  */
-export const TIME_ESTIMATES_SYSTEM_PROMPT = `Sos una base de datos de duración de videojuegos, tipo HowLongToBeat. Te paso el nombre de un juego y devolvés cuántas horas lleva terminarlo.
+export const TIME_ESTIMATES_SYSTEM_PROMPT = `Sos una base de datos de duración de videojuegos. Te paso el nombre de un juego y devolvés los tiempos que publica HowLongToBeat (howlongtobeat.com) para ese juego exacto.
 
 Respondé SOLO un objeto JSON con esta forma exacta:
-{"historia": <horas para terminar la historia principal>, "completo": <horas para completarlo al 100%>}
+{"historia": <horas "Main Story" de HowLongToBeat>, "completo": <horas "Completionist" de HowLongToBeat>}
 
 Reglas:
-- Los dos valores son números enteros de horas, mayores a 0.
-- "historia" es una partida normal hasta los créditos, sin desviarse a contenido opcional.
-- "completo" es el 100%: todo el contenido opcional, coleccionables y logros. Siempre mayor o igual que "historia".
-- Usá el promedio de la comunidad, no tu mejor partida ni la más lenta.
+- Los dos valores son números enteros de horas, mayores a 0, redondeados al entero más cercano.
+- "historia" es el "Main Story" de HowLongToBeat: ir a los créditos sin contenido opcional. NO es "Main + Extras".
+- "completo" es el "Completionist" de HowLongToBeat: 100% del juego, que en PlayStation equivale a sacar el platino. Siempre mayor o igual que "historia".
+- Es el juego exacto que te nombro: no mezcles con otra entrega, un remake, una secuela ni un DLC de la saga. Un remaster usa los tiempos del remaster.
+- Nombres con sufijos como "Trophies", "™", "®", "PS4", "PS5" o "Director's Cut" se refieren al juego base (el Director's Cut incluye su contenido extra).
 - Si el juego no tiene final (multijugador, roguelike infinito, deportivo), poné "historia" en 0.
 - Si no conocés el juego, o no estás seguro de la duración, respondé exactamente: NO_CONOZCO`;
 

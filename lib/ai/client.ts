@@ -182,6 +182,9 @@ export async function generateTimeEstimates(
       model: MODEL,
       max_tokens: 120,
       reasoning_effort: "low",
+      // Mismo juego, mismo número: sin esto dos fichas del mismo título
+      // (PSN y Steam) podían mostrar tiempos distintos.
+      temperature: 0,
       messages: [
         { role: "system", content: TIME_ESTIMATES_SYSTEM_PROMPT },
         { role: "user", content: buildTimeEstimatesUserPrompt(input) },
@@ -197,8 +200,12 @@ export async function generateTimeEstimates(
   try {
     const { historia, completo } = parseAiTimeEstimates(extractJsonObject(text));
     const beatMinutes = historia > 0 ? historia * 60 : null;
-    const completeMinutes = completo > 0 ? completo * 60 : null;
+    let completeMinutes = completo > 0 ? completo * 60 : null;
     if (beatMinutes === null && completeMinutes === null) return null;
+    // El modelo a veces invierte los dos números; el 100% nunca es más corto.
+    if (beatMinutes !== null && completeMinutes !== null && completeMinutes < beatMinutes) {
+      completeMinutes = beatMinutes;
+    }
     return { beatMinutes, completeMinutes };
   } catch {
     // El modelo contestó algo que no es el JSON pedido: se descarta en
