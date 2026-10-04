@@ -137,12 +137,7 @@ function prepareVideo(file: File, mimeType: AcceptedMediaType): Promise<PrepareR
     const timer = setTimeout(unplayable, VIDEO_LOAD_TIMEOUT_MS);
 
     video.addEventListener("error", unplayable);
-    video.addEventListener("loadedmetadata", () => {
-      if (!video.videoWidth || !video.videoHeight) return unplayable();
-      // Un frame un poco adentro: el primero suele ser negro.
-      video.currentTime = Math.min(0.5, (video.duration || 0) / 2);
-    });
-    video.addEventListener("seeked", async () => {
+    const capture = async () => {
       const width = video.videoWidth;
       const height = video.videoHeight;
       const poster = await renderScaled(video, width, height, "image/jpeg");
@@ -163,6 +158,20 @@ function prepareVideo(file: File, mimeType: AcceptedMediaType): Promise<PrepareR
           poster,
         },
       });
+    };
+
+    // `loadeddata`: ya hay un frame para dibujar (y las dimensiones).
+    video.addEventListener("loadeddata", () => {
+      if (!video.videoWidth || !video.videoHeight) return unplayable();
+      // Un frame un poco adentro (el primero suele ser negro), salvo que la
+      // duración no se conozca: un WebM sin índice (grabado en el navegador)
+      // puede no terminar nunca de hacer seek, y ahí alcanza con el primero.
+      if (Number.isFinite(video.duration) && video.duration > 1) {
+        video.addEventListener("seeked", () => void capture(), { once: true });
+        video.currentTime = 0.5;
+      } else {
+        void capture();
+      }
     });
 
     video.src = url;

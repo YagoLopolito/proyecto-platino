@@ -58,10 +58,18 @@ const UPLOAD_CONCURRENCY = 2;
 export function PostComposer({
   gameOptions,
   initialGame,
+  inModal = false,
   onCancel,
 }: {
   gameOptions: PickerGame[];
   initialGame: PickerGame | null;
+  /**
+   * Abierto como modal (ruta interceptada). Al publicar, el detalle se abre
+   * como modal sobre la pantalla de origen; como página, se navega a la página
+   * del detalle (una navegación suave desde acá se interceptaría y dejaría el
+   * compositor debajo del modal).
+   */
+  inModal?: boolean;
   /** Qué hacer al cancelar (cerrar el modal o volver atrás). */
   onCancel?: () => void;
 }) {
@@ -255,7 +263,8 @@ export function PostComposer({
     }
     setPhase("done");
     setStatus("¡Publicado!");
-    router.replace(`/publicaciones/${result.postId}`);
+    if (inModal) router.replace(`/publicaciones/${result.postId}`);
+    else window.location.replace(`/publicaciones/${result.postId}`);
   }
 
   /** Sube lo pendiente (con concurrencia limitada) y, si todo llegó, confirma. */

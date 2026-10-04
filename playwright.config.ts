@@ -54,7 +54,7 @@ export default defineConfig({
       // El grueso de la suite, ya logueado como userA.
       name: "authed",
       testIgnore:
-        /(01-auth|03-sync-library|11-a11y-mobile|12-security-isolation|smoke)\.spec\.ts/,
+        /(01-auth|03-sync-library|11-a11y-mobile|12-security-isolation|36-posts-mobile|smoke)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], storageState: authFile },
     },
     {
@@ -69,7 +69,9 @@ export default defineConfig({
     },
     {
       name: "mobile",
-      testMatch: /11-a11y-mobile\.spec\.ts/,
+      // La Galería online (36-posts-mobile) se prueba también en viewport de
+      // celular: doble tap, swipe y el compositor a pantalla completa.
+      testMatch: /(11-a11y-mobile|36-posts-mobile)\.spec\.ts/,
       use: { ...devices["Pixel 7"], storageState: authFile },
     },
     {

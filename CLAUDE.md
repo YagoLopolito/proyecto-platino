@@ -1134,6 +1134,77 @@ para el propio (`app/(app)/perfil/(propio)/`) y para el de otro usuario (`/perfi
   (`linkToReviews={false}`): `/perfil/resenas` es del propio.
 - `DiaryPreviewSection` se borró: las dos pantallas usan `RecentReviewsSection`, con `tone`.
 
+## Galería online: publicaciones de fotos y videos (`lib/posts/`)
+
+Publicaciones estilo Instagram: 1 a 10 fotos y videos (carrusel) de **un juego**, con descripción
+opcional (2200) y marca de spoiler. Se ven en **Actividad › Galería online** (tuyas y de la gente
+que seguís, `/actividad/galeria`), en la tab **Capturas** de la ficha (de todos,
+`/juegos/[id]/capturas`) y en **Perfil › Galería** (`/perfil/galeria`, `/perfil/[id]/galeria`).
+Reemplaza a la galería vieja de capturas (ver la sección del diario).
+
+- **Nada es legible sin sesión**, ni las filas ni los archivos: todas las policies van
+  `to authenticated` y el bucket `post-media` es **privado**. Las URLs se firman server-side en
+  lote (`createSignedUrls`, 1 h) con la sesión de quien mira; la policy de lectura de
+  `storage.objects` exige que el post sea visible. `/publicaciones` está en el matcher del
+  middleware.
+- **Tablas** (`20261004000000_posts.sql`): `posts` (`status` `uploading` / `published`,
+  `published_at` ordena el feed, `edited_at`), `post_media` (`position` 0..9 + unique = tope de
+  10; `storage_path` original, `display_path` derivado, `poster_path` de video, ancho/alto
+  guardados para no saltar el layout), `post_likes` y `post_comments` (500). Un post
+  `uploading` sólo lo ve su autor. El trigger `posts_guard_update` impide cambiar autor o juego,
+  volver de `published` a `uploading` y **publicar sin archivos**, y marca `edited_at`.
+  Comentarios: los borra su autor **o el autor del post**. La propia publicación no se likea
+  (mismo criterio que reseñas y listas). **Sin contadores denormalizados**: `get_post_stats`
+  cuenta likes y comentarios de los ids de una página en una consulta.
+- **Publicar son tres pasos** (`lib/posts/actions.ts`): `createDraftPost` (post en
+  `uploading`) → el navegador sube **directo a Storage por TUS** (`tus-js-client`, chunks de 6 MB
+  como exige Supabase, con la sesión del usuario: los archivos nunca pasan por Vercel) a
+  `{user}/{post}/{pos}-{uuid}.ext`, que es lo único que deja la policy de insert →
+  `confirmPost` **revalida todo sin creerle al cliente**: paths del usuario y del post, que el
+  objeto exista, tamaño real de la metadata de Storage, MIME y **magic bytes** (lee los
+  primeros 64 bytes con un `Range` sobre una URL firmada, `lib/posts/sniff.ts`). Recién ahí
+  inserta `post_media` y publica. Un archivo que falla se reintenta solo (TUS reanuda).
+- **En el navegador, antes de subir** (`lib/posts/prepare.ts`): tipo real por magic bytes,
+  **EXIF/GPS fuera sin recomprimir** (`strip-metadata.ts`: JPEG pierde APP1/APP13 y se le
+  vuelve a escribir un EXIF mínimo con sólo la orientación, si no las fotos verticales de
+  celular quedarían acostadas; PNG pierde eXIf/tEXt/iTXt/zTXt/tIME; WebP pierde EXIF/XMP),
+  derivado WebP de 1080 px para feed y grilla (el original queda intacto) y, para videos,
+  comprobación de que **este** navegador lo decodifica + poster JPEG de un frame. **Sin
+  limpiar**: AVIF y la ubicación que un video de celular puede traer en su átomo `udta`.
+- **Formatos**: jpeg/png/webp/gif/avif y mp4/webm/mov. **HEIC se rechaza** con instrucciones
+  (Chrome no lo dibuja; sin heic en el `accept`, iOS convierte a JPEG solo). Un `.mov` HEVC que
+  Chrome no reproduce se rechaza al prepararlo.
+- **Límites** (`lib/posts/constants.ts`, repetidos en el bucket): 20 MB por imagen y **50 MB por
+  video, el tope del plan Free de Supabase**, que además tiene 1 GB de Storage para todo el
+  proyecto. Si se pasa a Pro, se suben los números en los dos lados.
+- **Detalle con URL propia**: `/publicaciones/[id]` es página (link compartido, recarga) y,
+  navegando dentro de la app, un modal por parallel + intercepting routes
+  (`app/(app)/@modal/(.)publicaciones/[id]`, con `default.tsx` y un catch-all que devuelven
+  `null`). `RouteModal` cierra con Esc / ✕ / click afuera (`router.back()`) y atrapa el foco. Lo
+  mismo para `/publicaciones/nueva`. Ojo: desde el compositor como **página**, ir al detalle es
+  una navegación completa — una suave se interceptaría y dejaría el compositor debajo del modal.
+- **Carrusel** (`PostCarousel`): scroll-snap nativo (SwipeTabs ya ignora un swipe que arranca en
+  algo con `overflow-x`), flechas al hover y ← → (en el detalle, en toda la página), puntos y
+  "2/7". El marco toma la proporción del **primer** archivo, acotada entre 4:5 y 16:9, y el
+  resto va con `object-contain`. Los slides que no se ven van `inert`, no `aria-hidden`. Doble
+  tap da like. **Video**: en el feed autoplay muteado sólo visible (IntersectionObserver) y sin
+  `prefers-reduced-motion`; en la grilla nunca; siempre `preload="metadata"`.
+- **Paginación numerada** (`?page=N`, 30 en el feed y 45 en la grilla, `lib/posts/pagination.ts`)
+  con offset, a pedido del producto: linkeable y recargable. Una página de más redirige a la
+  última. El costo conocido: si alguien publica mientras navegás, un post puede repetirse.
+- **Avisos en Actividad › Recibido**: `post_like` y `post_comment` en `get_activity_received`
+  (derivado, sin tabla de notificaciones: borrar el post se lleva sus avisos). El globito de no
+  leídas sale de `count_unread_received()` contra `users.activity_seen_at`; entrar a Recibido
+  llama a `mark_received_seen()`. Sin Realtime ni polling: `UnreadActivityProvider` lo recalcula
+  al navegar y al volver la app a primer plano (`20261004000200_posts_received_activity.sql`).
+- **Limpieza**: el paso `?paso=publicaciones` de `/api/cron/sync` (también al final de la corrida
+  diaria) borra los posts que siguen en `uploading` después de 24 h y los archivos huérfanos
+  (`post_media_orphans`, sólo `service_role`; se borran por la API de Storage, nunca por SQL).
+  Borrar un post lista su carpeta **antes** de borrar la fila (después la policy de lectura ya
+  no deja) y borra primero la fila: un archivo sin fila lo barre el cron.
+- **Moderación**: no hay. El compositor recuerda que es para contenido de juegos; una tabla
+  `post_reports` con FK en cascada encaja sin tocar lo demás.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -1155,6 +1226,8 @@ para el propio (`app/(app)/perfil/(propio)/`) y para el de otro usuario (`/perfi
 - `recent_searches` — búsquedas recientes, privadas, tope de 20. Ver la sección de Buscar.
 - `system_lists` / `system_list_items` — listas pregeneradas globales, las recalcula el cron. Ver
   la sección de Biblioteca › Listas.
+- `posts` / `post_media` / `post_likes` / `post_comments` — Galería online, sólo con sesión. Ver
+  su sección.
 - `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
 
 ## Letterbox: diario de partidas (`game_diary_entries`, `game_scores`)
@@ -1226,30 +1299,13 @@ para el propio (`app/(app)/perfil/(propio)/`) y para el de otro usuario (`/perfi
   `STEAMGRIDDB_API_KEY`). Si no hay ninguno, cae a la carátula difuminada. El backdrop va con
   `z-0` y el contenido con `z-10`: con `-z-10` quedaba detrás del `bg-zinc-950` de la página y
   no se veía.
-- **Galería de capturas** (`game_screenshots` + bucket `game-screenshots`, migración
-  `20260823000000_game_screenshots.sql`): las sube el usuario a mano. Sony **no expone la
-  galería de capturas de PSN** por ninguna API usable — `psn-api` no la cubre y el GraphQL
-  interno de la PS App cambia sus hashes de `persistedQuery` en cada release, así que no se
-  intentó. Las capturas son públicas igual que el diario (`select using (true)`), y solo el
-  dueño puede escribir/borrar.
-  El archivo va **directo del browser a Storage** con la sesión del usuario (un Server Action
-  tiene límite de body y una captura pesa varios MB); recién después
-  `registerScreenshots` (`app/(app)/juegos/[id]/diario/screenshot-actions.ts`) indexa el path
-  en la tabla. Por eso el control real de quién escribe qué es la policy de `storage.objects`:
-  la primera carpeta del path tiene que ser el uuid del usuario
-  (`${userId}/${gameId}/${uuid}.ext`, ver `buildScreenshotPath`), y la Server Action revalida
-  ese prefijo antes de insertar — doble capa, misma convención que la autoría de guías.
-  Si el insert falla, la action borra el objeto ya subido para no dejar archivos huérfanos.
-  Al borrar se hace al revés (primero la fila, después el archivo): una fila apuntando a un
-  archivo inexistente sería una imagen rota en una galería pública.
-  Límites (`lib/diary/screenshot-constants.ts`, compartidos entre client y server) están
-  duplicados a propósito en el bucket (`file_size_limit`/`allowed_mime_types`): Storage rechaza
-  la subida antes de que el server vea nada, así que si se cambian hay que cambiarlos en los
-  dos lados. El bucket es público, así que la URL sale de `getPublicUrl` (no hay signed URLs
-  que expiren) y `next.config.ts` whitelistea `*.supabase.co` para que pase por `next/image`.
-  UI: `ScreenshotUploader` (multi-archivo con preview local en `blob:`, por eso ese `<img>` va
-  sin `next/image`) + `ScreenshotGallery` (grilla tipo Instagram con lightbox sobre `Modal`),
-  ambos en `/juegos/[id]/diario`.
+- **Galería de capturas → Galería online.** La galería vieja (`game_screenshots`, bucket
+  público `game-screenshots`) se reemplazó por la Galería online (ver su sección): cada captura
+  pasó a ser una publicación (`scripts/migrate-screenshots-to-posts.mjs`) y la tabla se dropea
+  en `20261004000300_drop_game_screenshots.sql`, que se niega a correr si queda alguna sin
+  migrar. Sony **no expone la galería de capturas de PSN** por ninguna API usable — `psn-api`
+  no la cubre y el GraphQL interno de la PS App cambia sus hashes de `persistedQuery` en cada
+  release —, así que siguen siendo subidas a mano.
 - **Importación masiva** (`/diario/capturas`): como no hay import automático posible, lo que
   reemplaza a "traer las fotos de PSN" es soltar la carpeta que la consola exporta al USB y
   que cada archivo caiga solo en su juego. La consola escribe el título en la ruta
@@ -1265,11 +1321,9 @@ para el propio (`app/(app)/perfil/(propio)/`) y para el de otro usuario (`/perfi
   así que caen en un grupo "sin juego detectado" que el usuario asigna a mano (o deja en
   "— No importar —"). El drop de una carpeta se recorre con `webkitGetAsEntry` para conservar
   la ruta relativa; el `<input webkitdirectory>` es el camino equivalente con el picker.
-  La Server Action es `app/(app)/diario/capturas/actions.ts`
-  (`registerImportedScreenshots`): mismo contrato que `registerScreenshots` — el archivo sube
-  directo del browser a Storage y la action sólo indexa paths, revalidando que el prefijo sea
-  el uuid del usuario — pero abarcando varios juegos por llamada, con tope
-  `MAX_SCREENSHOTS_PER_IMPORT`.
+  Lo detectado se **publica en la Galería online**: un carrusel de hasta 10 capturas por juego
+  (`publishFiles` en `lib/posts/publish-files.ts`, el mismo flujo de tres pasos que el
+  compositor), con tope `MAX_FILES_PER_IMPORT`.
 - **El caché de la ficha se escribe con service role** (`persistGameCardData` en
   `lib/catalog/details.ts`). La RLS de `games` sólo deja actualizar las filas propias
   (`created_by`), así que con el cliente de sesión la descripción, el fondo y la carátula
@@ -1292,12 +1346,10 @@ para el propio (`app/(app)/perfil/(propio)/`) y para el de otro usuario (`/perfi
   lo que servimos ya son JPG/PNG comprimidos de las CDNs de RAWG, Steam y PSN, pensados para
   mostrarse a este tamaño. Esto revierte a propósito una parte de la pasada de performance de
   2026-08-19 (sacar `unoptimized`): el ahorro de bytes no compensa que la app se quede sin
-  imágenes. **Las capturas que suben los usuarios (`ScreenshotGallery`) también van por
-  `GameArt`** desde el 2026-09-13: eran lo único que seguía pasando por `/_next/image`, así
-  que con la cuota agotada quedaban rotas mientras el resto de la app se veía bien. Se
-  aguanta el peso del original (tope de 10 MB por archivo, ver
-  `lib/diary/screenshot-constants.ts`) antes que una galería de imágenes rotas. Si algún día
-  hace falta bajar ese peso, el camino es transformar **al subir** (redimensionar en el
+  imágenes. **Las fotos que suben los usuarios (Galería online) también van por
+  `GameArt`**: el feed y la grilla muestran un derivado WebP que se genera **al subir**, en el
+  navegador, y sólo el detalle carga el original. Si algún día hace falta bajar más ese peso,
+  el camino sigue siendo transformar **al subir** (redimensionar en el
   browser antes del upload), no el optimizador.
 - El score comunitario se muestra con `components/diary/GameScore.tsx`, que con menos de
   `MIN_RATINGS_FOR_AVERAGE` (3) valoraciones muestra "todavía sin suficientes valoraciones" en
@@ -1566,6 +1618,10 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
     completo**: Perfil › Perfil (favoritos, histograma, estadísticas y expandidos). **#197
     completo**: Perfil › Diario / Listas / Playlist con el formato de Letterboxd y el perfil
     ajeno con las mismas cuatro tabs. ✅ **Epic completo.**
+
+13. Galería online: publicaciones de fotos y videos con feed en Actividad, tab Capturas en la
+    ficha y en el perfil, detalle con URL propia, likes, comentarios y avisos en Recibido. ✅
+    Reemplaza a la galería de capturas vieja.
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 

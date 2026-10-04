@@ -8,7 +8,13 @@ import { PostComposer } from "./PostComposer";
  * `?juego=`), compartidos por la página `/publicaciones/nueva` y su versión
  * interceptada en modal.
  */
-export async function NewPostScreen({ gameId }: { gameId: string | undefined }) {
+export async function NewPostScreen({
+  gameId,
+  inModal = false,
+}: {
+  gameId: string | undefined;
+  inModal?: boolean;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,5 +26,5 @@ export async function NewPostScreen({ gameId }: { gameId: string | undefined }) 
     gameId ? getComposerGame(supabase, gameId) : Promise.resolve(null),
   ]);
 
-  return <PostComposer gameOptions={options} initialGame={initialGame} />;
+  return <PostComposer gameOptions={options} initialGame={initialGame} inModal={inModal} />;
 }

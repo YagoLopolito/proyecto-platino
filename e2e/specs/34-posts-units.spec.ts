@@ -28,7 +28,7 @@ import { relativeTime } from "../../lib/activity/format";
 
 /**
  * Galería online: lógica pura (validación, tipo real, limpieza de EXIF,
- * paginación, orden). Casos POST-01..POST-08 de TESTING_PRD.md §6.19. No
+ * paginación, orden). Casos POST-01..POST-08 de TESTING_PRD.md §6.28. No
  * levantan navegador: importan los módulos directo, como `steam-relevance`.
  */
 

@@ -11,7 +11,7 @@ export default async function NewPostModal({
   return (
     <RouteModal title="Nueva publicación" size="form">
       <div className="p-4 sm:p-6">
-        <NewPostScreen gameId={juego} />
+        <NewPostScreen gameId={juego} inModal />
       </div>
     </RouteModal>
   );
