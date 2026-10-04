@@ -34,6 +34,8 @@ export interface ActivityEvent {
   game: { id: string; name: string } | null;
   list: { id: string; title: string } | null;
   entryId: string | null;
+  /** Publicación de la Galería online (likes y comentarios recibidos). */
+  postId: string | null;
   rating: number | null;
   finishedOn: string | null;
 }
@@ -142,6 +144,7 @@ export async function getActivityPage(
         game: game ? { id: game.id, name: game.name } : null,
         list: list ? { id: list.id, title: list.title } : null,
         entryId: row.entry_id,
+        postId: "post_id" in row ? (row.post_id ?? null) : null,
         rating: row.rating,
         finishedOn: row.finished_on,
       };

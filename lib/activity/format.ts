@@ -17,7 +17,9 @@ export type ActivityKind =
   | "like_list"
   | "liked_review"
   | "liked_list"
-  | "follow";
+  | "follow"
+  | "post_like"
+  | "post_comment";
 
 /** Filtros de `?tipo=`: cada uno agrupa uno o más `kind` del RPC. */
 export const ACTIVITY_FILTERS: Record<
@@ -35,6 +37,8 @@ export const ACTIVITY_FILTERS: Record<
   ],
   recibido: [
     { value: "likes", label: "Me gusta", kinds: ["liked_review", "liked_list"] },
+    // Galería online: me gusta y comentarios en tus publicaciones.
+    { value: "publicaciones", label: "Publicaciones", kinds: ["post_like", "post_comment"] },
     { value: "seguidores", label: "Seguidores", kinds: ["follow"] },
   ],
 };

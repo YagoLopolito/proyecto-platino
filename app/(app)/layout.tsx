@@ -1,5 +1,6 @@
 import AppHeader from "./AppHeader";
 import MobileTabBar from "./MobileTabBar";
+import { UnreadActivityProvider } from "@/components/activity/UnreadActivity";
 
 /**
  * Layout compartido para las rutas autenticadas (biblioteca, detalle de
@@ -20,20 +21,22 @@ export default function AppLayout({
   modal: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col">
-      <AppHeader />
-      <div className="flex flex-1 flex-col">{children}</div>
-      {/*
-       * Spacer del alto de la barra inferior: la barra es `fixed`, así que sin
-       * esto tapa el final de cualquier página que llegue hasta abajo.
-       */}
-      <div
-        data-testid="tab-bar-spacer"
-        className="h-16 shrink-0 pb-safe sm:hidden"
-        aria-hidden="true"
-      />
-      <MobileTabBar />
-      {modal}
-    </div>
+    <UnreadActivityProvider>
+      <div className="flex min-h-full flex-1 flex-col">
+        <AppHeader />
+        <div className="flex flex-1 flex-col">{children}</div>
+        {/*
+         * Spacer del alto de la barra inferior: la barra es `fixed`, así que sin
+         * esto tapa el final de cualquier página que llegue hasta abajo.
+         */}
+        <div
+          data-testid="tab-bar-spacer"
+          className="h-16 shrink-0 pb-safe sm:hidden"
+          aria-hidden="true"
+        />
+        <MobileTabBar />
+        {modal}
+      </div>
+    </UnreadActivityProvider>
   );
 }

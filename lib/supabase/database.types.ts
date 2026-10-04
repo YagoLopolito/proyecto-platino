@@ -1387,6 +1387,7 @@ export type Database = {
       };
       users: {
         Row: {
+          activity_seen_at: string | null;
           bio: string | null;
           created_at: string;
           display_name: string | null;
@@ -1395,6 +1396,7 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          activity_seen_at?: string | null;
           bio?: string | null;
           created_at?: string;
           display_name?: string | null;
@@ -1403,6 +1405,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          activity_seen_at?: string | null;
           bio?: string | null;
           created_at?: string;
           display_name?: string | null;
@@ -1453,6 +1456,14 @@ export type Database = {
       };
     };
     Functions: {
+      count_unread_received: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
+      mark_received_seen: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
       get_activity_friends: {
         Args: {
           before_at?: string;
@@ -1489,6 +1500,7 @@ export type Database = {
           entry_id: string | null;
           rating: number | null;
           finished_on: string | null;
+          post_id: string | null;
         }[];
       };
       get_activity_self: {
