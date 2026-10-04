@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useId, useOptimistic, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { FormError } from "@/components/FormError";
 import { Label, Textarea } from "@/components/Input";
@@ -581,12 +580,4 @@ export function useEditablePost(post: PostView) {
     editedAt: post.editedAt,
   });
   return [state, setState] as const;
-}
-
-export function useRefreshAfterDelete(fallbackHref?: string) {
-  const router = useRouter();
-  return () => {
-    if (fallbackHref) router.replace(fallbackHref);
-    router.refresh();
-  };
 }
