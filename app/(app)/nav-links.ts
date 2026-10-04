@@ -97,6 +97,8 @@ export function sectionTitle(pathname: string): string | null {
 export function showsSettingsGear(pathname: string): boolean {
   return (
     pathname === "/perfil" ||
-    ["/perfil/diario", "/perfil/listas", "/perfil/playlist"].some((p) => matchesPrefix(pathname, p))
+    ["/perfil/diario", "/perfil/listas", "/perfil/playlist", "/perfil/galeria"].some((p) =>
+      matchesPrefix(pathname, p),
+    )
   );
 }

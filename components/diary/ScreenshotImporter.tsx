@@ -2,16 +2,13 @@
 
 import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { registerImportedScreenshots } from "@/app/(app)/diario/capturas/actions";
 import {
-  buildScreenshotPath,
-  isAcceptedScreenshotType,
-  MAX_SCREENSHOTS_PER_IMPORT,
-  MAX_SCREENSHOT_BYTES,
-  SCREENSHOTS_BUCKET,
-  SCREENSHOT_ACCEPT,
-} from "@/lib/diary/screenshot-constants";
+  ACCEPTED_IMAGE_TYPES,
+  MAX_FILES_PER_IMPORT,
+  MAX_FILES_PER_POST,
+  MAX_IMAGE_BYTES,
+} from "@/lib/posts/constants";
+import { publishFiles } from "@/lib/posts/publish-files";
 import { groupFilesByGame, type MatchableGame } from "@/lib/diary/screenshot-import";
 import { Button } from "@/components/Button";
 import { FormError, FormSuccess } from "@/components/FormError";
@@ -27,7 +24,13 @@ interface PickedFile {
   relativePath: string;
 }
 
-const MAX_MB = Math.round(MAX_SCREENSHOT_BYTES / (1024 * 1024));
+const MAX_MB = Math.round(MAX_IMAGE_BYTES / (1024 * 1024));
+const MAX_SCREENSHOTS_PER_IMPORT = MAX_FILES_PER_IMPORT;
+const SCREENSHOT_ACCEPT = ACCEPTED_IMAGE_TYPES.join(",");
+
+function isAcceptedScreenshotType(type: string): boolean {
+  return (ACCEPTED_IMAGE_TYPES as readonly string[]).includes(type);
+}
 
 /**
  * Importador masivo de capturas: el usuario suelta la carpeta que exportó de
@@ -35,18 +38,12 @@ const MAX_MB = Math.round(MAX_SCREENSHOT_BYTES / (1024 * 1024));
  * (`lib/diary/screenshot-import.ts` hace la deducción, este componente sólo
  * muestra el resultado y deja corregirlo).
  *
- * Los archivos van directo del browser a Storage con la sesión del usuario
- * (misma razón que `ScreenshotUploader`: un Server Action tiene límite de body
- * y una captura pesa varios MB) y recién después una Server Action indexa los
- * paths.
+ * Cada juego se publica en la Galería online con `publishFiles`, el mismo
+ * flujo que el compositor: los archivos van directo del browser a Storage (un
+ * Server Action tiene límite de body y una captura pesa varios MB) y una
+ * Server Action revalida y publica.
  */
-export default function ScreenshotImporter({
-  games,
-  userId,
-}: {
-  games: ImporterGame[];
-  userId: string;
-}) {
+export default function ScreenshotImporter({ games }: { games: ImporterGame[] }) {
   const [picked, setPicked] = useState<PickedFile[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +76,7 @@ export default function ScreenshotImporter({
         // archivos de sistema: se saltean sin nombrarlos uno por uno.
         continue;
       }
-      if (item.file.size > MAX_SCREENSHOT_BYTES) {
+      if (item.file.size > MAX_IMAGE_BYTES) {
         rejected.push(`${item.file.name} (pesa más de ${MAX_MB} MB)`);
       } else {
         accepted.push(item);
@@ -149,49 +146,50 @@ export default function ScreenshotImporter({
     setSuccess(null);
     setUploaded(0);
 
-    const supabase = createClient();
-    // Ver el comentario equivalente en `ScreenshotUploader`: `getUser()` es un
-    // round-trip de red y su fallo se veía como "Tenés que iniciar sesión."
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const ownerId = session?.user?.id ?? userId;
-
-    const items: { gameId: string; path: string }[] = [];
-    const failed: string[] = [];
-
+    // Cada juego se publica en la Galería online en tandas de hasta
+    // MAX_FILES_PER_POST capturas (un carrusel por tanda), con el mismo flujo
+    // que el compositor: borrador, subida directa a Storage y confirmación
+    // validada en el servidor.
+    const byGame = new Map<string, File[]>();
     for (const assignment of assignments) {
-      const path = buildScreenshotPath(ownerId, assignment.gameId, assignment.file.type);
-      const { error: uploadError } = await supabase.storage
-        .from(SCREENSHOTS_BUCKET)
-        .upload(path, assignment.file, { contentType: assignment.file.type, upsert: false });
+      byGame.set(assignment.gameId, [...(byGame.get(assignment.gameId) ?? []), assignment.file]);
+    }
 
-      if (uploadError) {
-        failed.push(`${assignment.file.name} (${uploadError.message})`);
-      } else {
-        items.push({ gameId: assignment.gameId, path });
+    let posts = 0;
+    let published = 0;
+    const failed: string[] = [];
+    for (const [gameId, files] of byGame) {
+      for (let i = 0; i < files.length; i += MAX_FILES_PER_POST) {
+        const batch = files.slice(i, i + MAX_FILES_PER_POST);
+        const result = await publishFiles({
+          gameId,
+          files: batch,
+          onFileDone: () => setUploaded((done) => (done ?? 0) + 1),
+        });
+        failed.push(...result.skipped);
+        if (result.status === "ok") {
+          posts += 1;
+          published += batch.length - result.skipped.length;
+        } else {
+          failed.push(result.message);
+        }
       }
-      setUploaded((done) => (done ?? 0) + 1);
     }
-
-    if (items.length === 0) {
-      setError(`No se pudo subir: ${failed.join(", ")}.`);
-      setUploaded(null);
-      return;
-    }
-
-    const state = await registerImportedScreenshots({ items });
     setUploaded(null);
 
-    if (state.error) {
-      setError(state.error);
+    if (posts === 0) {
+      setError(`No se pudo publicar: ${failed.join(" · ")}`);
       return;
     }
 
     setPicked([]);
     setOverrides({});
-    setError(failed.length > 0 ? `No se pudo subir: ${failed.join(", ")}.` : null);
-    setSuccess(state.success ?? "Capturas importadas.");
+    setError(failed.length > 0 ? `Algunas no se pudieron subir: ${failed.join(" · ")}` : null);
+    setSuccess(
+      `${published === 1 ? "1 captura publicada" : `${published} capturas publicadas`} en ${
+        posts === 1 ? "1 publicación" : `${posts} publicaciones`
+      } de tu Galería online.`,
+    );
     router.refresh();
   }
 

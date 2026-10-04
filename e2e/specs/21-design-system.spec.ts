@@ -292,7 +292,12 @@ test.describe("Sistema de diseño", () => {
     // `SwipeTabs`, no una fila de pills con ancla. Los cuatro emojis que las
     // encabezaban antes del remake (issue #176 §3.3) no pueden volver.
     const tabs = page.getByRole("tablist", { name: "Ficha del juego" });
-    await expect(tabs.getByRole("tab")).toHaveText(["Trofeos", "Reseñas", "Guías e IA"]);
+    await expect(tabs.getByRole("tab")).toHaveText([
+      "Trofeos",
+      "Reseñas",
+      "Capturas",
+      "Guías e IA",
+    ]);
     for (const emoji of ["🏆", "✨", "🔗", "📔"]) {
       await expect(tabs).not.toContainText(emoji);
     }

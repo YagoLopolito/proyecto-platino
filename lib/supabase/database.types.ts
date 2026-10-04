@@ -244,50 +244,6 @@ export type Database = {
           },
         ];
       };
-      game_screenshots: {
-        Row: {
-          caption: string | null;
-          created_at: string;
-          game_id: string;
-          id: string;
-          storage_path: string;
-          user_id: string;
-        };
-        Insert: {
-          caption?: string | null;
-          completed_at?: string | null;
-          created_at?: string;
-          game_id: string;
-          id?: string;
-          storage_path: string;
-          user_id: string;
-        };
-        Update: {
-          caption?: string | null;
-          completed_at?: string | null;
-          created_at?: string;
-          game_id?: string;
-          id?: string;
-          storage_path?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "game_screenshots_game_id_fkey";
-            columns: ["game_id"];
-            isOneToOne: false;
-            referencedRelation: "games";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "game_screenshots_user_id_fkey";
-            columns: ["user_id"];
-            isOneToOne: false;
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       game_external_guides: {
         Row: {
           created_at: string;

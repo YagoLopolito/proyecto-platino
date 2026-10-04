@@ -117,7 +117,7 @@ test.describe("Perfil › Diario", () => {
 });
 
 test.describe("Perfil ajeno", () => {
-  test("PROF-21: el perfil de otro usuario tiene las cuatro tabs, sin engranaje ni datos privados", async ({
+  test("PROF-21: el perfil de otro usuario tiene las mismas tabs, sin engranaje ni datos privados", async ({
     page,
     users,
   }) => {
@@ -125,7 +125,7 @@ test.describe("Perfil ajeno", () => {
     await page.goto(base);
 
     const tabs = page.getByRole("tablist", { name: /^Perfil de / }).getByRole("tab");
-    await expect(tabs).toHaveText(["Perfil", "Diario", "Listas", "Playlist"]);
+    await expect(tabs).toHaveText(["Perfil", "Diario", "Listas", "Playlist", "Galería"]);
     expect(showsSettingsGear(base)).toBe(false);
     expect(showsSettingsGear(`${base}/diario`)).toBe(false);
 

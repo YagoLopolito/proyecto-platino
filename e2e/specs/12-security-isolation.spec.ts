@@ -17,7 +17,11 @@ const TABLES = [
   "guide_steps",
   "game_external_guides",
   "game_diary_entries",
-  "game_screenshots",
+  // Galería online: ni las publicaciones ni sus archivos, likes o comentarios.
+  "posts",
+  "post_media",
+  "post_likes",
+  "post_comments",
   "user_favorite_games",
   "now_playing",
   "user_playlist",

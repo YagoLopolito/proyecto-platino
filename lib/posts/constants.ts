@@ -42,6 +42,13 @@ export type AcceptedVideoType = (typeof ACCEPTED_VIDEO_TYPES)[number];
 export type AcceptedMediaType = AcceptedImageType | AcceptedVideoType;
 export type MediaKind = "image" | "video";
 
+/**
+ * Tope del importador masivo (`/diario/capturas`), donde se suelta la carpeta
+ * entera que exportó la consola. Se publica en tandas de `MAX_FILES_PER_POST`
+ * por juego, pero cada archivo sigue siendo una subida a Storage.
+ */
+export const MAX_FILES_PER_IMPORT = 100;
+
 /** Valor del `accept` del <input type="file">. Sin heic: así iOS convierte a JPEG solo. */
 export const POST_MEDIA_ACCEPT = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES].join(",");
 

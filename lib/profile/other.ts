@@ -33,12 +33,13 @@ export const getOtherProfileContext = cache(async function getOtherProfileContex
   return { supabase, viewerId: user.id, profile, name: profileLabel(profile) };
 });
 
-/** Las cuatro tabs del perfil ajeno: las mismas que las del propio. */
+/** Las tabs del perfil ajeno: las mismas que las del propio. */
 export function otherProfileTabs(id: string) {
   return [
     { href: `/perfil/${id}`, label: "Perfil" },
     { href: `/perfil/${id}/diario`, label: "Diario" },
     { href: `/perfil/${id}/listas`, label: "Listas" },
     { href: `/perfil/${id}/playlist`, label: "Playlist" },
+    { href: `/perfil/${id}/galeria`, label: "Galería" },
   ];
 }

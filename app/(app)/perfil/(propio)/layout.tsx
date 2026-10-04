@@ -11,6 +11,7 @@ const TABS = [
   { href: "/perfil/diario", label: "Diario" },
   { href: "/perfil/listas", label: "Listas" },
   { href: "/perfil/playlist", label: "Playlist" },
+  { href: "/perfil/galeria", label: "Galería" },
 ];
 
 export default function PerfilPropioLayout({ children }: { children: ReactNode }) {

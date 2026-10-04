@@ -96,6 +96,10 @@ test.describe("Ficha de juego unificada", () => {
     await page.keyboard.press("ArrowRight");
     await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/resenas$`));
 
+    // Capturas (Galería online del juego) va entre Reseñas y Guías e IA.
+    await page.keyboard.press("ArrowRight");
+    await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/capturas$`));
+
     await page.keyboard.press("ArrowRight");
     await expect(page).toHaveURL(new RegExp(`/juegos/${gameId}/guias$`));
     await expect(page.getByText(/Contenido generado por IA/i)).toBeVisible();

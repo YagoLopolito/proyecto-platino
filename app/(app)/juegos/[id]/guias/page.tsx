@@ -2,11 +2,8 @@ import type { ReactNode } from "react";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
-import ScreenshotGallery from "@/components/diary/ScreenshotGallery";
-import ScreenshotUploader from "@/components/diary/ScreenshotUploader";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import type { AiGamePlan } from "@/lib/ai";
-import { getGameScreenshots } from "@/lib/diary/screenshots";
 import { getGamePageBase, getGameTrophyProgress } from "@/lib/game-page/data";
 import AiAdvisorPanel from "../AiAdvisorPanel";
 import FindExternalGuidesButton from "../enlaces/FindExternalGuidesButton";
@@ -20,8 +17,9 @@ import FindExternalGuidesButton from "../enlaces/FindExternalGuidesButton";
 export const maxDuration = 60;
 
 /**
- * Tab Guías e IA: el advisor con IA, los enlaces a guías externas (lo que era
- * `/juegos/[id]/enlaces`) y las capturas. Todo lo que sirve para *jugar* el
+ * Tab Guías e IA: el advisor con IA y los enlaces a guías externas (lo que era
+ * `/juegos/[id]/enlaces`). Las capturas se mudaron a su propia tab (Capturas,
+ * la Galería online del juego). Todo lo que sirve para *jugar* el
  * juego, separado de lo que se *dice* de él (Reseñas) y de tu progreso
  * (Trofeos).
  */
@@ -37,7 +35,6 @@ export default async function GameGuidesTab({ params }: { params: Promise<{ id: 
     { data: cachedPlanRow },
     { data: curatedGuides, error: curatedError },
     { data: userLinks, error: userLinksError },
-    screenshots,
   ] = await Promise.all([
     supabase
       .from("ai_game_plans")
@@ -59,7 +56,6 @@ export default async function GameGuidesTab({ params }: { params: Promise<{ id: 
       .eq("game_id", gameId)
       .not("external_url", "is", null)
       .order("created_at", { ascending: true }),
-    getGameScreenshots(supabase, gameId, userId),
   ]);
 
   const links = [
@@ -135,15 +131,6 @@ export default async function GameGuidesTab({ params }: { params: Promise<{ id: 
               </li>
             ))}
           </ul>
-        )}
-      </Section>
-
-      <Section title="Capturas">
-        <ScreenshotUploader gameId={gameId} userId={userId} />
-        {screenshots.status === "error" ? (
-          <ErrorState message={`No se pudieron cargar las capturas: ${screenshots.message}`} />
-        ) : (
-          <ScreenshotGallery gameId={gameId} screenshots={screenshots.screenshots} />
         )}
       </Section>
     </div>

@@ -47,7 +47,8 @@ export default async function ImportScreenshotsPage() {
             <h1 className="type-title text-ink">Importar capturas</h1>
             <p className="type-body text-ink-muted">
               Soltá acá la carpeta de capturas que exportaste de la PlayStation: cada foto se asigna
-              sola al juego que dice su carpeta o su nombre de archivo.
+              sola al juego que dice su carpeta o su nombre de archivo, y se publica en tu Galería
+              online (un carrusel de hasta 10 por juego).
             </p>
           </div>
           <BackToDiaryLink />
@@ -56,7 +57,7 @@ export default async function ImportScreenshotsPage() {
         {error ? (
           <ErrorState message={`No se pudo cargar tu biblioteca: ${error.message}`} />
         ) : (
-          <ScreenshotImporter games={games} userId={user.id} />
+          <ScreenshotImporter games={games} />
         )}
       </div>
     </div>

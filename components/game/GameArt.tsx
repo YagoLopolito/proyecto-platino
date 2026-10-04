@@ -15,9 +15,10 @@ import type { ReactNode } from "react";
  *    deja de servir `/_next/image` y **todas** las imágenes desaparecen de
  *    golpe -- que es exactamente lo que pasó. Además no ganábamos casi nada:
  *    lo que servimos ya son JPG/PNG comprimidos de las CDNs de RAWG, Steam y
- *    PSN, pensados justamente para mostrarse a este tamaño. Las capturas que
- *    suben los usuarios (`ScreenshotGallery`) sí siguen optimizándose: ahí el
- *    original pesa megas y la transformación se paga sola.
+ *    PSN, pensados justamente para mostrarse a este tamaño. Las fotos que
+ *    suben los usuarios (Galería online) también van por acá: el feed y la
+ *    grilla muestran un derivado liviano que se genera en el navegador al
+ *    subir, así que tampoco necesitan el optimizador.
  * 2. **Fallback si la imagen no carga**, igual que `FriendAvatar`: un host
  *    nuevo fuera de `images.remotePatterns`, un 404 de la CDN. Antes quedaba
  *    un rectángulo vacío; ahora se ve el nombre del juego o el placeholder que
