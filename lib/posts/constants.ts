@@ -46,7 +46,12 @@ export type MediaKind = "image" | "video";
 export const POST_MEDIA_ACCEPT = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES].join(",");
 
 /** HEIC/HEIF: Chrome y Firefox no los dibujan. Se rechazan con este mensaje. */
-export const HEIC_TYPES = ["image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"];
+export const HEIC_TYPES = [
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+];
 export const HEIC_HELP =
   "Las fotos HEIC no se ven en todos los navegadores. Convertilas a JPG (en iPhone: Ajustes › Cámara › Formatos › Más compatible).";
 

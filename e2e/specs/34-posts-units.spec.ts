@@ -16,7 +16,13 @@ import {
   stripPngMetadata,
   stripWebpMetadata,
 } from "../../lib/posts/strip-metadata";
-import { pageCount, pageHref, pageRange, pageWindow, parsePageParam } from "../../lib/posts/pagination";
+import {
+  pageCount,
+  pageHref,
+  pageRange,
+  pageWindow,
+  parsePageParam,
+} from "../../lib/posts/pagination";
 import { moveItem, removeItem, sortGamesPlayingFirst } from "../../lib/posts/order";
 import { relativeTime } from "../../lib/activity/format";
 
@@ -65,7 +71,9 @@ test.describe("Validación de archivos", () => {
     });
     const postId = "00000000-0000-4000-8000-000000000000";
     expect(confirmPostSchema.safeParse({ postId, media: [media(1), media(0)] }).success).toBe(true);
-    expect(confirmPostSchema.safeParse({ postId, media: [media(0), media(2)] }).success).toBe(false);
+    expect(confirmPostSchema.safeParse({ postId, media: [media(0), media(2)] }).success).toBe(
+      false,
+    );
     expect(confirmPostSchema.safeParse({ postId, media: [] }).success).toBe(false);
   });
 
@@ -110,6 +118,7 @@ test.describe("Tipo real por magic bytes", () => {
 
 /** JPEG mínimo: SOI, APP0, APP1 (EXIF con orientación 6 + "GPS"), DQT, SOS + datos, EOI. */
 function jpegWithGps(): { file: Uint8Array; imageData: Uint8Array } {
+  // prettier-ignore
   const exif = bytes(
     "Exif", 0, 0,
     "MM", 0, 0x2a, 0, 0, 0, 8,
@@ -123,7 +132,14 @@ function jpegWithGps(): { file: Uint8Array; imageData: Uint8Array } {
   const dqt = bytes(0xff, 0xdb, 0, 4, 0, 1);
   const imageData = bytes(0xff, 0xda, 0, 2, 1, 2, 3, 4, 5, 0xff, 0x00, 6, 0xff, 0xd9);
   const file = new Uint8Array([
-    0xff, 0xd8, ...app0, ...app0Payload, ...app1, ...exif, ...dqt, ...imageData,
+    0xff,
+    0xd8,
+    ...app0,
+    ...app0Payload,
+    ...app1,
+    ...exif,
+    ...dqt,
+    ...imageData,
   ]);
   return { file, imageData };
 }
@@ -188,7 +204,10 @@ test.describe("Orden y paginación", () => {
   });
 
   test("POST-07: el selector pone primero lo que estás jugando", () => {
-    const playing = [{ id: "3", name: "Zelda" }, { id: "1", name: "Astro Bot" }];
+    const playing = [
+      { id: "3", name: "Zelda" },
+      { id: "1", name: "Astro Bot" },
+    ];
     const others = [
       { id: "2", name: "bloodborne" },
       { id: "1", name: "Astro Bot" },

@@ -7,7 +7,18 @@ import MobileTabBar from "./MobileTabBar";
  * segmento a la URL. Cada página sigue validando su propia sesión (redirect a
  * /login si no hay usuario); este layout sólo aporta la nav/header común.
  */
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({
+  children,
+  modal,
+}: {
+  children: React.ReactNode;
+  /**
+   * Slot `@modal`: las publicaciones de la Galería online (detalle y "Nueva
+   * publicación") se abren en un modal sobre la pantalla actual cuando se llega
+   * navegando dentro de la app, y como página al entrar por URL o recargar.
+   */
+  modal: React.ReactNode;
+}) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <AppHeader />
@@ -22,6 +33,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         aria-hidden="true"
       />
       <MobileTabBar />
+      {modal}
     </div>
   );
 }

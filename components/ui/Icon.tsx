@@ -71,6 +71,15 @@ export const ICON_NAMES = [
   "heart-outline",
   "lock",
   "more",
+  "carousel",
+  "play",
+  "comment",
+  "image",
+  "volume",
+  "volume-off",
+  "arrow-up",
+  "upload",
+  "edit",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -99,6 +108,11 @@ const STROKE_ICONS = new Set<IconName>([
   "logout",
   "heart-outline",
   "expand",
+  "volume",
+  "volume-off",
+  "arrow-up",
+  "upload",
+  "edit",
 ]);
 
 const PATHS: Record<IconName, ReactNode> = {
@@ -292,6 +306,32 @@ const PATHS: Record<IconName, ReactNode> = {
   more: (
     <path d="M12 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
   ),
+
+  /* --- Galería online ---------------------------------------------------- */
+  /** Publicación con varios archivos (esquina de la celda de la grilla). */
+  carousel: (
+    <path d="M8 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-1V7a2 2 0 0 0-2-2H7V4a1 1 0 0 1 1-1ZM4 7h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z" />
+  ),
+  /** Publicación (o archivo) que es un video. */
+  play: <path d="M8 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 8 4.5Z" />,
+  /** Comentarios de una publicación. */
+  comment: (
+    <path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9l-5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm2 3v2h12V7H6Zm0 4v2h8v-2H6Z" />
+  ),
+  /** Foto (estado vacío de la galería, zona de carga). */
+  image: (
+    <path d="M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm1 2v9.6l3.3-3.3a1 1 0 0 1 1.4 0L13 15.6l2.3-2.3a1 1 0 0 1 1.4 0L19 15.6V6H5Zm10 1.5a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5Z" />
+  ),
+  /** Sonido activado de un video. */
+  volume: <path d="M4 9v6h4l5 4V5L8 9H4ZM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />,
+  /** Sonido apagado (el autoplay del feed arranca así). */
+  "volume-off": <path d="M4 9v6h4l5 4V5L8 9H4ZM17 9l5 6M22 9l-5 6" />,
+  /** Subir un archivo una posición en el carrusel del compositor. */
+  "arrow-up": <path d="M12 19V5M6 11l6-6 6 6" />,
+  /** Elegir archivos para subir. */
+  upload: <path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />,
+  /** Editar una publicación propia. */
+  edit: <path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4" />,
 };
 
 /**

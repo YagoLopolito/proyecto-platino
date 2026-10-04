@@ -89,7 +89,11 @@ const uuid = z.string().uuid();
 
 /** Un archivo ya subido, como lo describe el cliente al confirmar. */
 export const confirmedMediaSchema = z.object({
-  position: z.number().int().min(0).max(MAX_FILES_PER_POST - 1),
+  position: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_FILES_PER_POST - 1),
   storagePath: z.string().min(1),
   displayPath: z.string().min(1).nullable(),
   posterPath: z.string().min(1).nullable(),

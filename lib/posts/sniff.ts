@@ -30,8 +30,7 @@ const BARE_QUICKTIME_ATOMS = new Set(["moov", "mdat", "wide", "free", "skip", "p
 
 /** Las marcas compatibles de una caja `ftyp` (después de la marca principal y la versión). */
 function compatibleBrands(bytes: Uint8Array): string[] {
-  const boxSize =
-    ((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]) >>> 0;
+  const boxSize = ((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]) >>> 0;
   const end = Math.min(boxSize, bytes.length);
   const brands: string[] = [];
   for (let offset = 16; offset + 4 <= end; offset += 4) brands.push(ascii(bytes, offset, 4));

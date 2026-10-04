@@ -23,11 +23,23 @@ function readUint16BE(bytes: Uint8Array, offset: number): number {
 }
 
 function readUint32BE(bytes: Uint8Array, offset: number): number {
-  return ((bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]) >>> 0;
+  return (
+    ((bytes[offset] << 24) |
+      (bytes[offset + 1] << 16) |
+      (bytes[offset + 2] << 8) |
+      bytes[offset + 3]) >>>
+    0
+  );
 }
 
 function readUint32LE(bytes: Uint8Array, offset: number): number {
-  return (bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0;
+  return (
+    (bytes[offset] |
+      (bytes[offset + 1] << 8) |
+      (bytes[offset + 2] << 16) |
+      (bytes[offset + 3] << 24)) >>>
+    0
+  );
 }
 
 function concat(parts: Uint8Array[]): Uint8Array {
@@ -44,10 +56,7 @@ function concat(parts: Uint8Array[]): Uint8Array {
 /** Orientación EXIF (1..8) de un segmento APP1, o null. */
 export function readExifOrientation(app1Payload: Uint8Array): number | null {
   // "Exif\0\0" + cabecera TIFF.
-  if (
-    app1Payload.length < 14 ||
-    String.fromCharCode(...app1Payload.subarray(0, 4)) !== "Exif"
-  ) {
+  if (app1Payload.length < 14 || String.fromCharCode(...app1Payload.subarray(0, 4)) !== "Exif") {
     return null;
   }
   const tiff = app1Payload.subarray(6);
@@ -75,6 +84,7 @@ export function readExifOrientation(app1Payload: Uint8Array): number | null {
 
 /** Segmento APP1 completo (marker incluido) con un EXIF de una sola etiqueta: Orientation. */
 export function buildOrientationApp1(orientation: number): Uint8Array {
+  // prettier-ignore
   const payload = new Uint8Array([
     // "Exif\0\0"
     0x45, 0x78, 0x69, 0x66, 0x00, 0x00,
@@ -183,6 +193,7 @@ export function stripWebpMetadata(bytes: Uint8Array): StripResult {
   if (!changed) return { bytes, changed: false };
   const body = concat(kept);
   const riffSize = body.length + 4;
+  // prettier-ignore
   const header = new Uint8Array([
     0x52, 0x49, 0x46, 0x46,
     riffSize & 0xff, (riffSize >> 8) & 0xff, (riffSize >> 16) & 0xff, (riffSize >> 24) & 0xff,

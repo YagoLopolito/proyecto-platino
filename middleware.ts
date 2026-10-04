@@ -19,6 +19,7 @@ export const config = {
     "/diario/:path*",
     "/listas/:path*",
     "/estudios/:path*",
+    "/publicaciones/:path*",
     "/login",
     "/registro",
     "/auth/:path*",
