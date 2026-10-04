@@ -2,9 +2,22 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { getUnreadActivityCount, markReceivedSeen } from "@/lib/activity/actions";
 
 const RECEIVED_PATH = "/actividad/recibido";
+/** Route handler y no Server Action: ver el comentario en el route. */
+const ENDPOINT = "/api/actividad/no-leidas";
+
+async function fetchUnread(markSeen: boolean): Promise<number> {
+  const response = await fetch(ENDPOINT, { method: markSeen ? "POST" : "GET", cache: "no-store" });
+  if (markSeen || !response.ok) return 0;
+  const body: unknown = await response.json();
+  return typeof body === "object" &&
+    body !== null &&
+    "count" in body &&
+    typeof body.count === "number"
+    ? body.count
+    : 0;
+}
 
 const UnreadActivityContext = createContext(0);
 
@@ -27,8 +40,7 @@ export function UnreadActivityProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     const onReceived = pathname === RECEIVED_PATH;
     const refresh = () => {
-      const request = onReceived ? markReceivedSeen().then(() => 0) : getUnreadActivityCount();
-      void request
+      void fetchUnread(onReceived)
         .then((value) => {
           if (!cancelled) setCount(value);
         })

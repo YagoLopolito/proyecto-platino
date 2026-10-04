@@ -1197,11 +1197,15 @@ Reemplaza a la galería vieja de capturas (ver la sección del diario).
   leídas sale de `count_unread_received()` contra `users.activity_seen_at`; entrar a Recibido
   llama a `mark_received_seen()`. Sin Realtime ni polling: `UnreadActivityProvider` lo recalcula
   al navegar y al volver la app a primer plano (`20261004000200_posts_received_activity.sql`).
+  Lo pide a un **route handler** (`/api/actividad/no-leidas`) con `fetch`, **nunca con una
+  Server Action**: las actions comparten una fila en el router de Next, y una que corre en cada
+  navegación dejaba esperando a las de la pantalla y re-renderizaba la página en el medio.
 - **Limpieza**: el paso `?paso=publicaciones` de `/api/cron/sync` (también al final de la corrida
   diaria) borra los posts que siguen en `uploading` después de 24 h y los archivos huérfanos
   (`post_media_orphans`, sólo `service_role`; se borran por la API de Storage, nunca por SQL).
-  Borrar un post lista su carpeta **antes** de borrar la fila (después la policy de lectura ya
-  no deja) y borra primero la fila: un archivo sin fila lo barre el cron.
+  Borrar un post borra **primero los archivos y después la fila**: Storage sólo deja listar y
+  borrar lo que la policy de lectura deja ver, y esa policy exige que el post exista (con la
+  fila ya borrada, `remove` no borraba nada y no avisaba).
 - **Moderación**: no hay. El compositor recuerda que es para contenido de juegos; una tabla
   `post_reports` con FK en cascada encaja sin tocar lo demás.
 

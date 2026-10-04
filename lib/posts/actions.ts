@@ -250,6 +250,13 @@ export async function abandonDraft(postId: string): Promise<{ error: string | nu
   const { data: objects } = await supabase.storage
     .from(POST_MEDIA_BUCKET)
     .list(folder, { limit: 100 });
+  // Archivos antes que la fila, por la misma razón que en `deletePost`. Si
+  // algo queda, el cron barre el borrador abandonado y lo que tenga.
+  if (objects && objects.length > 0) {
+    await supabase.storage
+      .from(POST_MEDIA_BUCKET)
+      .remove(objects.map((o) => `${folder}/${o.name}`));
+  }
   const { error } = await supabase
     .from("posts")
     .delete()
@@ -257,12 +264,6 @@ export async function abandonDraft(postId: string): Promise<{ error: string | nu
     .eq("user_id", user.id)
     .eq("status", "uploading");
   if (error) return { error: error.message };
-  if (objects && objects.length > 0) {
-    // Si esto falla, los archivos quedan huérfanos y los borra el cron.
-    await supabase.storage
-      .from(POST_MEDIA_BUCKET)
-      .remove(objects.map((o) => `${folder}/${o.name}`));
-  }
   return { error: null };
 }
 
@@ -305,10 +306,9 @@ export async function updatePost(input: {
 }
 
 /**
- * Borrar una publicación propia: la fila (y en cascada archivos indexados,
- * likes y comentarios, y con ellos sus notificaciones de Recibido) y después
- * los archivos de Storage. Primero la fila: un archivo sin fila es invisible y
- * lo barre el cron; una fila sin archivo sería una imagen rota en el feed.
+ * Borrar una publicación propia: los archivos de Storage y después la fila (y
+ * en cascada archivos indexados, likes y comentarios, y con ellos sus
+ * notificaciones de Recibido).
  */
 export async function deletePost(postId: string): Promise<PostActionResult> {
   const parsed = uuidSchema.safeParse(postId);
@@ -323,24 +323,24 @@ export async function deletePost(postId: string): Promise<PostActionResult> {
     .maybeSingle();
   if (!post || post.user_id !== user.id) return { error: "Sólo podés borrar tus publicaciones." };
 
-  // Los paths salen de la carpeta del post (incluye miniaturas y posters), y
-  // se leen ANTES de borrar la fila: después la policy de lectura ya no deja.
+  // Primero los archivos, después la fila. Storage sólo deja listar y borrar
+  // un objeto que la policy de lectura deja ver, y esa policy exige que el post
+  // exista: con la fila ya borrada, `remove` no borraba nada (y no avisaba).
+  // Si falla a mitad de camino, la publicación sigue ahí y se puede reintentar.
   const folder = `${user.id}/${post.id}`;
-  const { data: objects } = await supabase.storage
+  const { data: objects, error: listError } = await supabase.storage
     .from(POST_MEDIA_BUCKET)
     .list(folder, { limit: 100 });
-
-  const { error } = await supabase.from("posts").delete().eq("id", post.id).eq("user_id", user.id);
-  if (error) return { error: `No se pudo borrar: ${error.message}` };
-
+  if (listError) return { error: `No se pudieron leer los archivos: ${listError.message}` };
   if (objects && objects.length > 0) {
     const { error: removeError } = await supabase.storage
       .from(POST_MEDIA_BUCKET)
       .remove(objects.map((object) => `${folder}/${object.name}`));
-    // No es un error para el usuario: el post ya no existe y el cron barre lo que quedó.
-    if (removeError)
-      console.error("[posts] no se pudieron borrar los archivos", removeError.message);
+    if (removeError) return { error: `No se pudieron borrar los archivos: ${removeError.message}` };
   }
+
+  const { error } = await supabase.from("posts").delete().eq("id", post.id).eq("user_id", user.id);
+  if (error) return { error: `No se pudo borrar: ${error.message}` };
 
   revalidateGallery(post.game_id);
   return { error: null };

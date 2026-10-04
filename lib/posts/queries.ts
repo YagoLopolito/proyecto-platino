@@ -303,11 +303,23 @@ async function listPosts(
     .order("published_at", { ascending: false })
     .order("id", { ascending: false })
     .range(from, to);
-  // Una página más allá del final: PostgREST responde 416, que no es un error
-  // para la UI (la página redirige a la última).
+  // Una página más allá del final: PostgREST responde 416 (PGRST103) SIN el
+  // `count`, que es justo lo que hace falta para redirigir a la última página.
+  // Se cuenta aparte, sólo en ese caso.
   if (error && error.code !== "PGRST103") return { status: "error", message: error.message };
-
-  const total = count ?? 0;
+  let total = count ?? 0;
+  if (error) {
+    let countQuery = supabase
+      .from("posts")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "published");
+    if ("userIds" in filter) countQuery = countQuery.in("user_id", filter.userIds);
+    else if ("gameId" in filter) countQuery = countQuery.eq("game_id", filter.gameId);
+    else countQuery = countQuery.eq("user_id", filter.userId);
+    const { count: fullCount, error: countError } = await countQuery;
+    if (countError) return { status: "error", message: countError.message };
+    total = fullCount ?? 0;
+  }
   return {
     status: "ok",
     posts: error ? [] : await hydratePosts(supabase, viewerId, (data ?? []) as PostRow[], variant),

@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
 import { createTestUserClient } from "../helpers/supabase";
+import { createTestUser } from "../helpers/auth";
 import { listPostObjects, makePng, seedPost } from "../helpers/posts";
 
 /**
@@ -218,7 +219,14 @@ test.describe("Feed, grilla y detalle", () => {
       .upsert({ user_id: users.userA.id, friend_id: users.userB.id });
     const own = await seedPost(supabase, { userId: users.userA.id, gameId, caption: "propio" });
     const friend = await seedPost(supabase, { userId: users.userB.id, gameId, caption: "de B" });
-    const stranger = await seedPost(supabase, { userId: users.userC.id, gameId, caption: "de C" });
+    // Un usuario recién creado al que nadie sigue: userC no sirve, otros specs
+    // hacen que userA lo siga.
+    const strangerUser = await createTestUser(supabase, `posts-stranger-${users.runId}`);
+    const stranger = await seedPost(supabase, {
+      userId: strangerUser.id,
+      gameId,
+      caption: "de alguien que no seguís",
+    });
 
     await page.goto("/actividad/galeria");
     await expect(page.getByRole("tab", { name: "Galería online" })).toHaveAttribute(
@@ -284,8 +292,13 @@ test.describe("Feed, grilla y detalle", () => {
     await page.goto(`/publicaciones/${postId}`);
     const counter = page.getByTestId("carousel-counter");
     await expect(counter).toHaveText("1/3");
-    await page.keyboard.press("ArrowRight");
-    await expect(counter).toHaveText("2/3");
+    // "1/3" ya viene en el HTML del server: una tecla apretada antes de que
+    // React hidrate se pierde. La primera se reintenta hasta que la página la
+    // escucha; las siguientes ya van sobre la página hidratada.
+    await expect(async () => {
+      await page.keyboard.press("ArrowRight");
+      await expect(counter).toHaveText("2/3", { timeout: 1_000 });
+    }).toPass();
     await page.keyboard.press("ArrowRight");
     await expect(counter).toHaveText("3/3");
     await page.keyboard.press("ArrowLeft");

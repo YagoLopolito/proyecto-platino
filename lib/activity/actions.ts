@@ -20,28 +20,3 @@ export async function loadMoreActivity(
   if (!user) return { status: "error", message: "Tenés que iniciar sesión." };
   return getActivityPage(supabase, tab, cursor, tipo);
 }
-
-/**
- * Cuántas cosas llegaron a Recibido desde la última vez que lo abriste (el
- * globito de Actividad). Cualquier error es 0: es un adorno, no puede romper
- * la navegación.
- */
-export async function getUnreadActivityCount(): Promise<number> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return 0;
-  const { data, error } = await supabase.rpc("count_unread_received");
-  return error || typeof data !== "number" ? 0 : data;
-}
-
-/** Abrir Recibido marca todo como leído. */
-export async function markReceivedSeen(): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
-  await supabase.rpc("mark_received_seen");
-}

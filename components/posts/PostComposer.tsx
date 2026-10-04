@@ -386,9 +386,12 @@ export function PostComposer({
     items.some((item) => item.status === "invalid" || item.status === "preparing");
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+    // `grid-cols-1` (= `minmax(0, 1fr)`) y no la columna implícita: con `auto`,
+    // un nombre de juego largo ensanchaba la columna más allá del viewport y en
+    // mobile la página entera quedaba con scroll horizontal.
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       {/* Archivos */}
-      <section aria-label="Archivos de la publicación" className="space-y-3">
+      <section aria-label="Archivos de la publicación" className="min-w-0 space-y-3">
         <div
           onDragOver={(event) => {
             if (locked || draggedKey) return;
@@ -464,7 +467,11 @@ export function PostComposer({
                     {item.previewUrl ? (
                       // Miniatura local `blob:`: no pasa por next/image.
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.previewUrl} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={item.previewUrl}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
                     ) : (
                       <span className="flex h-full items-center justify-center text-ink-faint">
                         <Icon
@@ -553,7 +560,7 @@ export function PostComposer({
       </section>
 
       {/* Datos */}
-      <section aria-label="Datos de la publicación" className="space-y-5">
+      <section aria-label="Datos de la publicación" className="min-w-0 space-y-5">
         <GamePicker
           options={gameOptions}
           value={game}
