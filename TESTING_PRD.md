@@ -801,15 +801,18 @@ las RLS con clientes logueados.
 | POST-21 | Doble tap (mobile) | Doble tap sobre la foto da me gusta | P1 |
 | POST-22 | Swipe (mobile) | El riel con snap actualiza el contador; las flechas no se muestran | P1 |
 | POST-23 | Compositor (mobile) | Publicar una foto vertical en viewport de celular | P1 |
+| POST-24 | Pantalla completa | Un toque (o el botón de expandir) abre el visor con el original y fullscreen del navegador; flechas, ✕ y Esc lo cierran sin salir del detalle; un toque no da like | P1 |
+| POST-25 | Like propio con doble click | Doble click da like a la propia publicación (como Instagram), no abre el visor y no llega a Recibido | P1 |
+| POST-26 | Avatar en comentarios | Cada comentario lleva el avatar (PSN o Steam) de su autor, linkeado a su perfil | P2 |
 | POST-30 | RLS: posts ajenos | Otro usuario no edita ni borra una publicación ajena | P0 |
 | POST-31 | RLS: comentarios | Un tercero no borra un comentario ajeno; el autor del post sí | P0 |
 | POST-32 | RLS: en subida | Un post `uploading` no lo ve nadie más, y no se publica sin archivos | P0 |
-| POST-33 | RLS: likes | Un segundo like da 23505 y no se likea lo propio | P0 |
+| POST-33 | RLS: likes | Un segundo like da 23505; la propia publicación sí se likea; nunca a nombre de otro | P0 |
 | POST-34 | RLS: Storage | No se sube a la carpeta de otro ni a un post ya publicado | P0 |
 | POST-35 | Firmas con sesión | Con sesión se firma y se baja un archivo de un post visible | P1 |
 | POST-36 | Sin sesión | `/publicaciones/<id>` y `/actividad/galeria` redirigen al login; la anon key no lista, firma, baja ni lee por URL pública | P0 |
 
-**Total: 223 casos** — 98 P0, 95 P1, 30 P2.
+**Total: 226 casos** — 98 P0, 97 P1, 31 P2.
 
 ---
 
@@ -906,6 +909,7 @@ test.describe("Enlaces externos", () => {
 | `post-carousel` / `carousel-counter` | `components/posts/PostCarousel.tsx` | El carrusel y su "2/7" (POST-16/21/22) |
 | `spoiler-reveal` | `components/posts/PostCarousel.tsx` | El "Tocá para ver" de un spoiler (POST-15/20) |
 | `post-detail` / `post-comments` / `post-like` / `post-like-count` | `PostDetail`, `PostParts` | Detalle, comentarios y me gusta (POST-18/19) |
+| `post-media-viewer` | `components/posts/PostMediaViewer.tsx` | El visor a pantalla completa (POST-24/25) |
 | `activity-unread` | `components/activity/UnreadActivity.tsx` | Globito de no leídas de Actividad |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo

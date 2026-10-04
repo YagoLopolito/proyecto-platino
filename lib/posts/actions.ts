@@ -351,8 +351,9 @@ export async function deletePost(postId: string): Promise<PostActionResult> {
 /**
  * Me gusta en una publicación. Recibe el estado DESEADO, no un toggle (mismo
  * contrato que `setReviewLike`): el corazón es optimista y dos toques rápidos
- * tienen que terminar en lo que se ve. La propia no se likea (también lo corta
- * la RLS). Sin revalidar: el corazón lleva su propio estado y revalidar la
+ * tienen que terminar en lo que se ve. Como en Instagram, la propia también se
+ * likea (a diferencia de reseñas y listas); el like propio no llega a
+ * Recibido. Sin revalidar: el corazón lleva su propio estado y revalidar la
  * página que se está viendo haría esperar un re-render entero por toque.
  */
 export async function setPostLike(postId: string, liked: boolean): Promise<PostActionResult> {
@@ -363,13 +364,11 @@ export async function setPostLike(postId: string, liked: boolean): Promise<PostA
 
   const { data: post } = await supabase
     .from("posts")
-    .select("id, user_id")
+    .select("id")
     .eq("id", parsed.data)
     .eq("status", "published")
     .maybeSingle();
   if (!post) return { error: "No encontramos esa publicación." };
-  if (post.user_id === user.id)
-    return { error: "No podés darle me gusta a tu propia publicación." };
 
   const { error } = liked
     ? await supabase

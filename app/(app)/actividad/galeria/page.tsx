@@ -61,7 +61,7 @@ export default async function GalleryFeedPage({
           </div>
         ) : (
           <>
-            <div className="space-y-6" data-testid="gallery-feed">
+            <div className="space-y-5 px-3 sm:px-0" data-testid="gallery-feed">
               {outcome.posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}

@@ -123,11 +123,12 @@
   --rating: var(--accent-ink);
   --rating-muted: #8e97ad;
   /*
-   * El corazón de los likes (reseñas y listas). Derivado de `--accent-2`
-   * pero más claro: el ○ puro queda en 3.12:1 y un ícono de 16px sobre la
-   * superficie más clara necesita margen. 4.89:1 en el peor caso.
+   * El corazón de los likes (publicaciones, reseñas y listas): el rojo de
+   * Instagram, que es lo que se espera de un "me gusta". Sólo como ícono
+   * relleno (pide 3:1, WCAG 1.4.11): 3.87:1 en el peor caso (`surface-hover`).
+   * Nunca como texto chico.
    */
-  --like: #ff5c9d;
+  --like: #ff3040;
 
   /* --- Semánticos ------------------------------------------------------- */
   /* Logro obtenido, 100% de completitud, conexión sana. */
@@ -446,5 +447,24 @@ body {
   100% {
     transform: scale(1);
     opacity: 0;
+  }
+}
+
+/*
+ * "Pop" del corazón al dar me gusta (botón de la Galería online). En el
+ * componente va con `motion-reduce:[animation:none]`.
+ */
+@keyframes post-like-pop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.35);
+  }
+  60% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
   }
 }

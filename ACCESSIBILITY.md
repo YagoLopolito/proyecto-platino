@@ -330,7 +330,7 @@ parejo en luminosidad percibida (OKLCH), no en hex.
 | `--accent-2` | `#e6007a` | `#e6007a` | 3.12:1 | 3 | sólo display grande y base del like |
 | `--rating` | — | = `--accent-ink` | 5.76:1 | 3 (ícono) | nuevo |
 | `--rating-muted` | — | `#8e97ad` | 4.83:1 | 3 (ícono) | nuevo |
-| `--like` | — | `#ff5c9d` | 4.89:1 | 3 (ícono) | nuevo; el ○ puro daría 3.12:1, sin margen |
+| `--like` | — | `#ff3040` | 3.87:1 | 3 (ícono) | rojo de Instagram (antes `#ff5c9d`, rosa); sólo ícono relleno, nunca texto |
 | `--success` | `#34d399` | `#34d399` | 7.35:1 | 4.5 | |
 | `--danger` | `#f87171` | `#ff8080` | 5.82:1 | 4.5 | ver `danger/10` abajo |
 | `--warning` | `#fbbf24` | `#fbbf24` | 8.46:1 | 4.5 | |

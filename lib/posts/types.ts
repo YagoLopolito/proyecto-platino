@@ -23,7 +23,7 @@ export interface PostMediaView {
    * (o el poster de un video); en el detalle, el original.
    */
   src: string | null;
-  /** El original (videos siempre; imágenes sólo en el detalle). */
+  /** El original (feed y detalle; la pantalla completa siempre usa éste). */
   originalSrc: string | null;
   /** Poster de un video. */
   posterSrc: string | null;

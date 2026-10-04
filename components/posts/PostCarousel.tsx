@@ -5,9 +5,12 @@ import { GameArt } from "@/components/game/GameArt";
 import { Icon } from "@/components/ui/Icon";
 import type { PostMediaView } from "@/lib/posts/types";
 import { PostVideo } from "./PostVideo";
+import { PostMediaViewer } from "./PostMediaViewer";
 
 /** Dos toques dentro de esta ventana = doble tap (like). */
 const DOUBLE_TAP_MS = 300;
+/** Un dedo que se movió más que esto deslizó el carrusel: no es un toque. */
+const TAP_SLOP_PX = 10;
 
 /**
  * Proporción del contenedor: la del PRIMER archivo, acotada entre 4:5 (vertical)
@@ -52,6 +55,9 @@ export function PostCarousel({
   const [revealed, setRevealed] = useState(!isSpoiler);
   const [burst, setBurst] = useState(0);
   const lastTap = useRef(0);
+  const tapStart = useRef<{ x: number; y: number } | null>(null);
+  const pendingOpen = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const count = media.length;
 
   // Si el autor marca/desmarca el spoiler mientras está abierto, manda el server.
@@ -110,17 +116,45 @@ export function PostCarousel({
     }
   }
 
+  // Un toque abre la pantalla completa y dos dan like, como Instagram. El
+  // toque simple espera la ventana del doble antes de abrir: si llega el
+  // segundo, se cancela. Un dedo que se movió estaba deslizando: no cuenta.
+  useEffect(
+    () => () => {
+      if (pendingOpen.current) clearTimeout(pendingOpen.current);
+    },
+    [],
+  );
+
+  function onPointerDown(event: PointerEvent<HTMLDivElement>) {
+    tapStart.current = { x: event.clientX, y: event.clientY };
+  }
+
   function onPointerUp(event: PointerEvent<HTMLDivElement>) {
-    if (!onDoubleTap || !revealed) return;
+    if (!revealed) return;
     if ((event.target as HTMLElement).closest("button, a, video[controls]")) return;
+    const start = tapStart.current;
+    tapStart.current = null;
+    if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > TAP_SLOP_PX) {
+      return;
+    }
     const now = Date.now();
     if (now - lastTap.current < DOUBLE_TAP_MS) {
       lastTap.current = 0;
-      setBurst((n) => n + 1);
-      onDoubleTap();
-    } else {
-      lastTap.current = now;
+      if (pendingOpen.current) clearTimeout(pendingOpen.current);
+      pendingOpen.current = null;
+      if (onDoubleTap) {
+        setBurst((n) => n + 1);
+        onDoubleTap();
+      }
+      return;
     }
+    lastTap.current = now;
+    const tapped = index;
+    pendingOpen.current = setTimeout(() => {
+      pendingOpen.current = null;
+      setViewerIndex(tapped);
+    }, DOUBLE_TAP_MS);
   }
 
   const aspect = carouselAspect(media[0]);
@@ -144,6 +178,7 @@ export function PostCarousel({
     >
       <div
         ref={trackRef}
+        onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
         className={`flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
           revealed ? "" : "pointer-events-none"
@@ -205,6 +240,26 @@ export function PostCarousel({
           <span className="type-subtitle">Spoiler</span>
           <span className="type-meta">Tocá para ver</span>
         </button>
+      )}
+
+      {revealed && (
+        <button
+          type="button"
+          onClick={() => setViewerIndex(index)}
+          aria-label="Ver en pantalla completa"
+          className="absolute bottom-2 left-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white opacity-80 transition-opacity hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          <Icon name="expand" className="h-4 w-4" />
+        </button>
+      )}
+
+      {viewerIndex !== null && (
+        <PostMediaViewer
+          media={media}
+          startIndex={viewerIndex}
+          label={label}
+          onClose={() => setViewerIndex(null)}
+        />
       )}
 
       {burst > 0 && (

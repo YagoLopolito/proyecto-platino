@@ -143,7 +143,9 @@ function pathsFor(media: MediaRow, variant: Variant) {
       : (media.display_path ?? media.storage_path);
   return {
     src: shown,
-    original: isVideo || variant === "detail" ? media.storage_path : null,
+    // El original también en el feed: lo abre la pantalla completa (el feed
+    // en sí sigue mostrando el derivado liviano). La grilla no lo necesita.
+    original: variant === "grid" ? null : media.storage_path,
     poster: isVideo ? media.poster_path : null,
   };
 }

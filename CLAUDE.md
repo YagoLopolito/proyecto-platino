@@ -286,8 +286,9 @@ sin aviso si Tailwind cambia dónde emite el suyo.
   `rating-muted` la de otro en un feed o una lista, y el promedio de la comunidad va en
   `trophy-gold`, el oro del platino. `StarRatingDisplay` pide `tone` (`own` / `others` /
   `community`) **obligatorio**, sin default: un feed nuevo no puede heredar el color de acción
-  sin que nadie lo decida. `like` es el corazón (reseñas y listas), rosa derivado de
-  `accent-2` pero más claro, porque el ○ puro no llega con margen a 3:1 como ícono chico.
+  sin que nadie lo decida. `like` es el corazón (reseñas, listas y publicaciones): el rojo
+  de Instagram (`#ff3040`), en toda la app. Sólo como ícono relleno (3.87:1 en el peor caso,
+  pasa el 3:1 de ícono); el corazón sin like va en `ink`, no en rojo apagado.
 - **Semánticos**: `success` (100% / logro obtenido), `danger`, `warning`.
 - **Trofeos**: los cuatro de PSN más `trophy-neutral` para el `achievement` de Steam, que es
   "sin desglose" y no un quinto color.
@@ -1153,8 +1154,9 @@ Reemplaza a la galería vieja de capturas (ver la sección del diario).
   guardados para no saltar el layout), `post_likes` y `post_comments` (500). Un post
   `uploading` sólo lo ve su autor. El trigger `posts_guard_update` impide cambiar autor o juego,
   volver de `published` a `uploading` y **publicar sin archivos**, y marca `edited_at`.
-  Comentarios: los borra su autor **o el autor del post**. La propia publicación no se likea
-  (mismo criterio que reseñas y listas). **Sin contadores denormalizados**: `get_post_stats`
+  Comentarios: los borra su autor **o el autor del post**. **La propia publicación sí se likea**,
+  como en Instagram (a diferencia de reseñas y listas; migración
+  `20261004000400_post_likes_own.sql`), y ese like no llega a Recibido. **Sin contadores denormalizados**: `get_post_stats`
   cuenta likes y comentarios de los ids de una página en una consulta.
 - **Publicar son tres pasos** (`lib/posts/actions.ts`): `createDraftPost` (post en
   `uploading`) → el navegador sube **directo a Storage por TUS** (`tus-js-client`, chunks de 6 MB
@@ -1186,8 +1188,21 @@ Reemplaza a la galería vieja de capturas (ver la sección del diario).
 - **Carrusel** (`PostCarousel`): scroll-snap nativo (SwipeTabs ya ignora un swipe que arranca en
   algo con `overflow-x`), flechas al hover y ← → (en el detalle, en toda la página), puntos y
   "2/7". El marco toma la proporción del **primer** archivo, acotada entre 4:5 y 16:9, y el
-  resto va con `object-contain`. Los slides que no se ven van `inert`, no `aria-hidden`. Doble
-  tap da like. **Video**: en el feed autoplay muteado sólo visible (IntersectionObserver) y sin
+  resto va con `object-contain`. Los slides que no se ven van `inert`, no `aria-hidden`.
+  **Un toque abre la pantalla completa y doble tap / doble click da like** (con el corazón que
+  salta sobre la foto y el `@keyframes post-like-pop` en el botón, sin animación con
+  `prefers-reduced-motion`). Para distinguirlos, el toque simple espera 300 ms
+  (`DOUBLE_TAP_MS`) antes de abrir, y un movimiento de más de 10 px es un swipe, no un toque.
+- **Pantalla completa** (`PostMediaViewer`, también desde el botón de expandir): siempre el
+  **original** (por eso el feed también firma `storage_path`, no sólo el derivado). Pide
+  `requestFullscreen` al abrir, porque el toque es el gesto que el navegador exige: en
+  escritorio ocupa el monitor, en el celular vertical la foto queda ampliada a todo el ancho y
+  al girarlo llena la pantalla sin barras. iPhone no tiene Fullscreen API para elementos: ahí es
+  una capa fija de `100dvh`. Esc / ✕ / salir del fullscreen lo cierran; el keydown va en
+  captura para que Esc no cierre además el modal del detalle.
+- **Tarjeta del feed**: `rounded-card` + `border-strong` + `bg-surface` + sombra, con aire
+  entre posts: con el hairline `border` los posts se fundían entre sí. Cada comentario lleva el
+  avatar de su autor (`FriendAvatar`, el de PSN o Steam que eligió mostrar). **Video**: en el feed autoplay muteado sólo visible (IntersectionObserver) y sin
   `prefers-reduced-motion`; en la grilla nunca; siempre `preload="metadata"`.
 - **Paginación numerada** (`?page=N`, 30 en el feed y 45 en la grilla, `lib/posts/pagination.ts`)
   con offset, a pedido del producto: linkeable y recargable. Una página de más redirige a la
