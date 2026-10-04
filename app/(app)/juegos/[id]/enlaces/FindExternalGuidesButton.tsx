@@ -8,11 +8,7 @@ const initialFindExternalGuidesState: FindExternalGuidesState = {
   errors: [],
 };
 
-export default function FindExternalGuidesButton({
-  gameId,
-}: {
-  gameId: string;
-}) {
+export default function FindExternalGuidesButton({ gameId }: { gameId: string }) {
   const [state, formAction, pending] = useActionState(
     findExternalGuides,
     initialFindExternalGuidesState,

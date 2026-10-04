@@ -67,6 +67,8 @@ export default async function GameLayout({
   const tabs = [
     { href: `/juegos/${gameId}`, label: isSteam ? "Logros" : "Trofeos" },
     { href: `/juegos/${gameId}/resenas`, label: "Reseñas" },
+    // Galería online: publicaciones de todos los usuarios para este juego.
+    { href: `/juegos/${gameId}/capturas`, label: "Capturas" },
     { href: `/juegos/${gameId}/guias`, label: "Guías e IA" },
   ];
 

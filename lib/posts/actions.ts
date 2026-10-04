@@ -13,7 +13,8 @@ import {
   parseMediaPath,
   posterPathFor,
 } from "./constants";
-import { captionSchema, confirmPostSchema, type ConfirmedMedia } from "./validation";
+import { captionSchema, commentSchema, confirmPostSchema, type ConfirmedMedia } from "./validation";
+import type { PostComment } from "./types";
 import { SNIFF_BYTES, sniffMatchesDeclared } from "./sniff";
 
 /**
@@ -262,5 +263,192 @@ export async function abandonDraft(postId: string): Promise<{ error: string | nu
       .from(POST_MEDIA_BUCKET)
       .remove(objects.map((o) => `${folder}/${o.name}`));
   }
+  return { error: null };
+}
+
+// Editar y borrar ------------------------------------------------------------
+
+export type PostActionResult = { error: string | null };
+
+/**
+ * Editar una publicación ya publicada: sólo descripción y spoiler (los
+ * archivos no se cambian). El trigger `posts_guard_update` marca `edited_at`.
+ */
+export async function updatePost(input: {
+  postId: string;
+  caption: string;
+  isSpoiler: boolean;
+}): Promise<PostActionResult & { editedAt?: string | null }> {
+  const postId = uuidSchema.safeParse(input.postId);
+  if (!postId.success) return { error: "Falta la publicación." };
+  const caption = captionSchema.safeParse(input.caption ?? "");
+  if (!caption.success)
+    return { error: caption.error.issues[0]?.message ?? "Descripción inválida." };
+
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Tenés que iniciar sesión." };
+
+  const { data, error } = await supabase
+    .from("posts")
+    .update({ caption: caption.data, is_spoiler: Boolean(input.isSpoiler) })
+    .eq("id", postId.data)
+    .eq("user_id", user.id)
+    .eq("status", "published")
+    .select("game_id, edited_at")
+    .maybeSingle();
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (!data) return { error: "Sólo podés editar tus publicaciones." };
+
+  revalidateGallery(data.game_id);
+  revalidatePath(`/publicaciones/${postId.data}`);
+  return { error: null, editedAt: data.edited_at };
+}
+
+/**
+ * Borrar una publicación propia: la fila (y en cascada archivos indexados,
+ * likes y comentarios, y con ellos sus notificaciones de Recibido) y después
+ * los archivos de Storage. Primero la fila: un archivo sin fila es invisible y
+ * lo barre el cron; una fila sin archivo sería una imagen rota en el feed.
+ */
+export async function deletePost(postId: string): Promise<PostActionResult> {
+  const parsed = uuidSchema.safeParse(postId);
+  if (!parsed.success) return { error: "Falta la publicación." };
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Tenés que iniciar sesión." };
+
+  const { data: post } = await supabase
+    .from("posts")
+    .select("id, user_id, game_id")
+    .eq("id", parsed.data)
+    .maybeSingle();
+  if (!post || post.user_id !== user.id) return { error: "Sólo podés borrar tus publicaciones." };
+
+  // Los paths salen de la carpeta del post (incluye miniaturas y posters), y
+  // se leen ANTES de borrar la fila: después la policy de lectura ya no deja.
+  const folder = `${user.id}/${post.id}`;
+  const { data: objects } = await supabase.storage
+    .from(POST_MEDIA_BUCKET)
+    .list(folder, { limit: 100 });
+
+  const { error } = await supabase.from("posts").delete().eq("id", post.id).eq("user_id", user.id);
+  if (error) return { error: `No se pudo borrar: ${error.message}` };
+
+  if (objects && objects.length > 0) {
+    const { error: removeError } = await supabase.storage
+      .from(POST_MEDIA_BUCKET)
+      .remove(objects.map((object) => `${folder}/${object.name}`));
+    // No es un error para el usuario: el post ya no existe y el cron barre lo que quedó.
+    if (removeError)
+      console.error("[posts] no se pudieron borrar los archivos", removeError.message);
+  }
+
+  revalidateGallery(post.game_id);
+  return { error: null };
+}
+
+// Likes ----------------------------------------------------------------------
+
+/**
+ * Me gusta en una publicación. Recibe el estado DESEADO, no un toggle (mismo
+ * contrato que `setReviewLike`): el corazón es optimista y dos toques rápidos
+ * tienen que terminar en lo que se ve. La propia no se likea (también lo corta
+ * la RLS). Sin revalidar: el corazón lleva su propio estado y revalidar la
+ * página que se está viendo haría esperar un re-render entero por toque.
+ */
+export async function setPostLike(postId: string, liked: boolean): Promise<PostActionResult> {
+  const parsed = uuidSchema.safeParse(postId);
+  if (!parsed.success) return { error: "Falta la publicación." };
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Tenés que iniciar sesión." };
+
+  const { data: post } = await supabase
+    .from("posts")
+    .select("id, user_id")
+    .eq("id", parsed.data)
+    .eq("status", "published")
+    .maybeSingle();
+  if (!post) return { error: "No encontramos esa publicación." };
+  if (post.user_id === user.id)
+    return { error: "No podés darle me gusta a tu propia publicación." };
+
+  const { error } = liked
+    ? await supabase
+        .from("post_likes")
+        .upsert(
+          { post_id: post.id, user_id: user.id },
+          { onConflict: "post_id,user_id", ignoreDuplicates: true },
+        )
+    : await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
+  if (error) return { error: `No se pudo guardar el me gusta: ${error.message}` };
+  return { error: null };
+}
+
+// Comentarios ----------------------------------------------------------------
+
+export type AddCommentResult =
+  { status: "ok"; comment: PostComment } | { status: "error"; message: string };
+
+export async function addComment(postId: string, body: string): Promise<AddCommentResult> {
+  const parsedId = uuidSchema.safeParse(postId);
+  if (!parsedId.success) return { status: "error", message: "Falta la publicación." };
+  const parsedBody = commentSchema.safeParse(body ?? "");
+  if (!parsedBody.success) {
+    return {
+      status: "error",
+      message: parsedBody.error.issues[0]?.message ?? "Comentario inválido.",
+    };
+  }
+  const { supabase, user } = await requireUser();
+  if (!user) return { status: "error", message: "Tenés que iniciar sesión." };
+
+  const { data, error } = await supabase
+    .from("post_comments")
+    .insert({ post_id: parsedId.data, user_id: user.id, body: parsedBody.data })
+    .select("id, body, created_at")
+    .single();
+  if (error || !data) {
+    return { status: "error", message: `No se pudo comentar: ${error?.message ?? ""}` };
+  }
+
+  const { data: me } = await supabase
+    .from("public_profiles")
+    .select("display_name, profile_name, profile_avatar_url")
+    .eq("id", user.id)
+    .maybeSingle();
+  return {
+    status: "ok",
+    comment: {
+      id: data.id,
+      body: data.body,
+      createdAt: data.created_at,
+      author: {
+        id: user.id,
+        name: me?.profile_name ?? me?.display_name ?? "Vos",
+        avatarUrl: me?.profile_avatar_url ?? null,
+      },
+      canDelete: true,
+    },
+  };
+}
+
+/** Borra un comentario: su autor o el autor del post (la RLS exige lo mismo). */
+export async function deleteComment(commentId: string): Promise<PostActionResult> {
+  const parsed = uuidSchema.safeParse(commentId);
+  if (!parsed.success) return { error: "Falta el comentario." };
+  const { supabase, user } = await requireUser();
+  if (!user) return { error: "Tenés que iniciar sesión." };
+
+  const { data: comment } = await supabase
+    .from("post_comments")
+    .select("id, user_id, posts!inner (user_id)")
+    .eq("id", parsed.data)
+    .maybeSingle();
+  if (!comment) return { error: "Ese comentario ya no existe." };
+  if (comment.user_id !== user.id && comment.posts.user_id !== user.id) {
+    return { error: "Sólo podés borrar tus comentarios o los de tus publicaciones." };
+  }
+
+  const { error } = await supabase.from("post_comments").delete().eq("id", comment.id);
+  if (error) return { error: `No se pudo borrar el comentario: ${error.message}` };
   return { error: null };
 }
