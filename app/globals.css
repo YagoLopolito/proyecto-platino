@@ -425,3 +425,26 @@ body {
     transform: translateY(0);
   }
 }
+
+/*
+ * El corazón que aparece al dar doble tap sobre una publicación de la Galería
+ * online. En el componente va con `motion-reduce:[animation:none]`.
+ */
+@keyframes post-like-burst {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  25% {
+    transform: scale(1.1);
+    opacity: 0.95;
+  }
+  60% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}

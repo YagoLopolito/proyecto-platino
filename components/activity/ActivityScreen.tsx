@@ -29,7 +29,7 @@ const COPY: Record<
     label: "Actividad recibida",
     emptyTitle: "Todavía no recibiste nada.",
     emptyDescription:
-      "Cuando a alguien le guste una reseña o una lista tuya, o empiece a seguirte, lo vas a ver acá.",
+      "Cuando a alguien le guste o comente algo tuyo, o empiece a seguirte, lo vas a ver acá.",
   },
 };
 
@@ -67,7 +67,9 @@ export async function ActivityScreen({
             icon={tab === "amigos" ? "users" : tab === "vos" ? "bolt" : "heart"}
             title={tipo ? "No hay actividad de este tipo." : copy.emptyTitle}
             description={tipo ? undefined : copy.emptyDescription}
-            action={tab === "amigos" && !tipo ? <AddFriendModal label="Buscar amigos" /> : undefined}
+            action={
+              tab === "amigos" && !tipo ? <AddFriendModal label="Buscar amigos" /> : undefined
+            }
           />
         ) : (
           <ActivityFeed

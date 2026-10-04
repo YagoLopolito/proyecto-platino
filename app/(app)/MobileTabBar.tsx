@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { RegisterLauncher } from "@/components/register/RegisterLauncher";
+import { UnreadDot, formatUnread, useUnreadActivity } from "@/components/activity/UnreadActivity";
 import { Icon } from "@/components/ui/Icon";
 import { TAB_BAR_ITEMS, isActiveLink } from "./nav-links";
 
@@ -22,6 +23,7 @@ import { TAB_BAR_ITEMS, isActiveLink } from "./nav-links";
  */
 export default function MobileTabBar() {
   const pathname = usePathname();
+  const unreadActivity = useUnreadActivity();
 
   return (
     <nav
@@ -42,11 +44,14 @@ export default function MobileTabBar() {
             );
           }
           const active = isActiveLink(pathname, item);
+          const unread = item.href === "/actividad" ? unreadActivity : 0;
           return (
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
-                aria-label={item.label}
+                aria-label={
+                  unread > 0 ? `${item.label}, ${formatUnread(unread)} sin leer` : item.label
+                }
                 aria-current={active ? "page" : undefined}
                 // min-h-14: por debajo de ~44px un target táctil se falla seguido.
                 className={`flex min-h-14 items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink ${
@@ -58,7 +63,10 @@ export default function MobileTabBar() {
                     active ? "bg-surface-hover" : ""
                   }`}
                 >
-                  <Icon name={item.icon} className="h-6 w-6" />
+                  <span className="relative">
+                    <Icon name={item.icon} className="h-6 w-6" />
+                    <UnreadDot count={unread} className="absolute -right-2.5 -top-1.5" />
+                  </span>
                 </span>
               </Link>
             </li>

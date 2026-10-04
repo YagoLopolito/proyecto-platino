@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { createTestServiceClient } from "../helpers/supabase";
+import { makePng } from "../helpers/posts";
 
 /**
  * SEC-06 (issue #129): sin sesión, la anon key (que viaja en el bundle público)
@@ -17,7 +19,11 @@ const TABLES = [
   "guide_steps",
   "game_external_guides",
   "game_diary_entries",
-  "game_screenshots",
+  // Galería online: ni las publicaciones ni sus archivos, likes o comentarios.
+  "posts",
+  "post_media",
+  "post_likes",
+  "post_comments",
   "user_favorite_games",
   "now_playing",
   "user_playlist",
@@ -45,4 +51,43 @@ test.describe("RLS sin sesión", () => {
       expect(error ? [] : data).toEqual([]);
     });
   }
+});
+
+/**
+ * POST-36 (Galería online): sin sesión no se llega a una publicación ni a sus
+ * archivos, ni siquiera con la URL directa del objeto del bucket privado.
+ */
+test.describe("Galería online sin sesión", () => {
+  test("POST-36: /publicaciones/<id> redirige al login", async ({ page }) => {
+    await page.goto("/publicaciones/00000000-0000-4000-8000-000000000000");
+    await expect(page).toHaveURL(/\/login/);
+    await page.goto("/actividad/galeria");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("POST-36b: la anon key no lista, firma ni baja archivos de post-media", async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const anon = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    // Un objeto real, subido con service role a una carpeta sin post.
+    const service = createTestServiceClient();
+    const path = `00000000-0000-4000-8000-000000000000/00000000-0000-4000-8000-000000000001/0-e2e.png`;
+    await service.storage
+      .from("post-media")
+      .upload(path, makePng(16, 9), { contentType: "image/png", upsert: true });
+    try {
+      const { data: listed } = await anon.storage.from("post-media").list(path.split("/")[0]);
+      expect(listed ?? []).toEqual([]);
+      const { data: signed } = await anon.storage.from("post-media").createSignedUrl(path, 60);
+      expect(signed).toBeNull();
+      const { data: downloaded } = await anon.storage.from("post-media").download(path);
+      expect(downloaded).toBeNull();
+      // La URL "pública" tampoco sirve: el bucket es privado.
+      const publicUrl = `${url}/storage/v1/object/public/post-media/${path}`;
+      expect((await fetch(publicUrl)).ok).toBe(false);
+    } finally {
+      await service.storage.from("post-media").remove([path]);
+    }
+  });
 });

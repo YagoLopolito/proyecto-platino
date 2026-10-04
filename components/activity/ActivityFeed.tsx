@@ -217,5 +217,17 @@ function Sentence({ event, tab }: { event: ActivityEvent; tab: ActivityTab }) {
       );
     case "follow":
       return <>{actor} empezó a seguirte</>;
+    case "post_like":
+    case "post_comment": {
+      const post = event.postId && (
+        <Strong href={`/publicaciones/${event.postId}`}>tu publicación</Strong>
+      );
+      return (
+        <>
+          {event.kind === "post_like" ? <>A {actor} le gustó</> : <>{actor} comentó</>} {post}
+          {game && <> de {game}</>}
+        </>
+      );
+    }
   }
 }

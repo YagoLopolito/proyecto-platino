@@ -7,6 +7,7 @@ import { Suspense, useEffect, useId, useRef, useState } from "react";
 import { logout } from "@/app/auth/actions";
 import { RegisterLauncher } from "@/components/register/RegisterLauncher";
 import { Icon } from "@/components/ui/Icon";
+import { UnreadDot, formatUnread, useUnreadActivity } from "@/components/activity/UnreadActivity";
 import { getMyRecentSearches } from "@/lib/search/actions";
 import { SCOPE_LABELS, saveAndGoHref, type RecentSearch } from "@/lib/search/scopes";
 import { HEADER_LINKS, isActiveLink, sectionTitle, showsSettingsGear } from "./nav-links";
@@ -257,6 +258,7 @@ function AccountMenu() {
  */
 export default function AppHeader() {
   const pathname = usePathname();
+  const unreadActivity = useUnreadActivity();
   const title = sectionTitle(pathname);
   const gear = showsSettingsGear(pathname);
 
@@ -288,6 +290,7 @@ export default function AppHeader() {
         <nav aria-label="Principal" className="mr-auto flex items-center gap-1">
           {HEADER_LINKS.map((link) => {
             const active = isActiveLink(pathname, link);
+            const unread = link.href === "/actividad" ? unreadActivity : 0;
             return (
               <Link
                 key={link.href}
@@ -300,6 +303,12 @@ export default function AppHeader() {
                 }`}
               >
                 {link.label}
+                {unread > 0 && (
+                  <>
+                    <UnreadDot count={unread} className="ml-1.5" />
+                    <span className="sr-only">, {formatUnread(unread)} sin leer</span>
+                  </>
+                )}
               </Link>
             );
           })}

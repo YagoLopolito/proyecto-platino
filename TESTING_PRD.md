@@ -770,7 +770,46 @@ Actividad del epic #183 (issue #195): Amigos / Vos / Recibido, derivadas por RPC
 | ACT-05 | Paginación | Con 32 eventos se ven 30, "Cargar más" suma los 2 restantes sin repetir | P1 |
 | ACT-06 | Fechas | Tiempo relativo (min / h / d / sem) y `2026-09-23` como "el miércoles 23 de septiembre", sin desfase de día | P1 |
 
-**Total: 194 casos** — 79 P0, 85 P1, 30 P2.
+### 6.28 Galería online (`34-posts-units` a `37-posts-security`, más `12-security-isolation`)
+
+Publicaciones de fotos y videos (1 a 10 por post) con feed en Actividad › Galería online, grilla
+en la ficha (tab Capturas) y en el perfil, detalle con URL propia, likes, comentarios y avisos en
+Recibido. `34` son módulos puros, `35` el flujo en escritorio, `36` el proyecto `mobile` y `37`
+las RLS con clientes logueados.
+
+| ID | Caso | Resultado esperado | Prio |
+| --- | --- | --- | --- |
+| POST-01 | Cantidad de archivos | 0 pide al menos uno, 1 y 10 pasan, 11 avisa el tope | P0 |
+| POST-02 | Tipo y tamaño | PDF rechazado, HEIC con instrucciones (también sin `type`), imagen > 20 MB y video > 50 MB con su tope | P0 |
+| POST-03 | Confirmación | `confirmPostSchema` exige posiciones 0..N-1 sin huecos; paths `{user}/{post}/…` y sus derivados | P1 |
+| POST-04 | Tipo real | Magic bytes de JPEG/PNG/GIF/WebP/WebM/MP4/MOV/AVIF; un `.txt` renombrado y un HEIC disfrazado no pasan | P0 |
+| POST-05 | EXIF sin recomprimir | JPEG pierde el GPS, conserva la orientación y los bytes desde SOS idénticos; PNG y WebP pierden sus chunks | P0 |
+| POST-06 | Reordenar | `moveItem` / `removeItem` del carrusel | P1 |
+| POST-07 | Selector de juego | Lo que estás jugando primero, después el resto por nombre, sin duplicados | P1 |
+| POST-08 | Paginación y fechas | `pageCount`, `pageRange`, `parsePageParam`, elipsis de `pageWindow`, página fuera de rango y fecha relativa | P1 |
+| POST-10 | Publicar una imagen | El detalle la muestra, el post queda `published` con el original en su tamaño y un derivado `-display.webp` | P0 |
+| POST-11 | Carrusel mixto | Imagen + video grabado en el navegador, reordenado y con un archivo quitado: posiciones y poster en la base | P0 |
+| POST-12 | Errores antes de subir | Sin archivos, formato inválido, HEIC, > 20 MB, sin juego y 11 archivos muestran su error y no publican | P0 |
+| POST-13 | Falla de red | Con la subida TUS cortada el archivo queda con error; "Reintentar" sube sólo ese y publica | P0 |
+| POST-14 | Quién ve qué | Galería online: lo propio y lo de amigos, no lo de alguien que no seguís; la grilla del juego muestra los de todos | P0 |
+| POST-15 | Spoiler | Borroso en grilla, feed y detalle hasta tocar "Tocá para ver" | P0 |
+| POST-16 | Carrusel y modal | ← → en el detalle mueven el contador; desde la grilla el detalle abre en modal con su URL y Esc vuelve atrás | P1 |
+| POST-17 | Paginación | 45 por página en la grilla, `?page=2` sobrevive a la recarga, atrás vuelve, una página inexistente va a la última | P1 |
+| POST-18 | Like | Like y unlike de una publicación ajena, optimista y persistido | P0 |
+| POST-19 | Comentarios y aviso | Comentar llega a Recibido del autor (`post_comment`); borrar el propio comentario lo saca | P0 |
+| POST-20 | Editar y borrar | Editar descripción y spoiler marca "(editado)"; borrar con confirmación saca la fila y los archivos del bucket | P0 |
+| POST-21 | Doble tap (mobile) | Doble tap sobre la foto da me gusta | P1 |
+| POST-22 | Swipe (mobile) | El riel con snap actualiza el contador; las flechas no se muestran | P1 |
+| POST-23 | Compositor (mobile) | Publicar una foto vertical en viewport de celular | P1 |
+| POST-30 | RLS: posts ajenos | Otro usuario no edita ni borra una publicación ajena | P0 |
+| POST-31 | RLS: comentarios | Un tercero no borra un comentario ajeno; el autor del post sí | P0 |
+| POST-32 | RLS: en subida | Un post `uploading` no lo ve nadie más, y no se publica sin archivos | P0 |
+| POST-33 | RLS: likes | Un segundo like da 23505 y no se likea lo propio | P0 |
+| POST-34 | RLS: Storage | No se sube a la carpeta de otro ni a un post ya publicado | P0 |
+| POST-35 | Firmas con sesión | Con sesión se firma y se baja un archivo de un post visible | P1 |
+| POST-36 | Sin sesión | `/publicaciones/<id>` y `/actividad/galeria` redirigen al login; la anon key no lista, firma, baja ni lee por URL pública | P0 |
+
+**Total: 223 casos** — 98 P0, 95 P1, 30 P2.
 
 ---
 
@@ -860,6 +899,14 @@ test.describe("Enlaces externos", () => {
 | `favorite-catalog-result` | `components/profile/TopFiveEditor.tsx` | Cada juego de catálogo que se puede sumar al Top 5 |
 | `profile-diary-entry` | `components/profile/DiaryPreviewSection.tsx` | Últimas reseñas de un perfil |
 | `friend-link` | `components/profile/FriendsStrip.tsx` | Acceso al perfil de cada amigo |
+| `post-dropzone` / `post-composer-item` | `components/posts/PostComposer.tsx` | Zona de carga y cada archivo del compositor, con `data-filename` (POST-11/12) |
+| `post-selected-game` | `components/posts/GamePicker.tsx` | Juego preseleccionado con `?juego=` (POST-10) |
+| `gallery-feed` / `post-card` | `app/(app)/actividad/galeria/page.tsx`, `PostCard` | El feed y cada publicación, con `data-post-id` (POST-14) |
+| `post-grid` / `post-grid-cell` | `components/posts/PostGrid.tsx` | Grilla de 3 columnas y cada celda, con `data-spoiler` (POST-14/15/17) |
+| `post-carousel` / `carousel-counter` | `components/posts/PostCarousel.tsx` | El carrusel y su "2/7" (POST-16/21/22) |
+| `spoiler-reveal` | `components/posts/PostCarousel.tsx` | El "Tocá para ver" de un spoiler (POST-15/20) |
+| `post-detail` / `post-comments` / `post-like` / `post-like-count` | `PostDetail`, `PostParts` | Detalle, comentarios y me gusta (POST-18/19) |
+| `activity-unread` | `components/activity/UnreadActivity.tsx` | Globito de no leídas de Actividad |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo
 usa, nunca por adelantado "por las dudas".

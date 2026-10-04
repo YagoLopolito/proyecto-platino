@@ -72,6 +72,20 @@ export async function cleanupTestData(supabase: SupabaseClient): Promise<void> {
   const { data } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
   const testUsers = (data?.users ?? []).filter((u) => u.email?.endsWith(`@${E2E_EMAIL_DOMAIN}`));
   for (const user of testUsers) {
+    // Galería online: las filas caen en cascada con el usuario, pero los
+    // archivos del bucket no. `{user}/{post}/{archivo}`.
+    const { data: postFolders } = await supabase.storage
+      .from("post-media")
+      .list(user.id, { limit: 1000 });
+    for (const folder of postFolders ?? []) {
+      const prefix = `${user.id}/${folder.name}`;
+      const { data: files } = await supabase.storage
+        .from("post-media")
+        .list(prefix, { limit: 100 });
+      if (files && files.length > 0) {
+        await supabase.storage.from("post-media").remove(files.map((f) => `${prefix}/${f.name}`));
+      }
+    }
     await supabase.auth.admin.deleteUser(user.id);
   }
 }

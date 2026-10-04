@@ -29,3 +29,29 @@ free activos (limite del plan gratuito por organizacion). Falta:
 3. Copiar `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y
    `SUPABASE_SERVICE_ROLE_KEY` reales a `.env.local` (no versionado) y a las env vars
    de Vercel.
+
+## Galería online (publicaciones de fotos y videos)
+
+Pasos al deployar la Galería online, en este orden:
+
+1. Migraciones `20261004000000_posts.sql` y `20261004000100_post_media_orphans.sql` (tablas,
+   bucket privado `post-media` y sus policies).
+2. Migración `20261004000200_posts_received_activity.sql` (likes y comentarios en Actividad ›
+   Recibido, globito de no leídas). Recrea `get_activity_received` con una columna más: el
+   código anterior la ignora, así que se puede aplicar antes o después del deploy.
+3. `node scripts/migrate-screenshots-to-posts.mjs --dry-run` y después sin `--dry-run`, con
+   `SUPABASE_SERVICE_ROLE_KEY` en `.env.local`: pasa cada captura de la galería vieja a una
+   publicación y borra el bucket público `game-screenshots`.
+4. Recién ahí `20261004000300_drop_game_screenshots.sql` (se niega a correr si quedó alguna
+   captura sin migrar).
+
+**Storage en el plan Free**: 50 MB por archivo (es el tope de un video en la app) y 1 GB para
+todo el proyecto. Para ver cuánto se usa:
+
+```sql
+select bucket_id, pg_size_pretty(sum((metadata->>'size')::bigint)) as usado, count(*)
+from storage.objects group by bucket_id;
+```
+
+Si se pasa a Pro, subir `MAX_VIDEO_BYTES` / `MAX_IMAGE_BYTES` en `lib/posts/constants.ts` **y**
+el `file_size_limit` del bucket `post-media`.

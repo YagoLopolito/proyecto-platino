@@ -9,6 +9,8 @@ const TABS = [
   { href: "/actividad", label: "Amigos" },
   { href: "/actividad/vos", label: "Vos" },
   { href: "/actividad/recibido", label: "Recibido" },
+  // Publicaciones de fotos y videos (tuyas y de la gente que seguís).
+  { href: "/actividad/galeria", label: "Galería online" },
 ];
 
 export default function ActividadLayout({ children }: { children: ReactNode }) {

@@ -7,6 +7,7 @@ import { syncSteamAchievementsForUser, SteamProfilePrivateError } from "@/lib/st
 import { refreshSystemLists } from "@/lib/lists/system";
 import { backfillGameCompanies } from "@/lib/studios/backfill";
 import { isValidCronAuthorization } from "@/lib/cron/auth";
+import { cleanupPosts } from "@/lib/posts/cleanup";
 
 /**
  * Igual límite que /api/psn/sync (ver CLAUDE.md): declarar maxDuration no
@@ -46,6 +47,23 @@ async function refreshSystemListsStep(supabase: ReturnType<typeof createServiceC
   }
 }
 
+/**
+ * Limpieza de la Galería online: posts abandonados en subida y archivos
+ * huérfanos. Igual que las listas, en su propio try/catch: no puede hacer
+ * fallar el sync ni depender de él.
+ */
+async function cleanupPostsStep(supabase: ReturnType<typeof createServiceClient>) {
+  try {
+    return { ok: true as const, ...(await cleanupPosts(supabase)) };
+  } catch (cause) {
+    console.error("[cron] no se pudo limpiar la galería", cause);
+    return {
+      ok: false as const,
+      error: cause instanceof Error ? cause.message : "Error inesperado.",
+    };
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
@@ -58,6 +76,11 @@ export async function GET(request: NextRequest) {
   // PSN ni a Steam por cada usuario.
   if (request.nextUrl.searchParams.get("paso") === "listas") {
     return NextResponse.json({ systemLists: await refreshSystemListsStep(supabase) });
+  }
+
+  // `?paso=publicaciones` corre sólo la limpieza de la galería (tests y a mano).
+  if (request.nextUrl.searchParams.get("paso") === "publicaciones") {
+    return NextResponse.json({ posts: await cleanupPostsStep(supabase) });
   }
 
   // `?paso=estudios` completa los estudios de IGDB de una tanda de juegos
@@ -121,10 +144,12 @@ export async function GET(request: NextRequest) {
   });
 
   const systemLists = await refreshSystemListsStep(supabase);
+  const posts = await cleanupPostsStep(supabase);
 
   // Sólo conteos y errores: la respuesta no identifica a ningún usuario (#133).
   return NextResponse.json({
     systemLists,
+    posts,
     accountsProcessed: results.length,
     succeeded: results.filter((r) => r.ok).length,
     failed: results.filter((r) => !r.ok).length,
