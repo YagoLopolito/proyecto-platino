@@ -5,6 +5,7 @@ import {
   estimateTokens,
   INPUT_TOKEN_BUDGET,
 } from "../../lib/ai/plan-prompt";
+import { resolveNextTrophy, type NextTrophyPlan } from "../../lib/ai/next-trophy";
 import { seedGameWithTrophies } from "../helpers/seed";
 
 /**
@@ -191,6 +192,35 @@ test.describe("Advisor con IA", () => {
       page.locator(`#trofeo-${trophyIds[0]}`).getByText(/\[E2E\] Ayuda mockeada/),
     ).toBeVisible();
   });
+
+  test("AI-16: el siguiente trofeo es el primer perdible y los perdibles van primero", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 3,
+      nameSuffix: "Advisor Perdible",
+      np: 316,
+    });
+
+    await page.goto(`/juegos/${gameId}/guias`);
+    await page.getByRole("button", { name: "Generar plan" }).click();
+
+    // El plan de fixture marca el primer trofeo como perdible.
+    const advisor = page.locator("#advisor");
+    const next = advisor.getByRole("heading", { name: /Siguiente trofeo/i });
+    await expect(next).toContainText("Perdible");
+    await expect(
+      advisor.getByText("Conseguilo antes de: [E2E] Antes del capítulo final."),
+    ).toBeVisible();
+
+    // La sección de perdibles va inmediatamente después de la tarjeta del
+    // siguiente trofeo, antes que cualquier otra sección del plan.
+    const headings = await advisor.getByRole("heading", { level: 4 }).allTextContents();
+    expect(headings[0]).toMatch(/Siguiente trofeo/);
+    expect(headings[1]).toMatch(/Trofeos perdibles/);
+  });
 });
 
 /**
@@ -242,5 +272,65 @@ test.describe("Prompt del plan de IA", () => {
     // Los ids de los 8 obtenidos (t1..t8) no aparecen; los pendientes sí.
     expect(prompt).not.toContain("t1|");
     expect(prompt).toContain("t9|");
+  });
+});
+
+/**
+ * AI-16: con perdibles pendientes, el siguiente trofeo es el primero de la
+ * run (el primero de `missables`), aunque el modelo haya sugerido otro o el
+ * que sugirió ya se haya obtenido después de generar el plan.
+ */
+test.describe("Siguiente trofeo con perdibles", () => {
+  const trophies = [
+    { id: "historia", obtained: false },
+    { id: "perdible-1", obtained: false },
+    { id: "perdible-2", obtained: false },
+    { id: "rapido", obtained: false },
+  ];
+  const basePlan: NextTrophyPlan = {
+    missables: [
+      { trofeo_id: "perdible-1", motivo: "Se cierra en el acto 1.", momento_limite: "Acto 1" },
+      { trofeo_id: "perdible-2", motivo: "Decisión única.", momento_limite: "Acto 3" },
+    ],
+    orden_sugerido: ["rapido", "perdible-1", "perdible-2", "historia"],
+    siguiente_trofeo: { trofeo_id: "rapido", por_que: "Es el más rápido.", pasos: ["Paso"] },
+  };
+
+  test("AI-16: gana el primer perdible aunque el modelo sugiera otro", async () => {
+    const next = resolveNextTrophy(basePlan, trophies);
+    expect(next?.trophy.id).toBe("perdible-1");
+    expect(next?.missable?.momentoLimite).toBe("Acto 1");
+    // Los pasos eran de otro trofeo: no se muestran con este.
+    expect(next?.pasos).toEqual([]);
+  });
+
+  test("AI-16: si el modelo eligió el perdible, se conservan sus pasos", async () => {
+    const plan = {
+      ...basePlan,
+      siguiente_trofeo: { trofeo_id: "perdible-1", por_que: "Se pierde pronto.", pasos: ["A"] },
+    };
+    const next = resolveNextTrophy(plan, trophies);
+    expect(next?.trophy.id).toBe("perdible-1");
+    expect(next?.pasos).toEqual(["A"]);
+  });
+
+  test("AI-16: con el primer perdible ya obtenido pasa al siguiente perdible", async () => {
+    const synced = trophies.map((t) => (t.id === "perdible-1" ? { ...t, obtained: true } : t));
+    expect(resolveNextTrophy(basePlan, synced)?.trophy.id).toBe("perdible-2");
+  });
+
+  test("AI-16: sin perdibles pendientes vuelve a la sugerencia del modelo", async () => {
+    const synced = trophies.map((t) =>
+      t.id.startsWith("perdible") ? { ...t, obtained: true } : t,
+    );
+    const next = resolveNextTrophy(basePlan, synced);
+    expect(next?.trophy.id).toBe("rapido");
+    expect(next?.missable).toBeNull();
+  });
+
+  test("AI-16: el prompt pide perdibles en orden cronológico y primero en el plan", async () => {
+    expect(AI_PLAN_SYSTEM_PROMPT).toContain('es SIEMPRE el primero de "missables"');
+    expect(AI_PLAN_SYSTEM_PROMPT).toContain('Ordená "missables" cronológicamente');
+    expect(AI_PLAN_SYSTEM_PROMPT).toContain("Listá TODOS los que haya");
   });
 });

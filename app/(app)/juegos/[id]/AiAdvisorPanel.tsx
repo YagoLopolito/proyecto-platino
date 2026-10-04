@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 import { trophyFocusHref } from "./focusTrophy";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import type { AiGamePlan } from "@/lib/ai";
+import { pendingMissables, resolveNextTrophy } from "@/lib/ai/next-trophy";
 
 const initialAiPlanState: AiPlanActionState = { plan: null, error: null };
 
@@ -83,32 +84,6 @@ const COUNTER_LABELS: Record<AiGamePlan["acumulables"][number]["categoria"], str
   progresion_larga: "Progresión larga",
 };
 
-/**
- * Resuelve cuál es el próximo trofeo a encarar. El plan está cacheado y los
- * trofeos se siguen sincronizando, así que la sugerencia del modelo puede
- * haber quedado obsoleta: si ese trofeo ya se obtuvo (o no está en la lista),
- * se cae al primer pendiente del orden sugerido, y recién ahí al primer
- * pendiente del juego. Así la tarjeta nunca propone algo ya desbloqueado.
- */
-function resolveNextTrophy(
-  plan: AiGamePlan,
-  trophies: AdvisorTrophy[],
-): { trophy: AdvisorTrophy; porQue: string; pasos: string[] } | null {
-  const suggested = plan.siguiente_trofeo;
-  if (suggested) {
-    const trophy = findTrophy(trophies, suggested.trofeo_id);
-    if (trophy && !trophy.obtained) {
-      return { trophy, porQue: suggested.por_que, pasos: suggested.pasos ?? [] };
-    }
-  }
-
-  const fromOrder = plan.orden_sugerido
-    .map((id) => findTrophy(trophies, id))
-    .find((t) => t !== undefined && !t.obtained);
-  const fallback = fromOrder ?? trophies.find((t) => !t.obtained);
-  return fallback ? { trophy: fallback, porQue: "", pasos: [] } : null;
-}
-
 /** Tarjeta destacada arriba del plan: qué trofeo encarar ahora y cómo. */
 function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTrophy[] }) {
   const trophyHref = useTrophyHref();
@@ -125,9 +100,14 @@ function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: Adviso
 
   return (
     <div className="rounded-card border border-success/40 bg-success/10 p-3">
-      <h4 className="mb-2 flex items-center gap-1.5 type-overline text-success">
+      <h4 className="mb-2 flex flex-wrap items-center gap-1.5 type-overline text-success">
         <Icon name="trophy" className="h-3.5 w-3.5" />
         Siguiente trofeo
+        {next.missable && (
+          <span className="rounded-chip border border-warning/40 bg-warning/10 px-2 py-0.5 text-warning">
+            Perdible
+          </span>
+        )}
       </h4>
       <Link
         href={trophyHref(next.trophy.id)}
@@ -142,6 +122,11 @@ function NextTrophyCard({ plan, trophies }: { plan: AiGamePlan; trophies: Adviso
         </span>
       </Link>
       {next.porQue && <p className="mt-2 type-caption text-success">{next.porQue}</p>}
+      {next.missable?.momentoLimite && (
+        <p className="mt-1 type-caption text-warning">
+          Conseguilo antes de: {next.missable.momentoLimite}
+        </p>
+      )}
       {next.pasos.length > 0 ? (
         <ol className="mt-2 list-decimal space-y-1 pl-5 type-caption text-ink">
           {next.pasos.map((paso, i) => (
@@ -199,14 +184,77 @@ function SectionCard({
   );
 }
 
+/**
+ * Los perdibles van siempre, justo debajo del siguiente trofeo y en el orden
+ * de la partida (el primero es el que se pierde antes). Se muestran también
+ * cuando el plan no detectó ninguno: "no hay perdibles" es una respuesta, y
+ * que la sección desaparezca se confunde con que el advisor no los miró.
+ */
+function MissablesSection({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTrophy[] }) {
+  const pendingCount = pendingMissables(plan, trophies).length;
+
+  if (plan.missables.length === 0) {
+    return (
+      <SectionCard icon="alert" title="Trofeos perdibles" tone="neutral">
+        <p className="type-caption text-ink-muted">
+          El plan no detectó trofeos perdibles entre los que te faltan.
+        </p>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard icon="alert" title="Trofeos perdibles" tone="warning">
+      <p className="mb-2 type-caption text-ink-faint">
+        {pendingCount > 0
+          ? `Te quedan ${pendingCount}, en el orden en que se pierden durante la partida.`
+          : "Ya conseguiste todos los perdibles que detectó el plan."}
+      </p>
+      <ol className="space-y-2">
+        {plan.missables.map((m, i) => {
+          const obtained = findTrophy(trophies, m.trofeo_id)?.obtained ?? false;
+          return (
+            <li
+              key={`${m.trofeo_id}-${i}`}
+              className={`flex gap-2 rounded-chip border p-2.5 ${
+                obtained ? "border-border bg-surface" : "border-warning/30 bg-warning/5"
+              }`}
+            >
+              <span className="w-4 shrink-0 text-right type-caption tabular-nums text-ink-faint">
+                {i + 1}.
+              </span>
+              <div className="min-w-0">
+                <div className="mb-1">
+                  <TrophyChip trophies={trophies} trophyId={m.trofeo_id} />
+                </div>
+                {!obtained && (
+                  <>
+                    <p className="type-caption text-ink-muted">{m.motivo}</p>
+                    {m.momento_limite && (
+                      <p className="mt-1 type-caption text-warning">Límite: {m.momento_limite}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </SectionCard>
+  );
+}
+
 function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTrophy[] }) {
   const pendingCount = trophies.filter((t) => !t.obtained).length;
+  const missableIds = new Set(plan.missables.map((m) => m.trofeo_id));
 
   return (
     <div className="space-y-4">
       <p className="type-body text-ink">{plan.resumen}</p>
 
       <NextTrophyCard plan={plan} trophies={trophies} />
+
+      <MissablesSection plan={plan} trophies={trophies} />
 
       <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface p-3">
         <Icon
@@ -243,27 +291,6 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
                       <TrophyChip key={id} trophies={trophies} trophyId={id} />
                     ))}
                   </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-      )}
-
-      {plan.missables.length > 0 && (
-        <SectionCard icon="alert" title="Trofeos perdibles (missables)" tone="warning">
-          <ul className="space-y-2">
-            {plan.missables.map((m, i) => (
-              <li
-                key={`${m.trofeo_id}-${i}`}
-                className="rounded-chip border border-warning/30 bg-warning/5 p-2.5"
-              >
-                <div className="mb-1">
-                  <TrophyChip trophies={trophies} trophyId={m.trofeo_id} />
-                </div>
-                <p className="type-caption text-ink-muted">{m.motivo}</p>
-                {m.momento_limite && (
-                  <p className="mt-1 type-caption text-warning">Límite: {m.momento_limite}</p>
                 )}
               </li>
             ))}
@@ -355,6 +382,11 @@ function PlanView({ plan, trophies }: { plan: AiGamePlan; trophies: AdvisorTroph
                   {i + 1}.
                 </span>
                 <TrophyChip trophies={trophies} trophyId={id} />
+                {missableIds.has(id) && (
+                  <span className="rounded-chip border border-warning/40 bg-warning/10 px-1.5 py-0.5 type-overline text-warning">
+                    Perdible
+                  </span>
+                )}
               </li>
             ))}
           </ol>
