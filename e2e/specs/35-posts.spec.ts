@@ -7,7 +7,7 @@ import { listPostObjects, makePng, seedPost } from "../helpers/posts";
 
 /**
  * Galería online: publicar, feed, grilla, detalle, likes, comentarios,
- * notificaciones, editar y borrar. Casos POST-10..POST-24 de TESTING_PRD.md
+ * notificaciones, editar y borrar. Casos POST-10..POST-26 de TESTING_PRD.md
  * §6.28 (los puros son POST-01..08, en 34-posts-units; mobile en 36).
  *
  * userA es la sesión del navegador. userB es "amigo" (A lo sigue) y userC no:
@@ -481,5 +481,120 @@ test.describe("Interacción", () => {
     const { data: gone } = await supabase.from("posts").select("id").eq("id", postId);
     expect(gone).toEqual([]);
     await expect.poll(() => listPostObjects(supabase, users.userA.id, postId)).toEqual([]);
+  });
+});
+
+test.describe("Pantalla completa, like propio y avatares", () => {
+  test("POST-24: tocar la foto la abre a pantalla completa con el original; ✕ y Esc la cierran", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: `Posts Pantalla Completa ${users.runId}`,
+      np: 3427,
+    });
+    const { postId, paths } = await seedPost(supabase, {
+      userId: users.userB.id,
+      gameId,
+      files: 2,
+    });
+
+    await page.goto(`/publicaciones/${postId}`);
+    const viewer = page.getByTestId("post-media-viewer");
+
+    // Un toque (no doble) abre el visor después de la ventana del doble tap.
+    await page.getByTestId("post-carousel").click();
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByRole("img", { name: "Imagen 1 de 2" })).toHaveAttribute(
+      "src",
+      new RegExp(paths[0].split("/").pop()!.replace(".", "\\.")),
+    );
+    // En escritorio pide fullscreen al navegador.
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.fullscreenElement?.getAttribute("data-testid") ?? null),
+      )
+      .toBe("post-media-viewer");
+    await viewer.getByRole("button", { name: "Archivo siguiente" }).click();
+    await expect(viewer).toContainText("2/2");
+    await viewer.getByRole("button", { name: "Cerrar pantalla completa" }).click();
+    await expect(viewer).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+
+    // El botón de expandir también lo abre, y Esc lo cierra sin salir del detalle.
+    await page.getByRole("button", { name: "Ver en pantalla completa" }).click();
+    await expect(viewer).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(viewer).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/publicaciones/${postId}$`));
+    // Un toque no da like.
+    await expect(page.getByRole("button", { name: /Me gusta la publicación de/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  test("POST-25: doble click da like a la propia publicación, sin abrir la pantalla completa", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: `Posts Like Propio ${users.runId}`,
+      np: 3428,
+    });
+    const { postId } = await seedPost(supabase, { userId: users.userA.id, gameId });
+
+    await page.goto(`/publicaciones/${postId}`);
+    const like = page.getByRole("button", { name: "Me gusta tu publicación" });
+    await expect(like).toHaveAttribute("aria-pressed", "false");
+    await page.getByTestId("post-carousel").dblclick();
+    await expect(like).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(async () => {
+        const { count } = await supabase
+          .from("post_likes")
+          .select("*", { count: "exact", head: true })
+          .eq("post_id", postId)
+          .eq("user_id", users.userA.id);
+        return count;
+      })
+      .toBe(1);
+    await expect(page.getByTestId("post-media-viewer")).toHaveCount(0);
+
+    // El like propio no se avisa en Recibido.
+    const asA = await createTestUserClient(users.userA.email, users.userA.password);
+    const { data } = await asA.rpc("get_activity_received", { kinds: ["post_like"] });
+    expect((data ?? []).filter((row: { post_id: string }) => row.post_id === postId)).toHaveLength(
+      0,
+    );
+  });
+
+  test("POST-26: cada comentario lleva el avatar de su autor, que linkea a su perfil", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: `Posts Avatar ${users.runId}`,
+      np: 3429,
+    });
+    const { postId } = await seedPost(supabase, { userId: users.userA.id, gameId });
+    const { error } = await supabase
+      .from("post_comments")
+      .insert({ post_id: postId, user_id: users.userB.id, body: "[E2E] buenísima" });
+    expect(error).toBeNull();
+
+    await page.goto(`/publicaciones/${postId}`);
+    const row = page.getByTestId("post-comments").getByRole("listitem").first();
+    await expect(row).toContainText("buenísima");
+    // El avatar es decorativo para el lector (el nombre al lado ya es el link).
+    await expect(
+      row.locator(`a[href="/perfil/${users.userB.id}"][aria-hidden="true"]`),
+    ).toHaveCount(1);
   });
 });

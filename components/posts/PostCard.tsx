@@ -36,7 +36,10 @@ export function PostCard({ post }: { post: PostView }) {
       aria-label={label}
       data-testid="post-card"
       data-post-id={post.id}
-      className="border-b border-border pb-4 sm:rounded-card sm:border sm:bg-surface sm:px-4 sm:pb-4"
+      // Cada publicación es una tarjeta propia, también en mobile: con fotos a
+      // ancho completo una debajo de otra, un hairline solo no alcanzaba para
+      // ver dónde termina un post y empieza el siguiente.
+      className="overflow-hidden rounded-card border border-border-strong bg-surface pb-3 shadow-lg shadow-black/30"
     >
       <PostHeader
         post={post}
@@ -51,16 +54,16 @@ export function PostCard({ post }: { post: PostView }) {
           />
         }
       />
-      <div className="-mx-0 sm:overflow-hidden sm:rounded-chip">
+      <div>
         <PostCarousel
           media={post.media}
           variant="feed"
           isSpoiler={editable.isSpoiler}
           label={label}
-          onDoubleTap={post.isOwn ? undefined : like.like}
+          onDoubleTap={like.like}
         />
       </div>
-      <div className="mt-2 space-y-2">
+      <div className="mt-1 space-y-2">
         <PostActions
           post={post}
           like={like}
@@ -68,7 +71,7 @@ export function PostCard({ post }: { post: PostView }) {
           onComment={() => commentInput.current?.focus()}
         />
         <PostCaption post={post} caption={editable.caption} clamp />
-        <div className="space-y-1.5 px-3 sm:px-0">
+        <div className="space-y-1.5 px-3 sm:px-4">
           {comments.count > comments.comments.length && (
             <Link
               href={`/publicaciones/${post.id}`}

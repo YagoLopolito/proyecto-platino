@@ -62,13 +62,13 @@ export function PostDetail({ post, inModal }: { post: PostView; inModal: boolean
           variant="detail"
           isSpoiler={editable.isSpoiler}
           label={label}
-          onDoubleTap={post.isOwn ? undefined : like.like}
+          onDoubleTap={like.like}
           globalKeys
         />
       </div>
 
       <div className="flex min-h-0 flex-col border-border md:w-[22rem] md:shrink-0 md:border-l lg:w-[24rem]">
-        <div className="border-b border-border md:px-4">
+        <div className="border-b border-border">
           <PostHeader
             post={post}
             editedAt={editable.editedAt}
@@ -84,9 +84,9 @@ export function PostDetail({ post, inModal }: { post: PostView; inModal: boolean
           />
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto py-3 md:px-4">
+        <div className="flex-1 space-y-4 overflow-y-auto py-3">
           <PostCaption post={post} caption={editable.caption} clamp={false} />
-          <div className="px-3 sm:px-0">
+          <div className="px-3 sm:px-4">
             {comments.comments.length === 0 ? (
               <p className="type-meta text-ink-faint">Todavía no hay comentarios.</p>
             ) : (
@@ -95,14 +95,14 @@ export function PostDetail({ post, inModal }: { post: PostView; inModal: boolean
           </div>
         </div>
 
-        <div className="space-y-2 border-t border-border py-2 pb-safe md:px-4">
+        <div className="space-y-2 border-t border-border py-2 pb-safe">
           <PostActions
             post={post}
             like={like}
             commentCount={comments.count}
             onComment={() => commentInput.current?.focus()}
           />
-          <div className="px-3 sm:px-0">
+          <div className="px-3 sm:px-4">
             <CommentForm postId={post.id} onAdded={comments.added} inputRef={commentInput} />
           </div>
         </div>

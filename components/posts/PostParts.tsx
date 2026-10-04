@@ -45,7 +45,7 @@ export function PostHeader({
   menu?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 sm:px-0">
+    <div className="flex items-center gap-3 px-3 py-2.5 sm:px-4">
       <Link
         href={profileHref(post.author, post.isOwn)}
         className="shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink"
@@ -112,8 +112,13 @@ export function usePostLike(post: PostView) {
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
+  // Cambia cada vez que el corazón pasa a lleno: es la `key` que reinicia la
+  // animación de "pop" (también si el like vino de un doble tap).
+  const [pop, setPop] = useState(0);
+
   function set(liked: boolean) {
-    if (post.isOwn || liked === optimistic.liked) return;
+    if (liked === optimistic.liked) return;
+    if (liked) setPop((n) => n + 1);
     const next = { liked, count: Math.max(0, optimistic.count + (liked ? 1 : -1)) };
     setError(null);
     startTransition(async () => {
@@ -124,7 +129,13 @@ export function usePostLike(post: PostView) {
     });
   }
 
-  return { ...optimistic, error, toggle: () => set(!optimistic.liked), like: () => set(true) };
+  return {
+    ...optimistic,
+    pop,
+    error,
+    toggle: () => set(!optimistic.liked),
+    like: () => set(true),
+  };
 }
 
 export function PostActions({
@@ -139,26 +150,35 @@ export function PostActions({
   onComment: () => void;
 }) {
   return (
-    <div className="space-y-1 px-3 sm:px-0">
+    <div className="space-y-1 px-3 sm:px-4">
       <div className="flex items-center gap-1">
-        {post.isOwn ? (
-          <span className="flex h-11 items-center gap-1.5 pr-2 text-ink-muted" title="Tus me gusta">
-            <Icon name="heart" className="h-5 w-5 text-like" />
-          </span>
-        ) : (
-          <button
-            type="button"
-            aria-pressed={like.liked}
-            aria-label={`Me gusta la publicación de ${post.author.name}`}
-            onClick={like.toggle}
-            data-testid="post-like"
-            className={`-ml-2 flex h-11 w-11 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
-              like.liked ? "text-like" : "text-ink hover:text-like"
+        {/* Como Instagram: contorno sin like, relleno rojo con like, y un
+            "pop" al marcarlo. También en tus publicaciones. */}
+        <button
+          type="button"
+          aria-pressed={like.liked}
+          aria-label={
+            post.isOwn
+              ? "Me gusta tu publicación"
+              : `Me gusta la publicación de ${post.author.name}`
+          }
+          onClick={like.toggle}
+          data-testid="post-like"
+          className={`-ml-2 flex h-11 w-11 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-ink ${
+            like.liked ? "text-like" : "text-ink hover:text-ink-muted"
+          }`}
+        >
+          <span
+            key={like.liked ? `on-${like.pop}` : "off"}
+            className={`flex ${
+              like.liked && like.pop > 0
+                ? "[animation:post-like-pop_450ms_cubic-bezier(.17,.89,.32,1.49)] motion-reduce:[animation:none]"
+                : ""
             }`}
           >
-            <Icon name={like.liked ? "heart" : "heart-outline"} className="h-6 w-6" />
-          </button>
-        )}
+            <Icon name={like.liked ? "heart" : "heart-outline"} className="h-7 w-7" />
+          </span>
+        </button>
         <button
           type="button"
           onClick={onComment}
@@ -214,7 +234,7 @@ export function PostCaption({
 
   if (!caption) return null;
   return (
-    <div className="px-3 sm:px-0">
+    <div className="px-3 sm:px-4">
       <p
         ref={textRef}
         className={`whitespace-pre-line break-words type-body text-ink ${
@@ -285,7 +305,16 @@ export function CommentList({
     <div className="space-y-1">
       <ul className="space-y-1.5" aria-label="Comentarios" data-testid="post-comments">
         {comments.map((comment) => (
-          <li key={comment.id} className="group flex items-start gap-2">
+          <li key={comment.id} className="group flex items-start gap-2.5">
+            {/* El avatar de su perfil (PSN o Steam, el que eligió mostrar). */}
+            <Link
+              href={`/perfil/${comment.author.id}`}
+              tabIndex={-1}
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 rounded-full"
+            >
+              <FriendAvatar url={comment.author.avatarUrl} name={comment.author.name} size={28} />
+            </Link>
             <p className="min-w-0 flex-1 whitespace-pre-line break-words type-body text-ink">
               <Link
                 href={`/perfil/${comment.author.id}`}

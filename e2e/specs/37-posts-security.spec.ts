@@ -95,7 +95,7 @@ test.describe("RLS de publicaciones", () => {
     expect(error?.message).toMatch(/al menos un archivo/);
   });
 
-  test("POST-33: no se puede dar like dos veces ni likear lo propio", async ({
+  test("POST-33: no se puede dar like dos veces; la propia sí se likea, como en Instagram", async ({
     supabase,
     users,
   }) => {
@@ -116,7 +116,12 @@ test.describe("RLS de publicaciones", () => {
     expect(second.error?.code).toBe("23505");
 
     const own = await asA.from("post_likes").insert({ post_id: postId, user_id: users.userA.id });
-    expect(own.error).not.toBeNull();
+    expect(own.error).toBeNull();
+    // A nombre de otro, nunca.
+    const forged = await asA
+      .from("post_likes")
+      .insert({ post_id: postId, user_id: users.userC.id });
+    expect(forged.error).not.toBeNull();
   });
 
   test("POST-34: los archivos sólo se suben a tu carpeta y a un post tuyo en subida", async ({
