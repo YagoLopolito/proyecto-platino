@@ -583,6 +583,185 @@ export type Database = {
           },
         ];
       };
+      post_comments: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          post_id: string;
+          user_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          post_id: string;
+          user_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          post_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "post_comments_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      post_likes: {
+        Row: {
+          created_at: string;
+          post_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          post_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          post_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "post_likes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      post_media: {
+        Row: {
+          display_path: string | null;
+          duration_seconds: number | null;
+          height: number;
+          id: string;
+          media_type: string;
+          mime_type: string;
+          position: number;
+          post_id: string;
+          poster_path: string | null;
+          size_bytes: number;
+          storage_path: string;
+          width: number;
+        };
+        Insert: {
+          display_path?: string | null;
+          duration_seconds?: number | null;
+          height: number;
+          id?: string;
+          media_type: string;
+          mime_type: string;
+          position: number;
+          post_id: string;
+          poster_path?: string | null;
+          size_bytes: number;
+          storage_path: string;
+          width: number;
+        };
+        Update: {
+          display_path?: string | null;
+          duration_seconds?: number | null;
+          height?: number;
+          id?: string;
+          media_type?: string;
+          mime_type?: string;
+          position?: number;
+          post_id?: string;
+          poster_path?: string | null;
+          size_bytes?: number;
+          storage_path?: string;
+          width?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "post_media_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      posts: {
+        Row: {
+          caption: string | null;
+          created_at: string;
+          edited_at: string | null;
+          game_id: string;
+          id: string;
+          is_spoiler: boolean;
+          published_at: string | null;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          caption?: string | null;
+          created_at?: string;
+          edited_at?: string | null;
+          game_id: string;
+          id?: string;
+          is_spoiler?: boolean;
+          published_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          caption?: string | null;
+          created_at?: string;
+          edited_at?: string | null;
+          game_id?: string;
+          id?: string;
+          is_spoiler?: boolean;
+          published_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "posts_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "posts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       psn_accounts: {
         Row: {
           account_id: string;
@@ -1342,6 +1521,19 @@ export type Database = {
           silver: number;
           total: number;
         }[];
+      };
+      get_post_stats: {
+        Args: { post_ids: string[] };
+        Returns: {
+          post_id: string;
+          like_count: number;
+          comment_count: number;
+          liked_by_me: boolean;
+        }[];
+      };
+      post_media_orphans: {
+        Args: { older_than: string; max_rows: number };
+        Returns: { name: string }[];
       };
       refresh_system_lists: {
         Args: { p_max_items: number; p_min_items: number; p_min_ratings: number };
