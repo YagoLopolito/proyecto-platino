@@ -379,6 +379,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | AI-13 | Tamaño del prompt del plan | El prompt de un juego de 53/80/120 trofeos entra en el presupuesto de tokens del free tier, y los trofeos ya obtenidos no se mandan | P0 |
 | AI-14 | Trofeos de historia no son perdibles | El system prompt del plan le prohíbe explícitamente al modelo poner en "missables" los trofeos que se desbloquean solos avanzando la historia, y exige un punto de no retorno concreto para cada missable | P1 |
 | AI-15 | Freno del plan de IA (#128) | Regenerar antes de 5 minutos muestra cuánto falta, no llama al proveedor ni inserta una fila, y el plan anterior sigue visible | P1 |
+| AI-16 | Perdibles primero | Si queda algún perdible pendiente, la tarjeta "Siguiente trofeo" es el primero de la run (el primero de `missables`, marcado "Perdible" con su límite) aunque el modelo haya sugerido otro; la sección de perdibles va justo debajo, numerada en orden de la partida, y se muestra también cuando no hay ninguno. El prompt pide los perdibles completos y en orden cronológico | P1 |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)
