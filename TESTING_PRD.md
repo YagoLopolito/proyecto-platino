@@ -804,6 +804,8 @@ las RLS con clientes logueados.
 | POST-24 | Pantalla completa | Un toque (o el botón de expandir) abre el visor con el original y fullscreen del navegador; flechas, ✕ y Esc lo cierran sin salir del detalle; un toque no da like | P1 |
 | POST-25 | Like propio con doble click | Doble click da like a la propia publicación (como Instagram), no abre el visor y no llega a Recibido | P1 |
 | POST-26 | Avatar en comentarios | Cada comentario lleva el avatar (PSN o Steam) de su autor, linkeado a su perfil | P2 |
+| POST-27 | Zoom (escritorio) | En el visor a pantalla completa, doble click y rueda amplían la foto; arrastrar la mueve sin cambiar de archivo; doble click la devuelve; pasar de archivo la resetea | P1 |
+| POST-28 | Zoom (mobile) | En el visor, un pellizco amplía la foto y un doble toque la devuelve a su tamaño | P1 |
 | POST-30 | RLS: posts ajenos | Otro usuario no edita ni borra una publicación ajena | P0 |
 | POST-31 | RLS: comentarios | Un tercero no borra un comentario ajeno; el autor del post sí | P0 |
 | POST-32 | RLS: en subida | Un post `uploading` no lo ve nadie más, y no se publica sin archivos | P0 |
@@ -909,7 +911,7 @@ test.describe("Enlaces externos", () => {
 | `post-carousel` / `carousel-counter` | `components/posts/PostCarousel.tsx` | El carrusel y su "2/7" (POST-16/21/22) |
 | `spoiler-reveal` | `components/posts/PostCarousel.tsx` | El "Tocá para ver" de un spoiler (POST-15/20) |
 | `post-detail` / `post-comments` / `post-like` / `post-like-count` | `PostDetail`, `PostParts` | Detalle, comentarios y me gusta (POST-18/19) |
-| `post-media-viewer` | `components/posts/PostMediaViewer.tsx` | El visor a pantalla completa (POST-24/25) |
+| `post-media-viewer` | `components/posts/PostMediaViewer.tsx` | El visor a pantalla completa (POST-24/25/27/28) |
 | `activity-unread` | `components/activity/UnreadActivity.tsx` | Globito de no leídas de Actividad |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo

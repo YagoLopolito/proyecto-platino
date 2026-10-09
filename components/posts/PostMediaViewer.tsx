@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GameArt } from "@/components/game/GameArt";
 import { Icon } from "@/components/ui/Icon";
+import { ZoomableImage } from "@/components/posts/ZoomableImage";
 import type { PostMediaView } from "@/lib/posts/types";
 
 /**
@@ -15,6 +16,15 @@ import type { PostMediaView } from "@/lib/posts/types";
  *   que el navegador exige), al girarlo la foto llena la pantalla sin barras.
  * iPhone no tiene Fullscreen API para elementos: ahí queda como capa fija a
  * pantalla completa (`100dvh`), que es lo más cerca que deja Safari.
+ *
+ * Ya en fullscreen se libera la orientación (`screen.orientation.lock("any")`):
+ * la app instalada está fijada en vertical por el manifest, y sin esto el
+ * celular no giraba ni para ver una captura apaisada. Al salir vuelve a la del
+ * manifest.
+ *
+ * Las fotos se amplían (`ZoomableImage`): pellizco y doble toque en el celular,
+ * rueda y doble click en escritorio. Ampliada, el riel deja de deslizar para
+ * que arrastrar mueva la foto y no cambie de archivo.
  *
  * Se cierra con ✕, Escape o saliendo del fullscreen del navegador. ← → y el
  * swipe cambian de archivo.
@@ -34,6 +44,7 @@ export function PostMediaViewer({
   const trackRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [index, setIndex] = useState(startIndex);
+  const [zoomed, setZoomed] = useState(false);
   const indexRef = useRef(startIndex);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -58,6 +69,8 @@ export function PostMediaViewer({
         .requestFullscreen({ navigationUI: "hide" })
         .then(() => {
           entered = true;
+          // `lock` sólo funciona en fullscreen (y no existe en iOS ni en escritorio).
+          return orientation()?.lock?.("any");
         })
         .catch(() => undefined);
     }
@@ -94,6 +107,11 @@ export function PostMediaViewer({
       document.removeEventListener("keydown", onKeyDown, true);
       track.removeEventListener("scroll", onScroll);
       document.body.style.overflow = previousOverflow;
+      try {
+        orientation()?.unlock?.();
+      } catch {
+        // Sin soporte: no hay nada que liberar.
+      }
       if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
     };
   }, [startIndex, count]);
@@ -120,7 +138,7 @@ export function PostMediaViewer({
     >
       <div
         ref={trackRef}
-        className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={`flex h-full w-full snap-x snap-mandatory overscroll-contain ${zoomed ? "overflow-x-hidden" : "overflow-x-auto"} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
       >
         {media.map((item, i) => (
           <div
@@ -139,14 +157,16 @@ export function PostMediaViewer({
                 className="max-h-full max-w-full"
               />
             ) : (item.originalSrc ?? item.src) ? (
-              <GameArt
-                src={(item.originalSrc ?? item.src)!}
-                alt={`Imagen ${i + 1} de ${count}`}
-                width={item.width}
-                height={item.height}
-                className="h-full w-full object-contain"
-                fallback={<Icon name="image" className="h-10 w-10 text-white/60" />}
-              />
+              <ZoomableImage active={i === index} onZoomChange={setZoomed}>
+                <GameArt
+                  src={(item.originalSrc ?? item.src)!}
+                  alt={`Imagen ${i + 1} de ${count}`}
+                  width={item.width}
+                  height={item.height}
+                  className="h-full w-full object-contain"
+                  fallback={<Icon name="image" className="h-10 w-10 text-white/60" />}
+                />
+              </ZoomableImage>
             ) : null}
           </div>
         ))}
@@ -199,4 +219,17 @@ export function PostMediaViewer({
       )}
     </div>
   );
+}
+
+/**
+ * `lock`/`unlock` no están en los tipos del DOM de TypeScript (la Screen
+ * Orientation API sólo los implementa Chrome en Android, y sólo en fullscreen).
+ */
+function orientation():
+  | { lock?: (orientation: string) => Promise<void>; unlock?: () => void }
+  | undefined {
+  if (typeof screen === "undefined") return undefined;
+  return screen.orientation as unknown as
+    | { lock?: (orientation: string) => Promise<void>; unlock?: () => void }
+    | undefined;
 }

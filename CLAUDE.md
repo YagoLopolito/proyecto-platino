@@ -1200,6 +1200,13 @@ Reemplaza a la galería vieja de capturas (ver la sección del diario).
   al girarlo llena la pantalla sin barras. iPhone no tiene Fullscreen API para elementos: ahí es
   una capa fija de `100dvh`. Esc / ✕ / salir del fullscreen lo cierran; el keydown va en
   captura para que Esc no cierre además el modal del detalle.
+  **Zoom** (`ZoomableImage`): pellizco y doble toque en el celular, rueda y doble click en
+  escritorio, arrastre para moverse (hasta 4×). Sin zoom el área es `touch-action: pan-x` (el
+  swipe entre archivos sigue siendo el scroll-snap nativo); ampliada pasa a `none` y el riel se
+  bloquea. El pellizco se intercepta con listeners no pasivos: el `pinch-zoom` del navegador
+  ampliaría la página entera. **Rotación**: el manifest fija la app instalada en vertical, así
+  que el visor, ya en fullscreen, pide `screen.orientation.lock("any")` y lo libera al cerrar
+  (sólo Chrome Android; en iPhone gira si el usuario no bloqueó la rotación).
 - **Tarjeta del feed**: `rounded-card` + `border-strong` + `bg-surface` + sombra, con aire
   entre posts: con el hairline `border` los posts se fundían entre sí. Cada comentario lleva el
   avatar de su autor (`FriendAvatar`, el de PSN o Steam que eligió mostrar). **Video**: en el feed autoplay muteado sólo visible (IntersectionObserver) y sin
