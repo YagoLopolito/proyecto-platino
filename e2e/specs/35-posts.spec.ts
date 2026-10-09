@@ -573,6 +573,53 @@ test.describe("Pantalla completa, like propio y avatares", () => {
     );
   });
 
+  test("POST-27: en pantalla completa la foto se amplía con doble click y la rueda, y se arrastra", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: `Posts Zoom ${users.runId}`,
+      np: 3430,
+    });
+    const { postId } = await seedPost(supabase, { userId: users.userB.id, gameId, files: 2 });
+
+    await page.goto(`/publicaciones/${postId}`);
+    await page.getByRole("button", { name: "Ver en pantalla completa" }).click();
+    const viewer = page.getByTestId("post-media-viewer");
+    const image = viewer.getByRole("img", { name: "Imagen 1 de 2" });
+    await expect(image).toBeVisible();
+    const area = image.locator("xpath=ancestor::*[@data-zoomed][1]");
+    const scale = () =>
+      image.evaluate((img) => new DOMMatrix(getComputedStyle(img.parentElement!).transform).a);
+
+    await expect(area).toHaveAttribute("data-zoomed", "false");
+    await image.dblclick();
+    await expect(area).toHaveAttribute("data-zoomed", "true");
+    await expect.poll(scale).toBeGreaterThan(2);
+
+    // Ampliada, arrastrar mueve la foto y no cambia de archivo.
+    const box = (await area.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 - 200, box.y + box.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await expect(viewer).toContainText("1/2");
+
+    // Otro doble click vuelve al tamaño original; la rueda amplía de nuevo.
+    await image.dblclick();
+    await expect(area).toHaveAttribute("data-zoomed", "false");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, -400);
+    await expect(area).toHaveAttribute("data-zoomed", "true");
+
+    // Pasar al siguiente archivo devuelve la anterior a su tamaño.
+    await viewer.getByRole("button", { name: "Archivo siguiente" }).click();
+    await expect(viewer).toContainText("2/2");
+    await expect(area).toHaveAttribute("data-zoomed", "false");
+  });
+
   test("POST-26: cada comentario lleva el avatar de su autor, que linkea a su perfil", async ({
     page,
     supabase,

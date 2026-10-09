@@ -5,7 +5,7 @@ import { makePng, seedPost } from "../helpers/posts";
 /**
  * Galería online en viewport de celular (proyecto `mobile`, Pixel 7): doble
  * tap para el like, carrusel deslizable y el compositor a pantalla completa.
- * Casos POST-21..POST-23 de TESTING_PRD.md §6.28.
+ * Casos POST-21..POST-23 y POST-28 de TESTING_PRD.md §6.28.
  */
 
 test("POST-21: doble tap sobre la foto da me gusta, con el corazón animado", async ({
@@ -78,4 +78,46 @@ test("POST-23: el compositor en mobile publica una foto", async ({ page, supabas
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
   await expect(page).toHaveURL(/\/publicaciones\/[0-9a-f-]{36}$/);
   await expect(page.getByTestId("post-detail")).toBeVisible();
+});
+
+test("POST-28: en pantalla completa la foto se amplía con un pellizco y vuelve con doble toque", async ({
+  page,
+  supabase,
+  users,
+}) => {
+  const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+    n: 1,
+    nameSuffix: `Posts Pellizco ${users.runId}`,
+    np: 3414,
+  });
+  const { postId } = await seedPost(supabase, { userId: users.userB.id, gameId });
+
+  await page.goto(`/publicaciones/${postId}`);
+  await page.getByRole("button", { name: "Ver en pantalla completa" }).click();
+  const image = page.getByTestId("post-media-viewer").getByRole("img", { name: "Imagen 1 de 1" });
+  await expect(image).toBeVisible();
+  const area = image.locator("xpath=ancestor::*[@data-zoomed][1]");
+  await expect(area).toHaveAttribute("data-zoomed", "false");
+
+  // Playwright no tiene pellizco: se mandan los toques por CDP, como el
+  // digitalizador del celular (dos dedos que se separan).
+  const box = (await area.boundingBox())!;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const cdp = await page.context().newCDPSession(page);
+  const fingers = (gap: number) => [
+    { x: cx - gap, y: cy, id: 1 },
+    { x: cx + gap, y: cy, id: 2 },
+  ];
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: fingers(30) });
+  for (const gap of [60, 90, 120, 150]) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: fingers(gap) });
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect(area).toHaveAttribute("data-zoomed", "true");
+
+  // Doble toque: vuelve al tamaño original.
+  await area.tap();
+  await area.tap();
+  await expect(area).toHaveAttribute("data-zoomed", "false");
 });
