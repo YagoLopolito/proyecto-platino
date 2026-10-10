@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logDbError } from "@/lib/errors";
 import { encryptSecret, getPsnIdentityFromNpsso, NpssoExpiredError } from "@/lib/psn";
 import {
   resolveSteamProfile,
@@ -14,22 +15,6 @@ export type ConnectionActionState = { error: string | null; success?: string | n
 
 /** Todas las tarjetas de Conexiones viven en esta ruta. */
 const CONNECTIONS_PATH = "/configuracion/conexiones";
-
-/**
- * El mensaje crudo de Postgres/Supabase nunca llega al cliente: puede exponer
- * nombres de tablas, columnas y policies de RLS. Queda en los logs del server
- * (Vercel) y el usuario ve un texto propio.
- */
-function logDbError(
-  scope: string,
-  error: { code?: string; message: string; details?: string | null },
-) {
-  console.error(`[conexiones] ${scope}`, {
-    code: error.code,
-    message: error.message,
-    details: error.details,
-  });
-}
 
 export async function connectPsnAccount(
   _prevState: ConnectionActionState,
@@ -85,7 +70,7 @@ export async function connectPsnAccount(
   );
 
   if (error) {
-    logDbError("connectPsnAccount", error);
+    logDbError("conexiones.connectPsnAccount", error);
     return { error: "No se pudo guardar la conexión. Probá de nuevo en unos minutos." };
   }
 
@@ -112,7 +97,7 @@ export async function disconnectPsnAccount(
 
   const { error } = await supabase.from("psn_accounts").delete().eq("user_id", user.id);
   if (error) {
-    logDbError("disconnectPsnAccount", error);
+    logDbError("conexiones.disconnectPsnAccount", error);
     return { error: "No se pudo desconectar. Probá de nuevo en unos minutos." };
   }
 
@@ -171,7 +156,7 @@ export async function connectSteamAccount(
   );
 
   if (error) {
-    logDbError("connectSteamAccount", error);
+    logDbError("conexiones.connectSteamAccount", error);
     return { error: "No se pudo guardar la conexión. Probá de nuevo en unos minutos." };
   }
 
@@ -193,7 +178,7 @@ export async function disconnectSteamAccount(
 
   const { error } = await supabase.from("steam_accounts").delete().eq("user_id", user.id);
   if (error) {
-    logDbError("disconnectSteamAccount", error);
+    logDbError("conexiones.disconnectSteamAccount", error);
     return { error: "No se pudo desconectar. Probá de nuevo en unos minutos." };
   }
 
@@ -254,7 +239,7 @@ export async function replaceSteamAccount(
   );
 
   if (error) {
-    logDbError("replaceSteamAccount", error);
+    logDbError("conexiones.replaceSteamAccount", error);
     return { error: "No se pudo reemplazar la cuenta. Probá de nuevo en unos minutos." };
   }
 

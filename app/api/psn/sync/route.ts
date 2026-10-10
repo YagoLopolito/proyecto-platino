@@ -48,7 +48,9 @@ export async function POST() {
     if (error instanceof NpssoExpiredError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
-    const message = error instanceof Error ? error.message : "Error inesperado al sincronizar.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Lo que no es un NPSSO vencido puede venir de la base o de la config del
+    // server: el detalle va al log, nunca a la respuesta (#165).
+    console.error("[psn-sync] falló el sync manual", error);
+    return NextResponse.json({ error: "Error inesperado al sincronizar." }, { status: 500 });
   }
 }

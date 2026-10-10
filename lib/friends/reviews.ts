@@ -8,6 +8,7 @@ import {
   encodeReviewCursor,
   reviewCursorFilter,
 } from "@/lib/friends/review-cursor";
+import { dbErrorMessage } from "@/lib/errors";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -79,7 +80,7 @@ export async function getFriendReviewsPage(
 
   const { data, error } = await query;
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: dbErrorMessage("friends.reviews", error) };
   }
 
   // El cursor sale de la última fila *pedida*, no de la última que se muestra:

@@ -40,11 +40,13 @@ function parseEarnedRate(value: string | null): number | null {
  * Busca un juego `source = 'catalog'` del propio usuario cuyo nombre normalizado
  * coincida con el que trae PSN y lo convierte en el juego sincronizado (mismo
  * `id`, así no se pierden ni las entradas de diario ni el vínculo en
- * `user_games`). Devuelve null si no hay candidato o si la RLS bloquea el
- * update -- en ese caso el caller sigue con el alta normal.
+ * `user_games`). Devuelve null si no hay candidato -- en ese caso el caller
+ * sigue con el alta normal. Escribe con service role (el catálogo ya no es
+ * escribible por `authenticated`, issue #164), así que el filtro por
+ * `created_by` es lo único que impide adoptar la fila de otro usuario.
  */
 async function adoptCatalogGame(
-  supabase: SupabaseClient<Database>,
+  catalog: SupabaseClient<Database>,
   userId: string,
   title: FetchedTitle,
   catalogGameIdByName: Map<string, string>,
@@ -52,7 +54,7 @@ async function adoptCatalogGame(
   const matchId = catalogGameIdByName.get(normalizeName(title.name));
   if (!matchId) return null;
 
-  const { data: updated } = await supabase
+  const { data: updated } = await catalog
     .from("games")
     .update({
       np_comm_id: title.npCommId,
@@ -75,12 +77,12 @@ async function adoptCatalogGame(
 }
 
 async function resolveGameId(
-  supabase: SupabaseClient<Database>,
+  catalog: SupabaseClient<Database>,
   userId: string,
   title: FetchedTitle,
   catalogGameIdByName: Map<string, string>,
 ): Promise<string | null> {
-  const { data: existingGame } = await supabase
+  const { data: existingGame } = await catalog
     .from("games")
     .select("id")
     .eq("np_comm_id", title.npCommId)
@@ -90,13 +92,12 @@ async function resolveGameId(
 
   // Reconciliación catálogo -> PSN (issue #96): si el usuario ya había cargado
   // este juego desde la búsqueda de catálogo para el diario, se adopta esa fila
-  // en vez de crear una segunda. Se acota a filas propias (`created_by`) porque
-  // la RLS de `games` solo deja actualizar las del propio usuario.
-  const adoptedId = await adoptCatalogGame(supabase, userId, title, catalogGameIdByName);
+  // en vez de crear una segunda. Se acota a filas propias (`created_by`).
+  const adoptedId = await adoptCatalogGame(catalog, userId, title, catalogGameIdByName);
   if (adoptedId) return adoptedId;
 
   const coverUrl = await findCoverUrl(title.name);
-  const { data: created, error: insertGameError } = await supabase
+  const { data: created, error: insertGameError } = await catalog
     .from("games")
     .insert({
       np_comm_id: title.npCommId,
@@ -113,7 +114,7 @@ async function resolveGameId(
   if (!insertGameError && created) return created.id;
 
   // Carrera con otro sync insertando el mismo juego -- reintentar la lectura.
-  const { data: retryGame } = await supabase
+  const { data: retryGame } = await catalog
     .from("games")
     .select("id")
     .eq("np_comm_id", title.npCommId)
@@ -131,12 +132,13 @@ async function resolveGameId(
  */
 async function syncTitle(
   supabase: SupabaseClient<Database>,
+  catalog: SupabaseClient<Database>,
   userId: string,
   title: FetchedTitle,
   catalogGameIdByName: Map<string, string>,
   playtimeByName: Map<string, number>,
 ): Promise<{ titleSynced: boolean; trophiesSynced: number }> {
-  const gameId = await resolveGameId(supabase, userId, title, catalogGameIdByName);
+  const gameId = await resolveGameId(catalog, userId, title, catalogGameIdByName);
   if (!gameId) return { titleSynced: false, trophiesSynced: 0 };
 
   // Las horas vienen de otro endpoint y cruzan por nombre (ver `playtime.ts`):
@@ -171,7 +173,7 @@ async function syncTitle(
       icon_url: group.iconUrl,
       created_by: userId,
     }));
-    await supabase.from("trophy_groups").upsert(groupRows, { onConflict: "game_id,group_id" });
+    await catalog.from("trophy_groups").upsert(groupRows, { onConflict: "game_id,group_id" });
   }
 
   if (title.trophies.length === 0) {
@@ -195,13 +197,13 @@ async function syncTitle(
   }));
 
   // ON CONFLICT DO UPDATE (no ignoreDuplicates): permite que un re-sync
-  // backfillee columnas nuevas (ej. trophy_group_id) en filas ya sincronizadas
-  // por el mismo usuario. Si el juego lo sincronizó otro usuario antes, la
-  // policy "trophies_update_own" bloquea la escritura sobre esas filas
-  // silenciosamente (RLS), así que no rompe nada -- sus filas quedan tal cual.
-  await supabase.from("trophies").upsert(rows, { onConflict: "game_id,trophy_id" });
+  // backfillee columnas nuevas (ej. trophy_group_id) y refresque la rareza.
+  // Va con service role (issue #164): `authenticated` ya no escribe el
+  // catálogo, así que cualquier sync -- no sólo el del primero que trajo el
+  // juego -- mantiene al día las filas compartidas.
+  await catalog.from("trophies").upsert(rows, { onConflict: "game_id,trophy_id" });
 
-  const { data: allTrophies } = await supabase
+  const { data: allTrophies } = await catalog
     .from("trophies")
     .select("id, trophy_id")
     .eq("game_id", gameId);
@@ -257,12 +259,11 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 /**
  * Trae todos los juegos y trofeos reales del usuario desde PSN y los guarda.
  *
- * Las filas de `games`/`trophies` que sincroniza un usuario quedan con
- * created_by = ese usuario (source = 'psn'). Las políticas RLS actuales solo
- * dejan actualizar filas propias, así que si el juego/trofeo ya existe (lo
- * sincronizó otro usuario antes) no se reescribe -- sólo se reutiliza su id.
- * Limitación conocida v1: el catálogo compartido queda "de facto" en manos de
- * quien sincronizó primero cada juego.
+ * `games`, `trophies` y `trophy_groups` son catálogo compartido y desde el
+ * issue #164 `authenticated` no los puede editar ni borrar (un usuario
+ * cualquiera podía renombrar o borrar, con cascada, lo que veían todos): el
+ * sync los escribe con service role. Lo que es del usuario (`user_games`,
+ * `user_trophies`, diario, cuenta) sigue yendo con el cliente que se recibe.
  */
 export async function syncTrophiesForUser(
   supabase: SupabaseClient<Database>,
@@ -272,12 +273,14 @@ export async function syncTrophiesForUser(
   // ser legible para `authenticated`, así un XSS o una extensión no tienen
   // nada que llevarse. Como bypassea RLS, el `userId` tiene que venir de una
   // sesión ya validada (la ruta manual) o del propio cron, nunca del cliente;
-  // se revalida acá que sea un uuid antes de filtrar por él. El resto del sync
-  // sigue escribiendo con el cliente que se recibe por parámetro.
+  // se revalida acá que sea un uuid antes de filtrar por él. El mismo cliente
+  // escribe el catálogo compartido (ver arriba); lo del usuario sigue yendo
+  // con el que se recibe por parámetro.
   if (!UUID_PATTERN.test(userId)) {
     throw new Error("Usuario inválido para sincronizar.");
   }
-  const { data: account, error: accountError } = await createServiceClient()
+  const catalog = createServiceClient();
+  const { data: account, error: accountError } = await catalog
     .from("psn_accounts")
     .select("npsso_encrypted, account_id")
     .eq("user_id", userId)
@@ -382,7 +385,7 @@ export async function syncTrophiesForUser(
   }
 
   const results = await mapWithConcurrency(titles, TITLE_WRITE_CONCURRENCY, (title) =>
-    syncTitle(supabase, userId, title, catalogGameIdByName, playtimeByName),
+    syncTitle(supabase, catalog, userId, title, catalogGameIdByName, playtimeByName),
   );
 
   // El avatar puede cambiar en PSN sin que el usuario reconecte la cuenta; se

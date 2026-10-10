@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { backfillCompletedDiaryEntries, backfillPlatinumDiaryEntries } from "@/lib/diary/backfill";
+import { dbErrorMessage } from "@/lib/errors";
 
 export type BackfillState = { error: string | null; message: string | null };
 
@@ -59,7 +60,9 @@ export async function importPlatinumsToDiary(
       }.`,
     };
   } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : "error desconocido";
-    return { error: `No se pudieron importar los platinos: ${detail}`, message: null };
+    return {
+      error: dbErrorMessage("diary.backfill", cause, "No se pudieron importar los platinos."),
+      message: null,
+    };
   }
 }

@@ -18,6 +18,7 @@ import { selectNearPlatinum } from "@/lib/library/near-platinum";
 import { GamePoster } from "@/components/game/GamePoster";
 import { PosterRow, PosterRowItem } from "@/components/game/PosterGrid";
 import { SectionHeader } from "@/components/ui/SectionHeader";
+import { dbErrorMessage } from "@/lib/errors";
 
 type GameStats = {
   total: number;
@@ -292,7 +293,11 @@ export default async function BibliotecaJuegosPage({
           </section>
         )}
 
-        {error && <ErrorState message={`No se pudo cargar la biblioteca: ${error.message}`} />}
+        {error && (
+          <ErrorState
+            message={`No se pudo cargar la biblioteca: ${dbErrorMessage("biblioteca", error)}`}
+          />
+        )}
 
         {!error && games.length === 0 && fuente !== "todos" ? (
           <EmptyState

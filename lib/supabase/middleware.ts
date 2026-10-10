@@ -1,8 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+/**
+ * `NextResponse.next()` que le pasa al render los headers del request más
+ * `extraRequestHeaders` (la CSP con el nonce, #222). Se arma de nuevo en cada
+ * llamada a propósito: Supabase puede reescribir las cookies del request a
+ * mitad de camino, y una copia hecha antes llegaría al render con el token
+ * viejo.
+ */
+function nextWithHeaders(request: NextRequest, extraRequestHeaders: Record<string, string>) {
+  const headers = new Headers(request.headers);
+  for (const [name, value] of Object.entries(extraRequestHeaders)) headers.set(name, value);
+  return NextResponse.next({ request: { headers } });
+}
+
+export async function updateSession(
+  request: NextRequest,
+  extraRequestHeaders: Record<string, string> = {},
+) {
+  let supabaseResponse = nextWithHeaders(request, extraRequestHeaders);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +30,7 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = nextWithHeaders(request, extraRequestHeaders);
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );

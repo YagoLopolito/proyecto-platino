@@ -382,6 +382,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | AI-15 | Freno del plan de IA (#128) | Regenerar antes de 5 minutos muestra cuánto falta, no llama al proveedor ni inserta una fila, y el plan anterior sigue visible | P1 |
 | AI-16 | Perdibles primero | Si queda algún perdible pendiente, la tarjeta "Siguiente trofeo" es el primero de la run (el primero de `missables`, marcado "Perdible" con su límite) aunque el modelo haya sugerido otro; la sección de perdibles va justo debajo, numerada en orden de la partida, y se muestra también cuando no hay ninguno. El prompt pide los perdibles completos y en orden cronológico | P1 |
 | AI-17 | Guías ajenas fuera del prompt (#132) | El plan sólo recibe las guías del propio usuario (una de otro, insertada por PostgREST, no llega al modelo); el bloque de guías va entre marcadores que el system prompt declara como dato, el contenido no puede cerrarlo, y el nombre de juego entra como una sola línea en los prompts de plan, descripción y tiempos | **P1 (seguridad)** |
+| AI-18 | Freno de la ayuda de trofeo (#235, `38-security-hardening`) | Con el tope de pedidos ya cumplido, "Cómo desbloquearlo" muestra "Pediste muchas ayudas seguidas…" con cuánto falta, no llama al proveedor y no anota el pedido frenado en `ai_usage` | P1 |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)
@@ -493,6 +494,11 @@ ninguna API externa.
 | SEC-05 | Consola limpia | Ningún `console.error` en el recorrido feliz completo | P1 |
 | SEC-06 | La anon key no lee tablas (#129) | Sin sesión, un select con la anon key sobre games, trophies, diario, likes, listas, estudios, etc. no devuelve filas: las policies de select van `to authenticated` | **P0 (seguridad)** |
 | SEC-07 | Cabeceras de seguridad (#131) | `/login` y el redirect al login de `/biblioteca` mandan `Referrer-Policy`, `X-Frame-Options: DENY`, `nosniff`, HSTS sin `preload` y `Permissions-Policy` sin cámara/micrófono/ubicación/pagos. La CSP es #222 | P1 |
+| SEC-08 | Guías de sólo lectura (#160, `38-security-hardening`) | Con sesión nadie inserta, edita ni borra `guides`/`guide_steps` (ni su autor): no se puede colgar un enlace de phishing en la ficha de un juego ajeno | **P1 (seguridad)** |
+| SEC-09 | Catálogo no editable (#164, `38-security-hardening`) | Ni quien sincronizó un juego ni otro usuario que lo tiene pueden renombrarlo, borrarlo ni tocar sus trofeos; con sesión sólo se da de alta un juego `source = 'catalog'` sin `np_comm_id`/`steam_appid`, y ningún trofeo. El sync escribe el catálogo con service role | **P1 (seguridad)** |
+| SEC-10 | Errores de la base fuera de las respuestas (#165, `38-security-hardening`) | Ningún `${error.message}` en un template de `app/`, `components/` o `lib/` fuera de un `console.*`: el detalle va al log vía `lib/errors.ts` | P2 |
+| SEC-11 | CSP con nonce (#222, `38-security-hardening`) | Cada página lleva `Content-Security-Policy` con un nonce distinto por request, `script-src` sin `'unsafe-inline'` y con `'strict-dynamic'`, todos los `<script>` del HTML con ese nonce, y la app hidrata (el menú de cuenta abre) sin violaciones de CSP en consola | **P1 (seguridad)** |
+| SEC-12 | Ventana deslizante (#235, `38-security-hardening`) | `slidingWindowRemainingMs` frena con 10 pedidos en el último minuto (y dice cuánto falta) o 100 en el día, y deja pasar con menos | P2 |
 
 ### 6.13 Smoke en Vercel (`smoke.spec.ts`)
 

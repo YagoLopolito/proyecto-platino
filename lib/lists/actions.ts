@@ -10,6 +10,7 @@ import {
   MAX_LIST_TITLE,
 } from "@/lib/lists/constants";
 import { getUserLists } from "@/lib/lists/queries";
+import { dbErrorMessage } from "@/lib/errors";
 
 /**
  * Server Actions de las listas (epic #183, issue #189). Doble capa, como todo
@@ -100,7 +101,7 @@ export async function saveList(input: ListInput): Promise<SaveListResult> {
       .eq("user_id", user.id)
       .select("id")
       .maybeSingle();
-    if (error) return { error: `No se pudo guardar la lista: ${error.message}` };
+    if (error) return { error: dbErrorMessage("lists", error, "No se pudo guardar la lista.") };
     if (!updated) return { error: "No encontramos esa lista entre las tuyas." };
     listId = updated.id;
 
@@ -109,14 +110,17 @@ export async function saveList(input: ListInput): Promise<SaveListResult> {
       .delete()
       .eq("list_id", listId);
     if (deleteError)
-      return { error: `No se pudieron actualizar los juegos: ${deleteError.message}` };
+      return {
+        error: dbErrorMessage("lists", deleteError, "No se pudieron actualizar los juegos."),
+      };
   } else {
     const { data: created, error } = await supabase
       .from("user_lists")
       .insert({ ...fields, user_id: user.id })
       .select("id")
       .single();
-    if (error || !created) return { error: `No se pudo crear la lista: ${error?.message}` };
+    if (error || !created)
+      return { error: dbErrorMessage("lists", error, "No se pudo crear la lista.") };
     listId = created.id;
   }
 
@@ -129,7 +133,11 @@ export async function saveList(input: ListInput): Promise<SaveListResult> {
         note: item.note || null,
       })),
     );
-    if (error) return { error: `No se pudieron guardar los juegos: ${error.message}`, listId };
+    if (error)
+      return {
+        error: dbErrorMessage("lists", error, "No se pudieron guardar los juegos."),
+        listId,
+      };
   }
 
   revalidateLists(listId);
@@ -148,7 +156,7 @@ export async function deleteList(listId: string): Promise<{ error: string | null
     .delete()
     .eq("id", parsed.data)
     .eq("user_id", user.id);
-  if (error) return { error: `No se pudo borrar la lista: ${error.message}` };
+  if (error) return { error: dbErrorMessage("lists", error, "No se pudo borrar la lista.") };
 
   revalidateLists();
   return { error: null };
@@ -223,7 +231,7 @@ export async function toggleGameInList(
       .delete()
       .eq("list_id", list.id)
       .eq("game_id", ids.data.gameId);
-    if (error) return { error: `No se pudo sacar de la lista: ${error.message}` };
+    if (error) return { error: dbErrorMessage("lists", error, "No se pudo sacar de la lista.") };
   } else {
     if (items.length >= MAX_LIST_ITEMS) {
       return { error: `Una lista puede tener hasta ${MAX_LIST_ITEMS} juegos.` };
@@ -232,7 +240,7 @@ export async function toggleGameInList(
     const { error } = await supabase
       .from("user_list_items")
       .insert({ list_id: list.id, game_id: ids.data.gameId, position: nextPosition });
-    if (error) return { error: `No se pudo agregar a la lista: ${error.message}` };
+    if (error) return { error: dbErrorMessage("lists", error, "No se pudo agregar a la lista.") };
   }
 
   await supabase

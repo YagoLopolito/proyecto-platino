@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { endNowPlaying } from "@/lib/now-playing/end";
 import { removeFromPlaylistIfPresent } from "@/lib/playlist/remove";
+import { dbErrorMessage } from "@/lib/errors";
 
 export type DiaryActionState = { error: string | null; success?: string | null };
 
@@ -81,7 +82,7 @@ export async function createDiaryEntry(
     if (error.code === "23505") {
       return { error: "Ya se guardó esta partida, recargá la página e intentá de nuevo." };
     }
-    return { error: `No se pudo guardar la entrada: ${error.message}` };
+    return { error: dbErrorMessage("diary", error, "No se pudo guardar la entrada.") };
   }
 
   // Desde el epic #183 cualquier juego tiene ficha, esté o no en tu
@@ -159,7 +160,7 @@ export async function updateDiaryEntry(
     .eq("user_id", user.id);
 
   if (error) {
-    return { error: `No se pudo actualizar la entrada: ${error.message}` };
+    return { error: dbErrorMessage("diary", error, "No se pudo actualizar la entrada.") };
   }
 
   // La ficha es un layout con tres tabs: "layout" las revalida a todas.

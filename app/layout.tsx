@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import { PwaRuntime } from "@/components/pwa/PwaRuntime";
@@ -62,7 +63,12 @@ export const viewport: Viewport = {
   themeColor: "#050c15",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // La CSP lleva un nonce por request (#222, ver `middleware.ts`), y Next sólo
+  // se lo puede poner a sus scripts al renderizar. Una página prerenderizada
+  // en el build (la landing, `/login`, `/offline`) saldría con scripts sin
+  // nonce y el navegador los bloquearía: todo se renderiza por request.
+  await connection();
   return (
     <html
       lang="es"

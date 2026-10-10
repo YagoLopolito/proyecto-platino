@@ -1,5 +1,6 @@
 import "server-only";
 import type { createClient } from "@/lib/supabase/server";
+import { dbErrorMessage } from "@/lib/errors";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -56,7 +57,7 @@ export async function getUserDiaryEntries(
 
   const { data, error } = await query;
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: dbErrorMessage("diary.queries", error) };
   }
 
   const rows = (data ?? []).filter((row) => row.games);
@@ -164,7 +165,7 @@ export async function getGameDiarySummary(
     .order("playthrough_number", { ascending: false });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: dbErrorMessage("diary.queries", error) };
   }
 
   const rows = data ?? [];

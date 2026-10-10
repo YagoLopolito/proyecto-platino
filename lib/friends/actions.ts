@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { USER_SEARCH_LIMIT } from "@/lib/friends/constants";
 import type { FriendProfile } from "@/lib/friends/queries";
 import { getFriendReviewsPage, type FriendReviewsPage } from "@/lib/friends/reviews";
+import { dbErrorMessage } from "@/lib/errors";
 
 export interface UserSearchResult extends FriendProfile {
   isFriend: boolean;
@@ -55,7 +56,7 @@ export async function searchUsers(query: string): Promise<SearchUsersOutcome> {
   ]);
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: dbErrorMessage("friends.search", error) };
   }
 
   const friendIds = new Set((friendRows ?? []).map((row) => row.friend_id));
@@ -109,7 +110,7 @@ export async function addFriend(
     .upsert({ user_id: user.id, friend_id: parsed.data }, { onConflict: "user_id,friend_id" });
 
   if (error) {
-    return { error: `No se pudo agregar: ${error.message}`, success: null };
+    return { error: dbErrorMessage("friends", error, "No se pudo agregar."), success: null };
   }
 
   revalidatePath("/perfil/diario");
@@ -142,7 +143,7 @@ export async function removeFriend(
     .eq("friend_id", parsed.data);
 
   if (error) {
-    return { error: `No se pudo eliminar: ${error.message}`, success: null };
+    return { error: dbErrorMessage("friends", error, "No se pudo eliminar."), success: null };
   }
 
   revalidatePath("/perfil/diario");

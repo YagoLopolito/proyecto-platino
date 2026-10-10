@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { createServiceClient } from "@/lib/supabase/service";
 import { findCoverUrl, findSteamCoverUrlByAppId } from "@/lib/covers";
 import { mapWithConcurrency } from "@/lib/psn/concurrency";
 import { reconcileCompletedDiaryEntry } from "@/lib/diary/platinum";
@@ -62,13 +63,15 @@ async function resolveCoverUrl(appId: number, name: string): Promise<string | nu
 /**
  * Busca (o crea) la fila de `games` del appid. Un juego que está en PSN y en
  * Steam son dos filas distintas en v1: acá nunca se adopta una fila de PSN.
+ * `catalog` es el cliente de service role: el catálogo compartido ya no es
+ * escribible por `authenticated` (issue #164).
  */
 async function resolveGameRow(
-  supabase: SupabaseClient<Database>,
+  catalog: SupabaseClient<Database>,
   userId: string,
   game: SteamOwnedGame,
 ): Promise<GameRow | null> {
-  const { data: existing } = await supabase
+  const { data: existing } = await catalog
     .from("games")
     .select(GAME_SELECT)
     .eq("steam_appid", game.appId)
@@ -81,11 +84,7 @@ async function resolveGameRow(
     if (!existing.cover_url) {
       const coverUrl = await resolveCoverUrl(game.appId, game.name);
       if (coverUrl) {
-        await supabase
-          .from("games")
-          .update({ cover_url: coverUrl })
-          .eq("id", existing.id)
-          .eq("created_by", userId);
+        await catalog.from("games").update({ cover_url: coverUrl }).eq("id", existing.id);
       }
     }
     return { id: existing.id, steamHasAchievements: existing.steam_has_achievements };
@@ -93,7 +92,7 @@ async function resolveGameRow(
 
   const coverUrl = await resolveCoverUrl(game.appId, game.name);
 
-  const { data: created } = await supabase
+  const { data: created } = await catalog
     .from("games")
     .insert({
       steam_appid: game.appId,
@@ -112,7 +111,7 @@ async function resolveGameRow(
   }
 
   // Carrera con otro sync insertando el mismo appid: reintentar la lectura.
-  const { data: retry } = await supabase
+  const { data: retry } = await catalog
     .from("games")
     .select(GAME_SELECT)
     .eq("steam_appid", game.appId)
@@ -122,13 +121,14 @@ async function resolveGameRow(
 
 async function syncTitle(
   supabase: SupabaseClient<Database>,
+  catalog: SupabaseClient<Database>,
   userId: string,
   steamId64: string,
   game: SteamOwnedGame,
   recentlyPlayedAppIds: Set<number>,
   syncStartedAt: string,
 ): Promise<{ titleSynced: boolean; achievements: number; withoutAchievements: boolean }> {
-  const row = await resolveGameRow(supabase, userId, game);
+  const row = await resolveGameRow(catalog, userId, game);
   if (!row) return { titleSynced: false, achievements: 0, withoutAchievements: false };
 
   // `rtime_last_played` de GetOwnedGames viene en null para estas cuentas: si
@@ -164,20 +164,12 @@ async function syncTitle(
   const result = await fetchGameAchievements(steamId64, game.appId);
 
   if (result.status === "no_achievements") {
-    await supabase
-      .from("games")
-      .update({ steam_has_achievements: false })
-      .eq("id", row.id)
-      .eq("created_by", userId);
+    await catalog.from("games").update({ steam_has_achievements: false }).eq("id", row.id);
     return { titleSynced: true, achievements: 0, withoutAchievements: true };
   }
 
   if (row.steamHasAchievements !== true) {
-    await supabase
-      .from("games")
-      .update({ steam_has_achievements: true })
-      .eq("id", row.id)
-      .eq("created_by", userId);
+    await catalog.from("games").update({ steam_has_achievements: true }).eq("id", row.id);
   }
 
   // Upsert en bloque por título, nunca fila por fila: con bibliotecas de
@@ -196,9 +188,9 @@ async function syncTitle(
     created_by: userId,
   }));
 
-  await supabase.from("trophies").upsert(rows, { onConflict: "game_id,trophy_id" });
+  await catalog.from("trophies").upsert(rows, { onConflict: "game_id,trophy_id" });
 
-  const { data: stored } = await supabase
+  const { data: stored } = await catalog
     .from("trophies")
     .select("id, trophy_id")
     .eq("game_id", row.id);
@@ -302,9 +294,18 @@ export async function syncSteamAchievementsForUser(
     () => new Set<number>(),
   );
   const syncStartedAt = new Date().toISOString();
+  const catalog = createServiceClient();
 
   const results = await mapWithConcurrency(owned, TITLE_CONCURRENCY, (game) =>
-    syncTitle(supabase, userId, account.steam_id64, game, recentlyPlayedAppIds, syncStartedAt),
+    syncTitle(
+      supabase,
+      catalog,
+      userId,
+      account.steam_id64,
+      game,
+      recentlyPlayedAppIds,
+      syncStartedAt,
+    ),
   );
 
   // El nombre y el avatar pueden cambiar en Steam sin que el usuario reconecte.
