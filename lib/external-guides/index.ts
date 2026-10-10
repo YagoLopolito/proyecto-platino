@@ -105,5 +105,15 @@ export async function populateExternalGuidesForGame(
     return { inserted: 0, errors };
   }
 
+  // El upsert ignora los duplicados, así que los links de búsqueda conservaban
+  // el `created_at` de la primera vez. Se refresca para que la fila más nueva
+  // del juego diga cuándo fue la última búsqueda: es lo que mira el freno de
+  // frecuencia de `findExternalGuides` (#159), aunque Steam no haya contestado.
+  await supabase
+    .from("game_external_guides")
+    .update({ created_at: new Date().toISOString() })
+    .eq("game_id", gameId)
+    .eq("source_type", "site_search");
+
   return { inserted: count ?? rows.length, errors };
 }

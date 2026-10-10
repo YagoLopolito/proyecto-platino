@@ -360,6 +360,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | LINK-06 | Relevancia de las guías de Steam | Las traducciones, mods y fixes de performance se descartan; las guías de logros/100%/walkthrough/builds quedan y se ordenan primero | P1 |
 | LINK-07 | Idioma de las guías de Steam | Solo quedan títulos en español o en inglés; los de escritura no latina (ruso, chino, coreano) y los de otros idiomas latinos (portugués, italiano, alemán, polaco…) se descartan aunque estén etiquetados | P1 |
 | LINK-08 | La búsqueda no confía en el form (#127) | El nombre del juego sale de `games`, no de un input; un `gameId` inexistente devuelve "No se encontró el juego." y no escribe nada | P0 |
+| LINK-09 | Freno de la búsqueda de enlaces (#159) | Buscar de nuevo los enlaces de un juego antes de 10 minutos de la última búsqueda muestra cuánto falta y no escribe nada (cuida la cuota de la `STEAM_API_KEY`) | P1 |
 
 ### 6.7 Advisor con IA (`07-ai-advisor.spec.ts`)
 
@@ -522,6 +523,7 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 | STEAM-09 | OpenID falsificado | Una respuesta de OpenID sin firma válida NO marca la cuenta como verificada | P0 |
 | STEAM-10 | OpenID válido | Una respuesta válida deja `verified = true` y la tarjeta lo muestra | P0 |
 | STEAM-11 | Filtro de fuente | El selector solo aparece con las dos cuentas conectadas, y un `?fuente=` inválido cae a "Todos" | P1 |
+| STEAM-13 | Freno del sync de Steam (#159) | Con `last_synced_at` de hace menos de 10 minutos, `POST /api/steam/sync` devuelve 429 con `Retry-After`, y el botón de la tarjeta queda deshabilitado diciendo cuánto falta. El cron no pasa por la ruta | P1 |
 
 ### 6.15 Recomendaciones de IA (`16-recommendations.spec.ts`)
 
@@ -539,6 +541,7 @@ nunca llaman a Groq.
 | REC-05 | Id de juego inventado | Una recomendación que apunta a un juego inexistente se descarta, no rompe la grilla | P1 |
 | REC-06 | Biblioteca vacía | Mensaje propio pidiendo sincronizar, sin llamar al proveedor | P2 |
 | REC-07 | `@live`: Groq real | Respuesta válida contra `aiRecommendationsSchema` | P2 |
+| REC-08 | Freno de recomendaciones (#159) | Regenerar antes de 5 minutos de la última `ok` muestra cuánto falta y no inserta fila ni llama al proveedor | P1 |
 
 ### 6.16 Importación masiva de capturas (`17-screenshot-import.spec.ts`)
 

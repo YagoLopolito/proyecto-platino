@@ -10,8 +10,28 @@
 /** Mínimo entre dos syncs manuales de PSN. */
 export const PSN_SYNC_COOLDOWN_MS = 10 * 60 * 1000;
 
+/**
+ * Mínimo entre dos syncs manuales de Steam (#159). Cada sync son hasta 3
+ * llamadas por juego contra una cuota de 100.000 por día compartida por toda
+ * la app: un usuario en loop deja sin sync a todos los demás.
+ */
+export const STEAM_SYNC_COOLDOWN_MS = 10 * 60 * 1000;
+
 /** Mínimo entre dos planes de IA del mismo juego para el mismo usuario. */
 export const AI_PLAN_COOLDOWN_MS = 5 * 60 * 1000;
+
+/**
+ * Mínimo entre dos generaciones de recomendaciones de IA del mismo usuario
+ * (#159). Mismo criterio que el plan: el free tier de Groq es por organización.
+ */
+export const AI_RECOMMENDATIONS_COOLDOWN_MS = 5 * 60 * 1000;
+
+/**
+ * Mínimo entre dos búsquedas de enlaces externos del mismo juego (#159). Es por
+ * juego y no por usuario: los enlaces son catálogo compartido, y lo que se
+ * protege es la cuota de la `STEAM_API_KEY`.
+ */
+export const EXTERNAL_GUIDES_COOLDOWN_MS = 10 * 60 * 1000;
 
 /** Milisegundos que faltan para poder repetir la acción (0 si ya se puede). */
 export function cooldownRemainingMs(

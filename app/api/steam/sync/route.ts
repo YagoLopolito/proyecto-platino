@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { syncSteamAchievementsForUser, SteamApiError, SteamProfilePrivateError } from "@/lib/steam";
+import { STEAM_SYNC_COOLDOWN_MS, cooldownRemainingMs, formatCooldown } from "@/lib/sync/cooldown";
 
 /**
  * Espejo de /api/psn/sync: va como API route y no como Server Action porque
@@ -19,6 +20,25 @@ export async function POST() {
 
   if (!user) {
     return NextResponse.json({ error: "Tenés que iniciar sesión." }, { status: 401 });
+  }
+
+  // Freno de frecuencia (#159), espejo del de PSN (#128): la cuota de la
+  // STEAM_API_KEY es de toda la app. El cron no pasa por esta ruta.
+  const { data: account } = await supabase
+    .from("steam_accounts")
+    .select("last_synced_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const remainingMs = cooldownRemainingMs(account?.last_synced_at, STEAM_SYNC_COOLDOWN_MS);
+  if (remainingMs > 0) {
+    const retryAfterSeconds = Math.ceil(remainingMs / 1000);
+    return NextResponse.json(
+      {
+        error: `Ya sincronizaste hace poco. Podés volver a hacerlo en ${formatCooldown(remainingMs)}.`,
+        retryAfterSeconds,
+      },
+      { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } },
+    );
   }
 
   try {

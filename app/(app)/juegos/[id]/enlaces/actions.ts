@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { populateExternalGuidesForGame } from "@/lib/external-guides";
+import {
+  EXTERNAL_GUIDES_COOLDOWN_MS,
+  cooldownRemainingMs,
+  formatCooldown,
+} from "@/lib/sync/cooldown";
 
 export type FindExternalGuidesState = {
   inserted: number | null;
@@ -38,6 +43,26 @@ export async function findExternalGuides(
     .maybeSingle();
   if (!game) {
     return { inserted: null, errors: ["No se encontró el juego."] };
+  }
+
+  // Freno de frecuencia por juego (#159): cada búsqueda son dos consultas a la
+  // Steam Web API con la key de la app. Las filas se reinsertan en cada
+  // búsqueda, así que la más nueva dice cuándo fue la última.
+  const { data: latest } = await supabase
+    .from("game_external_guides")
+    .select("created_at")
+    .eq("game_id", game.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const remainingMs = cooldownRemainingMs(latest?.created_at, EXTERNAL_GUIDES_COOLDOWN_MS);
+  if (remainingMs > 0) {
+    return {
+      inserted: null,
+      errors: [
+        `Ya se buscaron enlaces para este juego hace poco. Probá de nuevo en ${formatCooldown(remainingMs)}.`,
+      ],
+    };
   }
 
   try {

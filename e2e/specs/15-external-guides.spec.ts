@@ -157,4 +157,36 @@ test.describe("Validación de la búsqueda de guías externas", () => {
       .eq("game_id", fakeId);
     expect(count ?? 0).toBe(0);
   });
+
+  test("LINK-09: buscar de nuevo antes de 10 minutos se frena sin reescribir", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Enlaces Freno",
+      np: 816,
+    });
+    // Una búsqueda recién hecha: las filas se reinsertan en cada búsqueda, así
+    // que la más nueva marca cuándo fue la última.
+    const { error } = await supabase.from("game_external_guides").insert({
+      game_id: gameId,
+      title: "[E2E] Enlace reciente",
+      url: "https://example.com/e2e-enlace-reciente",
+      source: "E2E",
+      source_type: "site_search",
+    });
+    expect(error).toBeNull();
+
+    await page.goto(`/juegos/${gameId}/guias`);
+    await page.getByRole("button", { name: "Buscar guías externas" }).click();
+    await expect(page.getByText(/Ya se buscaron enlaces para este juego hace poco/)).toBeVisible();
+
+    const { count } = await supabase
+      .from("game_external_guides")
+      .select("id", { count: "exact", head: true })
+      .eq("game_id", gameId);
+    expect(count).toBe(1);
+  });
 });
