@@ -522,6 +522,7 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 | STEAM-09 | OpenID falsificado | Una respuesta de OpenID sin firma válida NO marca la cuenta como verificada | P0 |
 | STEAM-10 | OpenID válido | Una respuesta válida deja `verified = true` y la tarjeta lo muestra | P0 |
 | STEAM-11 | Filtro de fuente | El selector solo aparece con las dos cuentas conectadas, y un `?fuente=` inválido cae a "Todos" | P1 |
+| STEAM-12 | OpenID atado a la sesión (#157) | Una respuesta con firma válida no conecta ni verifica nada si no viene del flujo que arrancó esta sesión: sin cookie de `state`, con otro `state`, con un `return_to` firmado ajeno o sin la cookie (se borra al volver, así que una URL sirve una sola vez). El `response_nonce` tiene que ser reciente | **P0 (seguridad)** |
 
 ### 6.15 Recomendaciones de IA (`16-recommendations.spec.ts`)
 

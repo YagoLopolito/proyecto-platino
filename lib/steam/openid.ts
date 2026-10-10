@@ -54,6 +54,11 @@ export async function verifySteamOpenIdResponse(params: URLSearchParams): Promis
     return params.get("openid.sig") === "e2e-firma-valida" ? match[1] : null;
   }
 
+  // El `return_to` (que lleva el `state`, issue #157) y el nonce sólo valen si
+  // están entre los campos firmados; si no, cualquiera podría cambiarlos.
+  const signed = (params.get("openid.signed") ?? "").split(",");
+  if (!signed.includes("return_to") || !signed.includes("response_nonce")) return null;
+
   // Se le devuelven a Steam exactamente los mismos parámetros que mandó,
   // cambiando solo el modo: cualquier recorte nuestro invalidaría la firma.
   const body = new URLSearchParams(params);
