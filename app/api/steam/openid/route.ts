@@ -6,6 +6,14 @@ import {
   verifySteamOpenIdResponse,
   SteamApiKeyMissingError,
 } from "@/lib/steam";
+import {
+  STEAM_OPENID_PATH,
+  STEAM_OPENID_STATE_COOKIE,
+  STEAM_OPENID_STATE_MAX_AGE_S,
+  buildReturnTo,
+  generateOpenIdState,
+  matchesOpenIdSession,
+} from "@/lib/steam/openid-state";
 
 /**
  * Verificación de la cuenta de Steam con Steam OpenID.
@@ -17,6 +25,11 @@ import {
  * Dos entradas, la misma ruta:
  * - sin `openid.mode`: arranca el flujo (redirect a Steam).
  * - con `openid.mode=id_res`: es Steam devolviendo al usuario.
+ *
+ * La respuesta tiene que volver con el `state` de la cookie que se puso al
+ * arrancar (issue #157, ver `lib/steam/openid-state.ts`): sin eso, la URL de
+ * vuelta firmada de otra persona le conectaba su cuenta de Steam a quien la
+ * abriera.
  */
 const CONNECTIONS_PATH = "/configuracion/conexiones";
 
@@ -25,7 +38,10 @@ function redirectToConnections(request: NextRequest, params: Record<string, stri
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value);
   }
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  // Un `state` sirve una sola vez, salga bien o mal.
+  response.cookies.delete({ name: STEAM_OPENID_STATE_COOKIE, path: STEAM_OPENID_PATH });
+  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -41,8 +57,28 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
 
   if (params.get("openid.mode") === null) {
-    const returnTo = new URL("/api/steam/openid", request.nextUrl.origin).toString();
-    return NextResponse.redirect(buildSteamLoginUrl(returnTo, `${request.nextUrl.origin}/`));
+    const state = generateOpenIdState();
+    const returnTo = buildReturnTo(request.nextUrl.origin, state);
+    const response = NextResponse.redirect(
+      buildSteamLoginUrl(returnTo, `${request.nextUrl.origin}/`),
+    );
+    // `Lax` y no `Strict`: la vuelta desde steamcommunity.com es una navegación
+    // de otro sitio, y con `Strict` la cookie no viajaría.
+    response.cookies.set(STEAM_OPENID_STATE_COOKIE, state, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: request.nextUrl.protocol === "https:",
+      path: STEAM_OPENID_PATH,
+      maxAge: STEAM_OPENID_STATE_MAX_AGE_S,
+    });
+    return response;
+  }
+
+  // Antes de pedirle nada a Steam: si la respuesta no es del flujo que arrancó
+  // esta sesión, no importa que la firma sea válida.
+  const cookieState = request.cookies.get(STEAM_OPENID_STATE_COOKIE)?.value;
+  if (!matchesOpenIdSession(params, cookieState, request.nextUrl.origin)) {
+    return redirectToConnections(request, { steam: "invalido" });
   }
 
   let verifiedSteamId: string | null;

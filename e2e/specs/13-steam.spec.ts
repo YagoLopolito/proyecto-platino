@@ -1,8 +1,13 @@
 import { test, expect } from "../fixtures/test";
+import {
+  STEAM_OPENID_STATE_COOKIE,
+  isFreshResponseNonce,
+  matchesOpenIdSession,
+} from "../../lib/steam/openid-state";
 
 /**
  * Fase 13: Steam como segunda plataforma (issues #110-#119).
- * Casos STEAM-01..10 de TESTING_PRD.md sección 6.14.
+ * Casos STEAM-01..12 de TESTING_PRD.md sección 6.14.
  *
  * Toda la Steam Web API está mockeada por `E2E_MOCKS=1` (lib/steam/mocks.ts):
  * no sale una sola request real, y los juegos que crea el sync se borran en el
@@ -72,6 +77,51 @@ async function connectSteam(
   await expect(
     page.getByRole("region", { name: "Steam" }).getByTestId("connection-status"),
   ).toHaveAttribute("data-status", expectedStatus);
+}
+
+const STEAM_ID = "76561199000000001";
+
+/**
+ * Arranca el flujo de OpenID como lo haría el botón "Verificar con Steam" y
+ * devuelve el `return_to` que la app le pasó a Steam (con su `state`). La
+ * cookie del `state` queda en el contexto del navegador: `page.request` comparte
+ * el mismo cookie jar. No se sigue el redirect: no se sale a steamcommunity.com.
+ */
+async function startOpenId(page: import("@playwright/test").Page): Promise<string> {
+  const res = await page.request.get("/api/steam/openid", { maxRedirects: 0 });
+  expect(res.status()).toBe(307);
+  const steamUrl = new URL(res.headers()["location"]);
+  const returnTo = steamUrl.searchParams.get("openid.return_to");
+  expect(returnTo).toContain("state=");
+  return returnTo!;
+}
+
+/** La URL con la que Steam devolvería al usuario a `returnTo`. */
+function openIdCallback(returnTo: string, sig: string, signedReturnTo = returnTo): string {
+  const url = new URL(returnTo);
+  url.searchParams.set("openid.mode", "id_res");
+  url.searchParams.set("openid.claimed_id", `https://steamcommunity.com/openid/id/${STEAM_ID}`);
+  url.searchParams.set("openid.return_to", signedReturnTo);
+  url.searchParams.set("openid.response_nonce", `${new Date().toISOString().slice(0, 19)}Ze2e`);
+  url.searchParams.set(
+    "openid.signed",
+    "signed,op_endpoint,claimed_id,identity,return_to,response_nonce,assoc_handle",
+  );
+  url.searchParams.set("openid.sig", sig);
+  return `${url.pathname}${url.search}`;
+}
+
+async function expectVerified(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  userId: string,
+  verified: boolean,
+) {
+  const { data } = await supabase
+    .from("steam_accounts")
+    .select("verified")
+    .eq("user_id", userId)
+    .single();
+  expect(data?.verified).toBe(verified);
 }
 
 // Todos comparten el mismo usuario y el mismo catálogo de juegos de Steam
@@ -280,19 +330,10 @@ test.describe("Steam", () => {
 
     // Los parámetros de la URL de vuelta los puede escribir cualquiera: sin la
     // revalidación contra Steam, esto alcanzaría para marcarse como verificado.
-    await page.goto(
-      "/api/steam/openid?openid.mode=id_res" +
-        "&openid.claimed_id=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F76561199000000001" +
-        "&openid.sig=firma-falsificada",
-    );
+    const returnTo = await startOpenId(page);
+    await page.goto(openIdCallback(returnTo, "firma-falsificada"));
     await expect(page).toHaveURL(/steam=invalido/);
-
-    const { data } = await supabase
-      .from("steam_accounts")
-      .select("verified")
-      .eq("user_id", users.userA.id)
-      .single();
-    expect(data?.verified).toBe(false);
+    await expectVerified(supabase, users.userA.id, false);
   });
 
   test("STEAM-10: una respuesta de OpenID válida marca la cuenta como verificada", async ({
@@ -302,22 +343,52 @@ test.describe("Steam", () => {
   }) => {
     await connectSteam(page, VANITY_PUBLIC);
 
-    await page.goto(
-      "/api/steam/openid?openid.mode=id_res" +
-        "&openid.claimed_id=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F76561199000000001" +
-        "&openid.sig=e2e-firma-valida",
-    );
+    const returnTo = await startOpenId(page);
+    await page.goto(openIdCallback(returnTo, "e2e-firma-valida"));
     await expect(page).toHaveURL(/steam=verificada/);
 
     const steamCard = page.getByRole("region", { name: "Steam" });
     await expect(steamCard.getByText(/Cuenta verificada con Steam/i)).toBeVisible();
+    await expectVerified(supabase, users.userA.id, true);
+  });
+
+  test("STEAM-12: una respuesta firmada que no arrancó esta sesión no conecta ni verifica", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    // Sin cuenta previa: es el caso del ataque, donde la rama final conectaba
+    // de cero la cuenta del atacante como verificada.
+    const attackerUrl = new URL("/api/steam/openid", "http://localhost:3000");
+    attackerUrl.searchParams.set("state", "state-del-atacante");
+    const foreign = openIdCallback(attackerUrl.toString(), "e2e-firma-valida");
+
+    // 1) Sin haber arrancado el flujo (no hay cookie de state).
+    await page.goto(foreign);
+    await expect(page).toHaveURL(/steam=invalido/);
+
+    // 2) Con un flujo propio en curso, pero la URL de vuelta trae otro state.
+    await startOpenId(page);
+    await page.goto(foreign);
+    await expect(page).toHaveURL(/steam=invalido/);
+
+    // 3) El state propio en la URL, pero un return_to firmado que no lo lleva.
+    const returnTo = await startOpenId(page);
+    await page.goto(openIdCallback(returnTo, "e2e-firma-valida", attackerUrl.toString()));
+    await expect(page).toHaveURL(/steam=invalido/);
+
+    // 4) Sin la cookie (vencida, o ya usada: se borra al volver) no sirve.
+    const once = await startOpenId(page);
+    await page.context().clearCookies({ name: STEAM_OPENID_STATE_COOKIE });
+    await page.goto(openIdCallback(once, "e2e-firma-valida"));
+    await expect(page).toHaveURL(/steam=invalido/);
 
     const { data } = await supabase
       .from("steam_accounts")
-      .select("verified")
+      .select("user_id")
       .eq("user_id", users.userA.id)
-      .single();
-    expect(data?.verified).toBe(true);
+      .maybeSingle();
+    expect(data).toBeNull();
   });
 
   test("STEAM-11: el filtro de fuente solo aparece con las dos cuentas conectadas", async ({
@@ -375,5 +446,47 @@ test.describe("Steam", () => {
       .select("id")
       .eq("user_id", users.userA.id);
     expect(data).toHaveLength(0);
+  });
+});
+
+test.describe("Steam OpenID: atado a la sesión", () => {
+  const origin = "https://platinoob.test";
+  const now = Date.parse("2026-10-10T18:00:00Z");
+  const params = (overrides: Record<string, string> = {}) =>
+    new URLSearchParams({
+      state: "abc",
+      "openid.return_to": `${origin}/api/steam/openid?state=abc`,
+      "openid.response_nonce": "2026-10-10T17:58:00Zxyz",
+      ...overrides,
+    });
+
+  test("STEAM-12: el state, el return_to y el nonce tienen que coincidir", () => {
+    expect(matchesOpenIdSession(params(), "abc", origin, now)).toBe(true);
+    expect(matchesOpenIdSession(params(), undefined, origin, now)).toBe(false);
+    expect(matchesOpenIdSession(params(), "otro", origin, now)).toBe(false);
+    expect(
+      matchesOpenIdSession(
+        params({ "openid.return_to": "https://evil.test/api/steam/openid?state=abc" }),
+        "abc",
+        origin,
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      matchesOpenIdSession(
+        params({ "openid.return_to": `${origin}/api/steam/openid?state=otro` }),
+        "abc",
+        origin,
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  test("STEAM-12: un nonce viejo o del futuro se rechaza", () => {
+    expect(isFreshResponseNonce("2026-10-10T17:58:00Zxyz", now)).toBe(true);
+    expect(isFreshResponseNonce("2026-10-10T17:00:00Zxyz", now)).toBe(false);
+    expect(isFreshResponseNonce("2026-10-10T18:30:00Zxyz", now)).toBe(false);
+    expect(isFreshResponseNonce("basura", now)).toBe(false);
+    expect(isFreshResponseNonce(null, now)).toBe(false);
   });
 });
