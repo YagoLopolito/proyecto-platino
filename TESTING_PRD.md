@@ -381,6 +381,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | AI-14 | Trofeos de historia no son perdibles | El system prompt del plan le prohíbe explícitamente al modelo poner en "missables" los trofeos que se desbloquean solos avanzando la historia, y exige un punto de no retorno concreto para cada missable | P1 |
 | AI-15 | Freno del plan de IA (#128) | Regenerar antes de 5 minutos muestra cuánto falta, no llama al proveedor ni inserta una fila, y el plan anterior sigue visible | P1 |
 | AI-16 | Perdibles primero | Si queda algún perdible pendiente, la tarjeta "Siguiente trofeo" es el primero de la run (el primero de `missables`, marcado "Perdible" con su límite) aunque el modelo haya sugerido otro; la sección de perdibles va justo debajo, numerada en orden de la partida, y se muestra también cuando no hay ninguno. El prompt pide los perdibles completos y en orden cronológico | P1 |
+| AI-17 | Guías ajenas fuera del prompt (#132) | El plan sólo recibe las guías del propio usuario (una de otro, insertada por PostgREST, no llega al modelo); el bloque de guías va entre marcadores que el system prompt declara como dato, el contenido no puede cerrarlo, y el nombre de juego entra como una sola línea en los prompts de plan, descripción y tiempos | **P1 (seguridad)** |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)
@@ -491,6 +492,7 @@ ninguna API externa.
 | SEC-04 | Sin sesión, las Server Actions rechazan | Invocarlas con las cookies borradas devuelve error de auth | P0 |
 | SEC-05 | Consola limpia | Ningún `console.error` en el recorrido feliz completo | P1 |
 | SEC-06 | La anon key no lee tablas (#129) | Sin sesión, un select con la anon key sobre games, trophies, diario, likes, listas, estudios, etc. no devuelve filas: las policies de select van `to authenticated` | **P0 (seguridad)** |
+| SEC-07 | Cabeceras de seguridad (#131) | `/login` y el redirect al login de `/biblioteca` mandan `Referrer-Policy`, `X-Frame-Options: DENY`, `nosniff`, HSTS sin `preload` y `Permissions-Policy` sin cámara/micrófono/ubicación/pagos. La CSP es #222 | P1 |
 
 ### 6.13 Smoke en Vercel (`smoke.spec.ts`)
 
@@ -523,6 +525,7 @@ crea el sync se borran por su rango reservado de appid (`E2E_STEAM_APPID_MIN`).
 | STEAM-09 | OpenID falsificado | Una respuesta de OpenID sin firma válida NO marca la cuenta como verificada | P0 |
 | STEAM-10 | OpenID válido | Una respuesta válida deja `verified = true` y la tarjeta lo muestra | P0 |
 | STEAM-11 | Filtro de fuente | El selector solo aparece con las dos cuentas conectadas, y un `?fuente=` inválido cae a "Todos" | P1 |
+| STEAM-12 | OpenID atado a la sesión (#157) | Una respuesta con firma válida no conecta ni verifica nada si no viene del flujo que arrancó esta sesión: sin cookie de `state`, con otro `state`, con un `return_to` firmado ajeno o sin la cookie (se borra al volver, así que una URL sirve una sola vez). El `response_nonce` tiene que ser reciente | **P0 (seguridad)** |
 | STEAM-13 | Freno del sync de Steam (#159) | Con `last_synced_at` de hace menos de 10 minutos, `POST /api/steam/sync` devuelve 429 con `Retry-After`, y el botón de la tarjeta queda deshabilitado diciendo cuánto falta. El cron no pasa por la ruta | P1 |
 
 ### 6.15 Recomendaciones de IA (`16-recommendations.spec.ts`)

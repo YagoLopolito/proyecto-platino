@@ -94,7 +94,12 @@ export function getMockAiGamePlan(input: AiPlanInput): AiGamePlan {
           pasos: ["[E2E] Paso uno.", "[E2E] Paso dos."],
         }
       : null,
-    tips_generales: ["[E2E] Guardá seguido.", "[E2E] Subí la dificultad al final si podés."],
+    tips_generales: [
+      "[E2E] Guardá seguido.",
+      "[E2E] Subí la dificultad al final si podés.",
+      // Deja ver desde la UI qué guías llegaron al input del modelo (AI-17).
+      ...input.guides.map((g) => `[E2E] Guía tenida en cuenta: ${g.title}`),
+    ],
     modos: [],
   };
 }

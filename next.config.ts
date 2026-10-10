@@ -7,6 +7,24 @@ import type { NextConfig } from "next";
  */
 const buildId = process.env.VERCEL_GIT_COMMIT_SHA ?? "dev";
 
+/**
+ * Cabeceras de seguridad que van en todas las respuestas (issue #131).
+ *
+ * - HSTS **sin `preload`**: en `*.vercel.app` no aplica, y con un dominio
+ *   propio compromete todos los subdominios y es muy difícil de revertir.
+ * - `Permissions-Policy` apaga lo que la app no usa: la galería y el importador
+ *   de capturas suben archivos con un `<input type="file">`, no con la cámara.
+ * - `X-Frame-Options: DENY`: nadie embebe la app en un iframe (clickjacking
+ *   sobre "Desconectar", "Borrar" o el flujo de Steam OpenID).
+ */
+const SECURITY_HEADERS = [
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+];
+
 const nextConfig: NextConfig = {
   // Horneado en el bundle del cliente para poder compararlo contra el que
   // devuelve /api/version, que siempre es el del deploy vivo.
@@ -46,6 +64,13 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      {
+        // Cabeceras de seguridad para toda la app (issue #131). La CSP no está
+        // acá a propósito: sin nonces, Next necesita 'unsafe-inline' y una CSP
+        // mal armada rompe la app entera (seguimiento en #222).
+        source: "/:path*",
+        headers: SECURITY_HEADERS,
+      },
       {
         // El service worker es un archivo estático de `public/`, que Vercel
         // sirve con caché larga por defecto. Si se cachea, un cambio en el SW
