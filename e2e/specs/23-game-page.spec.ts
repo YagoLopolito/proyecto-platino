@@ -267,11 +267,14 @@ test.describe("Ficha de juego unificada", () => {
     );
 
     // Se espera a que la red quede quieta: cada request RSC a la ficha
-    // reinicia la espera, y si llegan más de las que justifica precargar dos
-    // vecinas (con su layout), es el loop. No es un `waitForTimeout`: termina
-    // apenas pasan QUIET_MS sin requests, y falla en cuanto se pasa del tope.
+    // reinicia la espera. La carga legítima son dos pedidos por tab (el árbol
+    // de cada `<Link>` y la precarga completa de las vecinas): con 4 tabs son
+    // ~8, y CI llegó a ver 7. Un loop no se corta nunca, así que un tope de 12
+    // lo detecta igual sin volver frágil el caso sano. No es un
+    // `waitForTimeout`: termina apenas pasan QUIET_MS sin requests, y falla en
+    // cuanto se pasa del tope.
     const QUIET_MS = 4_000;
-    const MAX_RSC_REQUESTS = 6;
+    const MAX_RSC_REQUESTS = 12;
     let rscRequests = 0;
     for (;;) {
       const next = await page
