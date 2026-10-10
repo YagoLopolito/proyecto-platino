@@ -391,6 +391,33 @@ test.describe("Steam", () => {
     expect(data).toBeNull();
   });
 
+  test("STEAM-13: un segundo sync manual antes de 10 minutos devuelve 429", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    await connectSteam(page, VANITY_PUBLIC);
+    // Un sync recién hecho, sin pasar por el mock de toda la biblioteca.
+    await supabase
+      .from("steam_accounts")
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq("user_id", users.userA.id);
+
+    // El botón de la tarjeta queda deshabilitado y dice cuánto falta.
+    await page.goto(CONNECTIONS);
+    const steamCard = page.getByRole("region", { name: "Steam" });
+    await expect(steamCard.getByRole("button", { name: "Sincronizar ahora" })).toBeDisabled();
+    await expect(steamCard.getByText(/Podés volver a sincronizar en/)).toBeVisible();
+
+    // Y la ruta lo rechaza aunque alguien se saltee el botón. Va al final, como
+    // en SYNC-18: después de un request de `page.request` la navegación del
+    // test volvía al login.
+    const res = await page.request.post("/api/steam/sync");
+    expect(res.status()).toBe(429);
+    expect(Number(res.headers()["retry-after"])).toBeGreaterThan(0);
+    expect((await res.json()).error).toMatch(/Ya sincronizaste hace poco/);
+  });
+
   test("STEAM-11: el filtro de fuente solo aparece con las dos cuentas conectadas", async ({
     page,
     supabase,

@@ -1,14 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { FormError, FormSuccess } from "@/components/FormError";
+import { STEAM_SYNC_COOLDOWN_MS, formatCooldown } from "@/lib/sync/cooldown";
 
 type SyncMessage =
   | { kind: "success"; text: string }
   | { kind: "private"; text: string }
-  | { kind: "error"; text: string };
+  | { kind: "error"; text: string }
+  | { kind: "cooldown"; text: string };
 
 /**
  * Espejo de components/psn/SyncButton para /api/steam/sync.
@@ -17,11 +19,31 @@ type SyncMessage =
  * token de usuario) sino **perfil en privado**: no se arregla reintentando ni
  * reconectando, solo cambiando la privacidad en Steam, así que tiene su propio
  * mensaje con el camino exacto.
+ *
+ * `cooldownMs` es lo que falta del freno de frecuencia (#159), calculado en el
+ * server: mientras dure, el botón queda deshabilitado (igual que el de PSN).
  */
-export default function SteamSyncButton({ className = "" }: { className?: string }) {
+export default function SteamSyncButton({
+  className = "",
+  cooldownMs = 0,
+}: {
+  className?: string;
+  cooldownMs?: number;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<SyncMessage | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState(cooldownMs);
+
+  // Cuenta regresiva de a un minuto: el texto sólo muestra minutos.
+  const coolingDown = cooldownLeft > 0;
+  useEffect(() => {
+    if (!coolingDown) return;
+    const id = setInterval(() => {
+      setCooldownLeft((left) => Math.max(0, left - 60_000));
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [coolingDown]);
 
   async function handleClick() {
     setPending(true);
@@ -30,7 +52,13 @@ export default function SteamSyncButton({ className = "" }: { className?: string
       const response = await fetch("/api/steam/sync", { method: "POST" });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        if (response.status === 409) {
+        if (response.status === 429) {
+          setCooldownLeft((body?.retryAfterSeconds ?? 60) * 1000);
+          setMessage({
+            kind: "cooldown",
+            text: body?.error ?? "Ya sincronizaste hace poco. Probá de nuevo en unos minutos.",
+          });
+        } else if (response.status === 409) {
           setMessage({
             kind: "private",
             text:
@@ -56,6 +84,7 @@ export default function SteamSyncButton({ className = "" }: { className?: string
               ' de privacidad, desactivá "Mantener en privado el tiempo total de juego" si querés verlas acá.'
             : ""),
       });
+      setCooldownLeft(STEAM_SYNC_COOLDOWN_MS);
       router.refresh();
     } catch {
       setMessage({
@@ -69,7 +98,12 @@ export default function SteamSyncButton({ className = "" }: { className?: string
 
   return (
     <div className="space-y-2">
-      <Button type="button" onClick={handleClick} disabled={pending} className={className}>
+      <Button
+        type="button"
+        onClick={handleClick}
+        disabled={pending || coolingDown}
+        className={className}
+      >
         {pending ? "Sincronizando..." : "Sincronizar ahora"}
       </Button>
 
@@ -86,6 +120,14 @@ export default function SteamSyncButton({ className = "" }: { className?: string
       )}
 
       {message?.kind === "error" && <FormError>{message.text}</FormError>}
+
+      {message?.kind === "cooldown" && <FormError>{message.text}</FormError>}
+
+      {coolingDown && message?.kind !== "cooldown" && (
+        <p className="type-caption text-ink-muted">
+          Podés volver a sincronizar en {formatCooldown(cooldownLeft)}.
+        </p>
+      )}
     </div>
   );
 }

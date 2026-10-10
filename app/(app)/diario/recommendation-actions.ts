@@ -9,6 +9,12 @@ import {
   type AiRecommendations,
 } from "@/lib/ai";
 import { getRecommendationCandidates } from "@/lib/diary/recommendations";
+import { aiRecommendationsSchema } from "@/lib/ai/schema";
+import {
+  AI_RECOMMENDATIONS_COOLDOWN_MS,
+  cooldownRemainingMs,
+  formatCooldown,
+} from "@/lib/sync/cooldown";
 
 const MODEL = "openai/gpt-oss-120b";
 
@@ -33,6 +39,26 @@ export async function generateRecommendations(
   } = await supabase.auth.getUser();
   if (!user) {
     return { recommendations: null, error: "Tenés que iniciar sesión." };
+  }
+
+  // Freno de frecuencia (#159), mismo criterio que el plan de un juego: sólo
+  // cuentan las generaciones `ok` (un fallo se puede reintentar enseguida) y
+  // se devuelve la anterior junto al aviso, para no dejar la sección vacía.
+  const { data: last } = await supabase
+    .from("ai_recommendations")
+    .select("created_at, payload_json")
+    .eq("user_id", user.id)
+    .eq("status", "ok")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const remainingMs = cooldownRemainingMs(last?.created_at, AI_RECOMMENDATIONS_COOLDOWN_MS);
+  if (remainingMs > 0) {
+    const previous = aiRecommendationsSchema.safeParse(last?.payload_json);
+    return {
+      recommendations: previous.success ? previous.data : null,
+      error: `Ya generaste recomendaciones hace poco. Podés regenerarlas en ${formatCooldown(remainingMs)}.`,
+    };
   }
 
   const candidates = await getRecommendationCandidates(supabase, user.id);

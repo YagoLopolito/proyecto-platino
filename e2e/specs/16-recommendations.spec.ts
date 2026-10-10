@@ -13,6 +13,18 @@ async function countRecommendations(
   return count ?? 0;
 }
 
+/** Corre las generaciones del usuario 10 minutos para atrás (fuera del freno). */
+async function backdateRecommendations(
+  supabase: Parameters<typeof seedGameWithTrophies>[0],
+  userId: string,
+): Promise<void> {
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  await supabase
+    .from("ai_recommendations")
+    .update({ created_at: tenMinutesAgo })
+    .eq("user_id", userId);
+}
+
 /**
  * "Recomendados para vos" en `/biblioteca` (antes en el diario, issue #191) (`RecommendationsSection.tsx` +
  * `recommendation-actions.ts`). Casos REC-01, REC-02 y REC-04 de
@@ -85,6 +97,9 @@ test.describe.serial("Recomendaciones de la biblioteca", () => {
     users,
   }) => {
     const before = await countRecommendations(supabase, users.userA.id);
+    // REC-02 generó hace segundos: sin correr esa fila para atrás, el freno de
+    // 5 minutos (#159, REC-08) frenaría la regeneración.
+    await backdateRecommendations(supabase, users.userA.id);
 
     await page.goto("/biblioteca");
     // REC-02 ya generó una vez: el botón arranca en "Actualizar".
@@ -96,5 +111,20 @@ test.describe.serial("Recomendaciones de la biblioteca", () => {
 
     // La anterior sigue estando: el historial es versionado, no un upsert.
     expect(before).toBeGreaterThan(0);
+  });
+
+  test("REC-08: regenerar antes de 5 minutos se frena sin llamar al proveedor", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    // REC-04 acaba de generar una fila `ok`.
+    const before = await countRecommendations(supabase, users.userA.id);
+    expect(before).toBeGreaterThan(0);
+
+    await page.goto("/biblioteca");
+    await page.getByRole("button", { name: "Actualizar recomendaciones" }).click();
+    await expect(page.getByText(/Ya generaste recomendaciones hace poco/)).toBeVisible();
+    expect(await countRecommendations(supabase, users.userA.id)).toBe(before);
   });
 });

@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SyncButton from "@/components/psn/SyncButton";
-import { PSN_SYNC_COOLDOWN_MS, cooldownRemainingMs } from "@/lib/sync/cooldown";
+import {
+  PSN_SYNC_COOLDOWN_MS,
+  STEAM_SYNC_COOLDOWN_MS,
+  cooldownRemainingMs,
+} from "@/lib/sync/cooldown";
 import SteamSyncButton from "@/components/steam/SteamSyncButton";
 import ConnectPsnForm from "@/components/connections/ConnectPsnForm";
 import ConnectSteamForm from "@/components/connections/ConnectSteamForm";
@@ -166,8 +170,8 @@ export default async function ConexionesPage({
                     estado roto, y la app ya sabe que hacen falta. */}
                 <p className="type-meta text-ink-muted">
                   En Steam: Perfil → Editar perfil → Configuración de privacidad → &quot;Detalles
-                  del juego&quot;: <span className="text-ink">Público</span>. Después sincronizá
-                  de nuevo.
+                  del juego&quot;: <span className="text-ink">Público</span>. Después sincronizá de
+                  nuevo.
                 </p>
               </div>
             )}
@@ -192,7 +196,9 @@ export default async function ConexionesPage({
               <ReplaceSteamAccountForm verifiedSteamId={verifiedSteamId} />
             )}
 
-            <SteamSyncButton />
+            <SteamSyncButton
+              cooldownMs={cooldownRemainingMs(steamAccount.last_synced_at, STEAM_SYNC_COOLDOWN_MS)}
+            />
 
             <Disclosure summary="Conectar otro perfil de Steam">
               <ConnectSteamForm isReconnect />
