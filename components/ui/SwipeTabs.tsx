@@ -79,12 +79,26 @@ export function SwipeTabs({
 
   // Precargar las vecinas: el swipe tiene que sentirse instantáneo. Es un
   // efecto del router (imperativo), no sincronización de estado.
+  //
+  // Depende de los hrefs como string, no del array `tabs`: un layout que arma
+  // las tabs inline (la ficha de juego) manda un array nuevo en cada payload
+  // RSC, y cada array nuevo volvía a disparar el efecto. `prefetched` es la
+  // segunda traba: cada href una vez por montaje. Se agregó investigando el
+  // loop de requests a `/juegos/[id]` del 2026-10-09 (1,3M invocaciones en
+  // Vercel), pero no está confirmado que esa sea la causa: no se reprodujo en
+  // Chromium. Ver el PR del fix.
+  const neighborHrefs = [tabs[activeIndex - 1]?.href, tabs[activeIndex + 1]?.href]
+    .filter((href): href is string => href !== undefined)
+    .join("\n");
+  const prefetched = useRef(new Set<string>());
   useEffect(() => {
-    for (const index of [activeIndex - 1, activeIndex + 1]) {
-      const tab = tabs[index];
-      if (tab) router.prefetch(tab.href);
+    if (!neighborHrefs) return;
+    for (const href of neighborHrefs.split("\n")) {
+      if (prefetched.current.has(href)) continue;
+      prefetched.current.add(href);
+      router.prefetch(href);
     }
-  }, [activeIndex, tabs, router]);
+  }, [neighborHrefs, router]);
 
   function goTo(index: number) {
     const tab = tabs[index];
