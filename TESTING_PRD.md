@@ -380,6 +380,7 @@ Desde la ficha unificada (issue #186) viven en la tab Guías e IA (`/juegos/[id]
 | AI-14 | Trofeos de historia no son perdibles | El system prompt del plan le prohíbe explícitamente al modelo poner en "missables" los trofeos que se desbloquean solos avanzando la historia, y exige un punto de no retorno concreto para cada missable | P1 |
 | AI-15 | Freno del plan de IA (#128) | Regenerar antes de 5 minutos muestra cuánto falta, no llama al proveedor ni inserta una fila, y el plan anterior sigue visible | P1 |
 | AI-16 | Perdibles primero | Si queda algún perdible pendiente, la tarjeta "Siguiente trofeo" es el primero de la run (el primero de `missables`, marcado "Perdible" con su límite) aunque el modelo haya sugerido otro; la sección de perdibles va justo debajo, numerada en orden de la partida, y se muestra también cuando no hay ninguno. El prompt pide los perdibles completos y en orden cronológico | P1 |
+| AI-17 | Guías ajenas fuera del prompt (#132) | El plan sólo recibe las guías del propio usuario (una de otro, insertada por PostgREST, no llega al modelo); el bloque de guías va entre marcadores que el system prompt declara como dato, el contenido no puede cerrarlo, y el nombre de juego entra como una sola línea en los prompts de plan, descripción y tiempos | **P1 (seguridad)** |
 | AI-09 | Trofeos de dificultad | La sección "Trofeos de dificultad" lista el trofeo con su categoría (dificultad máxima, contrarreloj, etc.) | P1 |
 
 ### 6.8 Diario / Letterbox (`08-diary.spec.ts`)

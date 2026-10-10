@@ -102,10 +102,14 @@ export async function generateAiPlan(
   }
   const obtainedTrophyIds = new Set(userTrophies.map((row) => row.trophy_id));
 
+  // Sólo las guías propias (issue #132): la RLS deja que cualquier usuario
+  // inserte una guía en cualquier juego, y sin este filtro una guía ajena se
+  // convertía en instrucciones dentro del plan de otro.
   const { data: guides } = await supabase
     .from("guides")
     .select("title, content_markdown")
-    .eq("game_id", gameId);
+    .eq("game_id", gameId)
+    .eq("author_id", user.id);
 
   // El modelo referencia cada trofeo por id en varios arrays de la respuesta
   // (orden_sugerido, missables, modos, desafios_de_dificultad, acumulables,
