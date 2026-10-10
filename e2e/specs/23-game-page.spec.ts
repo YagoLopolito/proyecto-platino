@@ -237,4 +237,52 @@ test.describe("Ficha de juego unificada", () => {
     expect(synopsis.endsWith(".")).toBe(true);
     expect(toSynopsis("   ")).toBeNull();
   });
+
+  test("FICHA-08: una ficha abierta no se queda precargando sus tabs en loop", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    // Guarda contra el incidente del 2026-10-09: una ficha abierta en Firefox
+    // volvía a pedir `/juegos/[id]` ~1 vez por segundo para siempre (1,3M
+    // invocaciones en Vercel en un día y medio). En Chromium no se reprodujo,
+    // así que este test fija el comportamiento correcto, no el bug. Sólo tiene
+    // sentido con `next start`, que es como corre CI: en dev no hay prefetch.
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Ficha Prefetch",
+      np: 2308,
+    });
+
+    const isGameRsc = (request: { url(): string }) => {
+      const url = new URL(request.url());
+      return url.pathname.startsWith(`/juegos/${gameId}`) && url.searchParams.has("_rsc");
+    };
+
+    // Reseñas está en el medio: tiene dos vecinas para precargar.
+    await page.goto(`/juegos/${gameId}/resenas`);
+    await expect(page.getByRole("tab", { name: "Reseñas" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    // Se espera a que la red quede quieta: cada request RSC a la ficha
+    // reinicia la espera, y si llegan más de las que justifica precargar dos
+    // vecinas (con su layout), es el loop. No es un `waitForTimeout`: termina
+    // apenas pasan QUIET_MS sin requests, y falla en cuanto se pasa del tope.
+    const QUIET_MS = 4_000;
+    const MAX_RSC_REQUESTS = 6;
+    let rscRequests = 0;
+    for (;;) {
+      const next = await page
+        .waitForRequest(isGameRsc, { timeout: QUIET_MS })
+        .then(() => true)
+        .catch(() => false);
+      if (!next) break;
+      rscRequests += 1;
+      expect(rscRequests, "requests RSC a la ficha sin interacción").toBeLessThanOrEqual(
+        MAX_RSC_REQUESTS,
+      );
+    }
+  });
 });

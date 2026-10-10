@@ -649,6 +649,7 @@ enfoca el trofeo" que listaba el issue es AI-10 (§6.7), actualizado.
 | FICHA-05 | Registrar desde el panel | Jugando, Playlist y Lista arrancan con `aria-pressed="false"` (cada uno con su caso: PLAY-02, PLIST-01, LIST-03); "Registrar o puntuar" abre el diálogo, guarda la entrada y agrega el juego a `user_games` | P1 |
 | FICHA-06 | Imagen a pantalla completa | Tocar la carátula de la ficha abre un visor (`role="dialog"`) con la imagen; Escape lo cierra. Mismo visor que las capturas de la galería | P1 |
 | FICHA-07 | Sinopsis corta | Una descripción de varios párrafos muestra sólo el primero; `toSynopsis` corta en una oración completa dentro de 280 caracteres (test puro) | P1 |
+| FICHA-08 | Sin precarga en loop | Con la ficha abierta en Reseñas y sin interacción, los requests RSC a `/juegos/[id]/*` se cortan solos (4 s sin requests) antes de pasar de 6. Guarda del incidente de 1,3M invocaciones del 2026-10-09; sólo aplica con `next start` (CI) | P0 |
 
 ### 6.21 Jugando ahora (`24-now-playing.spec.ts`)
 
