@@ -490,6 +490,7 @@ ninguna API externa.
 | SEC-04 | Sin sesión, las Server Actions rechazan | Invocarlas con las cookies borradas devuelve error de auth | P0 |
 | SEC-05 | Consola limpia | Ningún `console.error` en el recorrido feliz completo | P1 |
 | SEC-06 | La anon key no lee tablas (#129) | Sin sesión, un select con la anon key sobre games, trophies, diario, likes, listas, estudios, etc. no devuelve filas: las policies de select van `to authenticated` | **P0 (seguridad)** |
+| SEC-07 | Cabeceras de seguridad (#131) | `/login` y el redirect al login de `/biblioteca` mandan `Referrer-Policy`, `X-Frame-Options: DENY`, `nosniff`, HSTS sin `preload` y `Permissions-Policy` sin cámara/micrófono/ubicación/pagos. La CSP es #222 | P1 |
 
 ### 6.13 Smoke en Vercel (`smoke.spec.ts`)
 
