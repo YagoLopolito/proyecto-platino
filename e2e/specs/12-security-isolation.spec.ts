@@ -91,3 +91,23 @@ test.describe("Galería online sin sesión", () => {
     }
   });
 });
+
+/**
+ * SEC-07 (issue #131): las respuestas llevan las cabeceras de seguridad, tanto
+ * una página pública (`/login`) como el redirect al login del middleware
+ * (`/biblioteca` sin sesión). La CSP no se chequea: queda para #222 (nonces).
+ */
+test.describe("Cabeceras de seguridad", () => {
+  for (const path of ["/login", "/biblioteca"]) {
+    test(`SEC-07: ${path} manda las cabeceras de seguridad`, async ({ request }) => {
+      const res = await request.get(path, { maxRedirects: 0 });
+      const headers = res.headers();
+      expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+      expect(headers["x-frame-options"]).toBe("DENY");
+      expect(headers["x-content-type-options"]).toBe("nosniff");
+      expect(headers["strict-transport-security"]).toBe("max-age=63072000; includeSubDomains");
+      expect(headers["permissions-policy"]).toContain("camera=()");
+      expect(headers["permissions-policy"]).toContain("geolocation=()");
+    });
+  }
+});
