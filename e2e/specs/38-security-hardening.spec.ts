@@ -329,10 +329,14 @@ test.describe("Freno de la ayuda de trofeo (#235)", () => {
     test.skip(!secret, "Necesita CRON_SECRET.");
     const user = await freshUser(supabase, "aiclean");
     const old = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
-    await supabase.from("ai_usage").insert([
+    // Las dos con `created_at` explícito: en un insert de varias filas,
+    // supabase-js completa con NULL la columna que falta en alguna, y el NOT
+    // NULL tiraba abajo el insert entero.
+    const { error: seedError } = await supabase.from("ai_usage").insert([
       { user_id: user.id, kind: "trophy_hint", created_at: old },
-      { user_id: user.id, kind: "trophy_hint" },
+      { user_id: user.id, kind: "trophy_hint", created_at: new Date().toISOString() },
     ]);
+    expect(seedError).toBeNull();
 
     const response = await request.get("/api/cron/sync?paso=ia", {
       headers: { authorization: `Bearer ${secret}` },
