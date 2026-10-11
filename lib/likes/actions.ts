@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { dbErrorMessage } from "@/lib/errors";
 
 /**
  * Likes en reseñas y listas (epic #183, issue #190). La action recibe el
@@ -49,7 +50,7 @@ export async function setReviewLike(entryId: string, liked: boolean): Promise<Li
           { onConflict: "user_id,entry_id", ignoreDuplicates: true },
         )
     : await supabase.from("review_likes").delete().eq("user_id", user.id).eq("entry_id", entry.id);
-  if (error) return { error: `No se pudo guardar el me gusta: ${error.message}` };
+  if (error) return { error: dbErrorMessage("likes", error, "No se pudo guardar el me gusta.") };
 
   revalidatePath(`/juegos/${entry.game_id}`, "layout");
   revalidatePath("/biblioteca/resenas");
@@ -82,7 +83,7 @@ export async function setListLike(listId: string, liked: boolean): Promise<LikeA
           { onConflict: "user_id,list_id", ignoreDuplicates: true },
         )
     : await supabase.from("list_likes").delete().eq("user_id", user.id).eq("list_id", list.id);
-  if (error) return { error: `No se pudo guardar el me gusta: ${error.message}` };
+  if (error) return { error: dbErrorMessage("likes", error, "No se pudo guardar el me gusta.") };
 
   revalidatePath(`/listas/${list.id}`, "layout");
   revalidatePath("/perfil", "layout");

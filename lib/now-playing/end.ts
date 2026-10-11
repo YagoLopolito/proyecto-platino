@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { dbErrorMessage } from "@/lib/errors";
 
 export type NowPlayingEndReason = "manual" | "platinum" | "completion" | "diary_entry";
 
@@ -35,5 +36,7 @@ export async function endNowPlaying(
   }
 
   const { error } = await query;
-  return { error: error?.message ?? null };
+  return {
+    error: error ? dbErrorMessage("now-playing.end", error, "No se pudo cerrar la racha.") : null,
+  };
 }

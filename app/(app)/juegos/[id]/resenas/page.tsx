@@ -11,6 +11,7 @@ import { getGamePageBase } from "@/lib/game-page/data";
 import { getReviewLikes, likeStateOf, type LikeState } from "@/lib/likes/queries";
 import { LikeButton } from "@/components/likes/LikeButton";
 import { FOCUS_REVIEW_PARAM, reviewAnchorId } from "@/lib/game-page/review-focus";
+import { dbErrorMessage } from "@/lib/errors";
 
 type ReviewEntry = {
   id: string;
@@ -91,7 +92,11 @@ export default async function GameReviewsTab({
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6">
-      {error && <ErrorState message={`No se pudieron cargar las reseñas: ${error.message}`} />}
+      {error && (
+        <ErrorState
+          message={`No se pudieron cargar las reseñas: ${dbErrorMessage("game.reviews", error)}`}
+        />
+      )}
 
       {!error && own.length > 0 && (
         <section className="space-y-2">

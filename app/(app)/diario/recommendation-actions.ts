@@ -15,6 +15,7 @@ import {
   cooldownRemainingMs,
   formatCooldown,
 } from "@/lib/sync/cooldown";
+import { dbErrorMessage } from "@/lib/errors";
 
 const MODEL = "openai/gpt-oss-120b";
 
@@ -171,6 +172,7 @@ export async function dismissKeepPlaying(gameId: string): Promise<DismissKeepPla
     .update({ keep_playing_dismissed_at: row?.last_played_at ?? new Date().toISOString() })
     .eq("user_id", user.id)
     .eq("game_id", gameId);
-  if (error) return { error: `No se pudo sacar el juego: ${error.message}` };
+  if (error)
+    return { error: dbErrorMessage("recommendations", error, "No se pudo sacar el juego.") };
   return { error: null };
 }

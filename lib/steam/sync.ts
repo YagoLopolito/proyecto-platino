@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { createServiceClient } from "@/lib/supabase/service";
 import { findCoverUrl, findSteamCoverUrlByAppId } from "@/lib/covers";
 import { mapWithConcurrency } from "@/lib/psn/concurrency";
 import { reconcileCompletedDiaryEntry } from "@/lib/diary/platinum";
@@ -44,9 +45,13 @@ function rarityFromPercent(percent: number | null): number | null {
   return 3;
 }
 
-type GameRow = { id: string; steamHasAchievements: boolean | null };
+/**
+ * `isOwner`: el juego lo dio de alta este usuario. Sólo ese sync reescribe los
+ * logros compartidos (mismo criterio que el de PSN).
+ */
+type GameRow = { id: string; steamHasAchievements: boolean | null; isOwner: boolean };
 
-const GAME_SELECT = "id, cover_url, steam_has_achievements";
+const GAME_SELECT = "id, cover_url, steam_has_achievements, created_by";
 
 /**
  * La portada sale de la CDN de Steam (`library_600x900`), no del
@@ -62,13 +67,15 @@ async function resolveCoverUrl(appId: number, name: string): Promise<string | nu
 /**
  * Busca (o crea) la fila de `games` del appid. Un juego que está en PSN y en
  * Steam son dos filas distintas en v1: acá nunca se adopta una fila de PSN.
+ * `catalog` es el cliente de service role: el catálogo compartido ya no es
+ * escribible por `authenticated` (issue #164).
  */
 async function resolveGameRow(
-  supabase: SupabaseClient<Database>,
+  catalog: SupabaseClient<Database>,
   userId: string,
   game: SteamOwnedGame,
 ): Promise<GameRow | null> {
-  const { data: existing } = await supabase
+  const { data: existing } = await catalog
     .from("games")
     .select(GAME_SELECT)
     .eq("steam_appid", game.appId)
@@ -81,19 +88,19 @@ async function resolveGameRow(
     if (!existing.cover_url) {
       const coverUrl = await resolveCoverUrl(game.appId, game.name);
       if (coverUrl) {
-        await supabase
-          .from("games")
-          .update({ cover_url: coverUrl })
-          .eq("id", existing.id)
-          .eq("created_by", userId);
+        await catalog.from("games").update({ cover_url: coverUrl }).eq("id", existing.id);
       }
     }
-    return { id: existing.id, steamHasAchievements: existing.steam_has_achievements };
+    return {
+      id: existing.id,
+      steamHasAchievements: existing.steam_has_achievements,
+      isOwner: existing.created_by === userId,
+    };
   }
 
   const coverUrl = await resolveCoverUrl(game.appId, game.name);
 
-  const { data: created } = await supabase
+  const { data: created } = await catalog
     .from("games")
     .insert({
       steam_appid: game.appId,
@@ -108,27 +115,34 @@ async function resolveGameRow(
     .single();
 
   if (created) {
-    return { id: created.id, steamHasAchievements: created.steam_has_achievements };
+    return { id: created.id, steamHasAchievements: created.steam_has_achievements, isOwner: true };
   }
 
   // Carrera con otro sync insertando el mismo appid: reintentar la lectura.
-  const { data: retry } = await supabase
+  const { data: retry } = await catalog
     .from("games")
     .select(GAME_SELECT)
     .eq("steam_appid", game.appId)
     .maybeSingle();
-  return retry ? { id: retry.id, steamHasAchievements: retry.steam_has_achievements } : null;
+  return retry
+    ? {
+        id: retry.id,
+        steamHasAchievements: retry.steam_has_achievements,
+        isOwner: retry.created_by === userId,
+      }
+    : null;
 }
 
 async function syncTitle(
   supabase: SupabaseClient<Database>,
+  catalog: SupabaseClient<Database>,
   userId: string,
   steamId64: string,
   game: SteamOwnedGame,
   recentlyPlayedAppIds: Set<number>,
   syncStartedAt: string,
 ): Promise<{ titleSynced: boolean; achievements: number; withoutAchievements: boolean }> {
-  const row = await resolveGameRow(supabase, userId, game);
+  const row = await resolveGameRow(catalog, userId, game);
   if (!row) return { titleSynced: false, achievements: 0, withoutAchievements: false };
 
   // `rtime_last_played` de GetOwnedGames viene en null para estas cuentas: si
@@ -164,20 +178,12 @@ async function syncTitle(
   const result = await fetchGameAchievements(steamId64, game.appId);
 
   if (result.status === "no_achievements") {
-    await supabase
-      .from("games")
-      .update({ steam_has_achievements: false })
-      .eq("id", row.id)
-      .eq("created_by", userId);
+    await catalog.from("games").update({ steam_has_achievements: false }).eq("id", row.id);
     return { titleSynced: true, achievements: 0, withoutAchievements: true };
   }
 
   if (row.steamHasAchievements !== true) {
-    await supabase
-      .from("games")
-      .update({ steam_has_achievements: true })
-      .eq("id", row.id)
-      .eq("created_by", userId);
+    await catalog.from("games").update({ steam_has_achievements: true }).eq("id", row.id);
   }
 
   // Upsert en bloque por título, nunca fila por fila: con bibliotecas de
@@ -196,9 +202,14 @@ async function syncTitle(
     created_by: userId,
   }));
 
-  await supabase.from("trophies").upsert(rows, { onConflict: "game_id,trophy_id" });
+  // Sólo el sync de quien dio de alta el juego reescribe las filas
+  // compartidas; los demás agregan lo que falta. Así `created_by` no cambia de
+  // dueño en cada sync y queda el mismo criterio que en PSN.
+  await catalog
+    .from("trophies")
+    .upsert(rows, { onConflict: "game_id,trophy_id", ignoreDuplicates: !row.isOwner });
 
-  const { data: stored } = await supabase
+  const { data: stored } = await catalog
     .from("trophies")
     .select("id, trophy_id")
     .eq("game_id", row.id);
@@ -302,9 +313,18 @@ export async function syncSteamAchievementsForUser(
     () => new Set<number>(),
   );
   const syncStartedAt = new Date().toISOString();
+  const catalog = createServiceClient();
 
   const results = await mapWithConcurrency(owned, TITLE_CONCURRENCY, (game) =>
-    syncTitle(supabase, userId, account.steam_id64, game, recentlyPlayedAppIds, syncStartedAt),
+    syncTitle(
+      supabase,
+      catalog,
+      userId,
+      account.steam_id64,
+      game,
+      recentlyPlayedAppIds,
+      syncStartedAt,
+    ),
   );
 
   // El nombre y el avatar pueden cambiar en Steam sin que el usuario reconecte.

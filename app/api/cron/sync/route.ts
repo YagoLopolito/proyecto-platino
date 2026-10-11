@@ -8,6 +8,8 @@ import { refreshSystemLists } from "@/lib/lists/system";
 import { backfillGameCompanies } from "@/lib/studios/backfill";
 import { isValidCronAuthorization } from "@/lib/cron/auth";
 import { cleanupPosts } from "@/lib/posts/cleanup";
+import { cleanupAiUsage } from "@/lib/ai-usage/cleanup";
+import { dbErrorMessage } from "@/lib/errors";
 
 /**
  * Igual límite que /api/psn/sync (ver CLAUDE.md): declarar maxDuration no
@@ -40,10 +42,8 @@ async function refreshSystemListsStep(supabase: ReturnType<typeof createServiceC
     return { ok: true as const, lists: await refreshSystemLists(supabase) };
   } catch (cause) {
     console.error("[cron] no se pudieron refrescar las listas pregeneradas", cause);
-    return {
-      ok: false as const,
-      error: cause instanceof Error ? cause.message : "Error inesperado.",
-    };
+    // El detalle queda en el log: la respuesta no nombra tablas ni funciones (#165).
+    return { ok: false as const, error: "No se pudieron refrescar las listas." };
   }
 }
 
@@ -57,10 +57,20 @@ async function cleanupPostsStep(supabase: ReturnType<typeof createServiceClient>
     return { ok: true as const, ...(await cleanupPosts(supabase)) };
   } catch (cause) {
     console.error("[cron] no se pudo limpiar la galería", cause);
-    return {
-      ok: false as const,
-      error: cause instanceof Error ? cause.message : "Error inesperado.",
-    };
+    return { ok: false as const, error: "No se pudo limpiar la galería." };
+  }
+}
+
+/**
+ * Borra las marcas viejas del freno de IA (#235). Mismo criterio que los otros
+ * pasos: en su propio try/catch, no puede hacer fallar el sync.
+ */
+async function cleanupAiUsageStep(supabase: ReturnType<typeof createServiceClient>) {
+  try {
+    return { ok: true as const, ...(await cleanupAiUsage(supabase)) };
+  } catch (cause) {
+    console.error("[cron] no se pudieron borrar las marcas viejas de ai_usage", cause);
+    return { ok: false as const, error: "No se pudieron borrar las marcas viejas de IA." };
   }
 }
 
@@ -83,6 +93,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ posts: await cleanupPostsStep(supabase) });
   }
 
+  // `?paso=ia` corre sólo la limpieza de `ai_usage` (tests y a mano).
+  if (request.nextUrl.searchParams.get("paso") === "ia") {
+    return NextResponse.json({ aiUsage: await cleanupAiUsageStep(supabase) });
+  }
+
   // `?paso=estudios` completa los estudios de IGDB de una tanda de juegos
   // viejos (#193). No lo corre el cron diario: lo dispara a mano
   // `scripts/backfill-companies.mjs`, que repite hasta que no quede nada.
@@ -103,7 +118,10 @@ export async function GET(request: NextRequest) {
 
   const error = psnError ?? steamError;
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: dbErrorMessage("cron.accounts", error, "No se pudieron leer las cuentas.") },
+      { status: 500 },
+    );
   }
 
   // Una plataforma por cuenta y por entrada: si una falla, no puede tirar abajo
@@ -129,27 +147,29 @@ export async function GET(request: NextRequest) {
     } catch (cause) {
       // El sync marca solo `token_status`/`profile_visibility` en la cuenta que
       // falló; acá solo se reporta, para que la corrida siga con las demás.
+      // Sólo los dos estados conocidos se nombran en la respuesta; el resto
+      // puede ser un error crudo de la base y va únicamente al log (#165).
       const message =
         cause instanceof NpssoExpiredError
           ? "NPSSO vencido."
           : cause instanceof SteamProfilePrivateError
             ? "Perfil de Steam en privado."
-            : cause instanceof Error
-              ? cause.message
-              : "Error inesperado.";
+            : "Error inesperado.";
       // El userId va sólo al log del server, no a la respuesta (#133).
-      console.error(`[cron] falló el sync ${job.platform} de ${job.userId}: ${message}`);
+      console.error(`[cron] falló el sync ${job.platform} de ${job.userId}: ${message}`, cause);
       return { platform: job.platform, ok: false as const, error: message };
     }
   });
 
   const systemLists = await refreshSystemListsStep(supabase);
   const posts = await cleanupPostsStep(supabase);
+  const aiUsage = await cleanupAiUsageStep(supabase);
 
   // Sólo conteos y errores: la respuesta no identifica a ningún usuario (#133).
   return NextResponse.json({
     systemLists,
     posts,
+    aiUsage,
     accountsProcessed: results.length,
     succeeded: results.filter((r) => r.ok).length,
     failed: results.filter((r) => !r.ok).length,

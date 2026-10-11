@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_FAVORITE_GAMES } from "@/lib/profile/constants";
+import { dbErrorMessage } from "@/lib/errors";
 
 export interface FavoritesActionState {
   error: string | null;
@@ -59,7 +60,10 @@ export async function saveFavoriteGames(
     .delete()
     .eq("user_id", user.id);
   if (deleteError) {
-    return { error: `No se pudo guardar: ${deleteError.message}`, success: null };
+    return {
+      error: dbErrorMessage("profile.top5", deleteError, "No se pudo guardar."),
+      success: null,
+    };
   }
 
   if (gameIds.length > 0) {
@@ -71,7 +75,10 @@ export async function saveFavoriteGames(
       })),
     );
     if (insertError) {
-      return { error: `No se pudo guardar: ${insertError.message}`, success: null };
+      return {
+        error: dbErrorMessage("profile.top5", insertError, "No se pudo guardar."),
+        success: null,
+      };
     }
   }
 

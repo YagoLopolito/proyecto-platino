@@ -11,6 +11,7 @@ import {
 } from "@/lib/catalog/details";
 import { getGameStudios } from "@/lib/studios/store";
 import { getGameDiarySummary, type GameDiarySummaryOutcome } from "@/lib/diary/queries";
+import { dbErrorMessage } from "@/lib/errors";
 
 /**
  * Datos de la ficha de juego unificada (epic #183, issue #186).
@@ -172,7 +173,7 @@ export const getGameTrophyProgress = cache(async (gameId: string): Promise<GameT
   return {
     trophies,
     groups: groups ?? [],
-    error: error?.message ?? null,
+    error: error ? dbErrorMessage("game.trophies", error) : null,
     total,
     obtainedCount,
     percent: total > 0 ? Math.round((obtainedCount / total) * 100) : 0,

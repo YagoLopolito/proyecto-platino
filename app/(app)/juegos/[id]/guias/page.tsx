@@ -7,6 +7,7 @@ import type { AiGamePlan } from "@/lib/ai";
 import { getGamePageBase, getGameTrophyProgress } from "@/lib/game-page/data";
 import AiAdvisorPanel from "../AiAdvisorPanel";
 import FindExternalGuidesButton from "../enlaces/FindExternalGuidesButton";
+import { dbErrorMessage } from "@/lib/errors";
 
 /**
  * El advisor (`generateAiPlan`) llama al LLM y puede reintentar una vez, y
@@ -23,6 +24,15 @@ export const maxDuration = 60;
  * juego, separado de lo que se *dice* de él (Reseñas) y de tu progreso
  * (Trofeos).
  */
+function isHttpsUrl(value: string | null): boolean {
+  if (!value) return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export default async function GameGuidesTab({ params }: { params: Promise<{ id: string }> }) {
   const { id: gameId } = await params;
   const [base, progress] = await Promise.all([
@@ -60,12 +70,16 @@ export default async function GameGuidesTab({ params }: { params: Promise<{ id: 
 
   const links = [
     ...(curatedGuides ?? []),
-    ...(userLinks ?? []).map((guide) => ({
-      id: guide.id,
-      title: guide.title,
-      url: guide.external_url as string,
-      source: guide.source,
-    })),
+    // Desde #160 `guides` no la escribe nadie con sesión, pero un enlace que no
+    // sea https (un `javascript:` o un http plano) igual no se muestra.
+    ...(userLinks ?? [])
+      .filter((guide) => isHttpsUrl(guide.external_url))
+      .map((guide) => ({
+        id: guide.id,
+        title: guide.title,
+        url: guide.external_url as string,
+        source: guide.source,
+      })),
   ];
   const linksError = curatedError ?? userLinksError;
   const canUseAdvisor = base.isMember && progress.total > 0;
@@ -103,7 +117,9 @@ export default async function GameGuidesTab({ params }: { params: Promise<{ id: 
         </p>
         <FindExternalGuidesButton gameId={gameId} />
         {linksError && (
-          <ErrorState message={`No se pudieron cargar los enlaces: ${linksError.message}`} />
+          <ErrorState
+            message={`No se pudieron cargar los enlaces: ${dbErrorMessage("game.links", linksError)}`}
+          />
         )}
         {!linksError && links.length === 0 && (
           <EmptyState

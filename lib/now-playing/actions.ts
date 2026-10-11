@@ -11,6 +11,7 @@ import {
   type NowPlayingGame,
   type PlaySuggestion,
 } from "@/lib/now-playing/queries";
+import { dbErrorMessage } from "@/lib/errors";
 
 export type NowPlayingActionResult = {
   error: string | null;
@@ -64,7 +65,7 @@ export async function startPlaying(gameId: string): Promise<NowPlayingActionResu
   if (error) {
     // El unique parcial de rachas abiertas: ya lo estás jugando.
     if (error.code === "23505") return { error: "Ya lo estás jugando." };
-    return { error: `No se pudo marcar como jugando: ${error.message}` };
+    return { error: dbErrorMessage("now-playing", error, "No se pudo marcar como jugando.") };
   }
 
   const [, removedFromPlaylist] = await Promise.all([
@@ -90,7 +91,7 @@ export async function stopPlaying(gameId: string): Promise<NowPlayingActionResul
   if (!user) return { error: "Tenés que iniciar sesión." };
 
   const { error } = await endNowPlaying(supabase, user.id, parsed.data, "manual");
-  if (error) return { error: `No se pudo actualizar: ${error}` };
+  if (error) return { error };
 
   revalidateNowPlaying();
   return { error: null };
@@ -123,7 +124,7 @@ export async function dismissPlaySuggestion(gameId: string): Promise<NowPlayingA
     .update({ play_suggestion_dismissed_at: row?.last_played_at ?? new Date().toISOString() })
     .eq("user_id", user.id)
     .eq("game_id", parsed.data);
-  if (error) return { error: `No se pudo descartar: ${error.message}` };
+  if (error) return { error: dbErrorMessage("now-playing", error, "No se pudo descartar.") };
 
   revalidatePath("/biblioteca");
   return { error: null };

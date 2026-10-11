@@ -7,6 +7,7 @@ import {
   type ActivityKind,
   type ActivityTab,
 } from "@/lib/activity/format";
+import { dbErrorMessage } from "@/lib/errors";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -65,7 +66,7 @@ export async function getActivityPage(
     ...(cursor ? { before_at: cursor.occurredAt, before_id: cursor.id } : {}),
     ...(kinds ? { kinds } : {}),
   });
-  if (error) return { status: "error", message: error.message };
+  if (error) return { status: "error", message: dbErrorMessage("activity", error) };
 
   const rows = (data ?? []).slice(0, limit);
   const last = rows.at(-1);

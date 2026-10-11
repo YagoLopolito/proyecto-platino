@@ -16,6 +16,7 @@ import {
 import { captionSchema, commentSchema, confirmPostSchema, type ConfirmedMedia } from "./validation";
 import type { PostComment } from "./types";
 import { SNIFF_BYTES, sniffMatchesDeclared } from "./sniff";
+import { dbErrorMessage } from "@/lib/errors";
 
 /**
  * Server Actions de la Galería online. Doble capa como todo el contenido de
@@ -146,7 +147,10 @@ export async function confirmPost(input: {
     .from(POST_MEDIA_BUCKET)
     .list(`${user.id}/${postId}`, { limit: 100 });
   if (listError)
-    return { status: "error", message: `No se pudieron leer los archivos: ${listError.message}` };
+    return {
+      status: "error",
+      message: dbErrorMessage("posts", listError, "No se pudieron leer los archivos."),
+    };
   const stored = new Map(
     (objects ?? []).map((object) => [
       `${user.id}/${postId}/${object.name}`,
@@ -223,7 +227,7 @@ export async function confirmPost(input: {
   if (insertError) {
     return {
       status: "error",
-      message: `No se pudieron guardar los archivos: ${insertError.message}`,
+      message: dbErrorMessage("posts", insertError, "No se pudieron guardar los archivos."),
     };
   }
 
@@ -232,7 +236,10 @@ export async function confirmPost(input: {
     .update({ status: "published" })
     .eq("id", postId);
   if (publishError) {
-    return { status: "error", message: `No se pudo publicar: ${publishError.message}` };
+    return {
+      status: "error",
+      message: dbErrorMessage("posts", publishError, "No se pudo publicar."),
+    };
   }
 
   revalidateGallery(post.game_id);
@@ -263,7 +270,8 @@ export async function abandonDraft(postId: string): Promise<{ error: string | nu
     .eq("id", parsed.data)
     .eq("user_id", user.id)
     .eq("status", "uploading");
-  if (error) return { error: error.message };
+  if (error)
+    return { error: dbErrorMessage("posts", error, "No se pudo descartar la publicación.") };
   return { error: null };
 }
 
@@ -297,7 +305,7 @@ export async function updatePost(input: {
     .eq("status", "published")
     .select("game_id, edited_at")
     .maybeSingle();
-  if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (error) return { error: dbErrorMessage("posts", error, "No se pudo guardar.") };
   if (!data) return { error: "Sólo podés editar tus publicaciones." };
 
   revalidateGallery(data.game_id);
@@ -331,16 +339,18 @@ export async function deletePost(postId: string): Promise<PostActionResult> {
   const { data: objects, error: listError } = await supabase.storage
     .from(POST_MEDIA_BUCKET)
     .list(folder, { limit: 100 });
-  if (listError) return { error: `No se pudieron leer los archivos: ${listError.message}` };
+  if (listError)
+    return { error: dbErrorMessage("posts", listError, "No se pudieron leer los archivos.") };
   if (objects && objects.length > 0) {
     const { error: removeError } = await supabase.storage
       .from(POST_MEDIA_BUCKET)
       .remove(objects.map((object) => `${folder}/${object.name}`));
-    if (removeError) return { error: `No se pudieron borrar los archivos: ${removeError.message}` };
+    if (removeError)
+      return { error: dbErrorMessage("posts", removeError, "No se pudieron borrar los archivos.") };
   }
 
   const { error } = await supabase.from("posts").delete().eq("id", post.id).eq("user_id", user.id);
-  if (error) return { error: `No se pudo borrar: ${error.message}` };
+  if (error) return { error: dbErrorMessage("posts", error, "No se pudo borrar.") };
 
   revalidateGallery(post.game_id);
   return { error: null };
@@ -378,7 +388,7 @@ export async function setPostLike(postId: string, liked: boolean): Promise<PostA
           { onConflict: "post_id,user_id", ignoreDuplicates: true },
         )
     : await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
-  if (error) return { error: `No se pudo guardar el me gusta: ${error.message}` };
+  if (error) return { error: dbErrorMessage("posts", error, "No se pudo guardar el me gusta.") };
   return { error: null };
 }
 
@@ -448,6 +458,6 @@ export async function deleteComment(commentId: string): Promise<PostActionResult
   }
 
   const { error } = await supabase.from("post_comments").delete().eq("id", comment.id);
-  if (error) return { error: `No se pudo borrar el comentario: ${error.message}` };
+  if (error) return { error: dbErrorMessage("posts", error, "No se pudo borrar el comentario.") };
   return { error: null };
 }

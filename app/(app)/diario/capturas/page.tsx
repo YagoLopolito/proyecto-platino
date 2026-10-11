@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ScreenshotImporter from "@/components/diary/ScreenshotImporter";
 import { ErrorState } from "@/components/ErrorState";
+import { dbErrorMessage } from "@/lib/errors";
 
 export const metadata = { title: "Importar capturas" };
 
@@ -55,7 +56,9 @@ export default async function ImportScreenshotsPage() {
         </div>
 
         {error ? (
-          <ErrorState message={`No se pudo cargar tu biblioteca: ${error.message}`} />
+          <ErrorState
+            message={`No se pudo cargar tu biblioteca: ${dbErrorMessage("capturas", error)}`}
+          />
         ) : (
           <ScreenshotImporter games={games} />
         )}

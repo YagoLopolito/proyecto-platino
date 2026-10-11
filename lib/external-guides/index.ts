@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { findSteamGuides } from "./steam";
 import { buildSiteSearchLinks } from "./site-search";
 import { ExternalGuideSourceError } from "./errors";
+import { dbErrorMessage } from "@/lib/errors";
 
 export type PopulateExternalGuidesResult = {
   inserted: number;
@@ -53,6 +54,7 @@ export async function populateExternalGuidesForGame(
       });
     }
   } catch (cause) {
+    console.error("[external-guides] falló la búsqueda en Steam:", cause);
     errors.push(
       cause instanceof ExternalGuideSourceError
         ? cause.message
@@ -88,7 +90,13 @@ export async function populateExternalGuidesForGame(
       .eq("source_type", "steam_api");
 
     if (cleanupError) {
-      errors.push(`No se pudieron limpiar los enlaces viejos de Steam: ${cleanupError.message}`);
+      errors.push(
+        dbErrorMessage(
+          "external-guides",
+          cleanupError,
+          "No se pudieron limpiar los enlaces viejos de Steam.",
+        ),
+      );
     }
   }
 
@@ -101,7 +109,9 @@ export async function populateExternalGuidesForGame(
     .upsert(rows, { onConflict: "game_id,url", ignoreDuplicates: true, count: "exact" });
 
   if (error) {
-    errors.push(`No se pudieron guardar los enlaces encontrados: ${error.message}`);
+    errors.push(
+      dbErrorMessage("external-guides", error, "No se pudieron guardar los enlaces encontrados."),
+    );
     return { inserted: 0, errors };
   }
 

@@ -1,7 +1,7 @@
 /**
  * Freno de frecuencia para las acciones caras que dispara el usuario a mano
  * (issue #128). Puro y sin `server-only`: lo usan la ruta de sync, el botón y
- * la Server Action del advisor, y se testea directo desde el spec.
+ * las Server Actions de IA, y se testea directo desde el spec.
  *
  * El cron (`/api/cron/sync`) NO pasa por acá: corre una vez por día y tiene que
  * sincronizar aunque el usuario haya sincronizado a mano un rato antes.
@@ -32,6 +32,21 @@ export const AI_RECOMMENDATIONS_COOLDOWN_MS = 5 * 60 * 1000;
  * protege es la cuota de la `STEAM_API_KEY`.
  */
 export const EXTERNAL_GUIDES_COOLDOWN_MS = 10 * 60 * 1000;
+
+/** Un tope de una ventana deslizante: como mucho `max` pedidos cada `windowMs`. */
+export type RateLimit = { windowMs: number; max: number };
+
+/**
+ * Topes de la ayuda de un trofeo con IA por usuario (#235). No hay una marca
+ * única que mirar (la ayuda no se guarda): cada pedido deja una fila en
+ * `ai_usage`, y la cuenta la hace la función `claim_ai_usage` de la base, que
+ * cuenta y anota en un solo paso. El de un minuto frena un loop; el diario, un
+ * goteo constante.
+ */
+export const TROPHY_HINT_LIMITS: readonly RateLimit[] = [
+  { windowMs: 60 * 1000, max: 10 },
+  { windowMs: 24 * 60 * 60 * 1000, max: 100 },
+];
 
 /** Milisegundos que faltan para poder repetir la acción (0 si ya se puede). */
 export function cooldownRemainingMs(

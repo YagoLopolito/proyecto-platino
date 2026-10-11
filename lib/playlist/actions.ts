@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { dbErrorMessage } from "@/lib/errors";
 
 export type PlaylistActionResult = { error: string | null };
 
@@ -39,7 +40,8 @@ export async function addToPlaylist(gameId: string): Promise<PlaylistActionResul
       { user_id: user.id, game_id: parsed.data },
       { onConflict: "user_id,game_id", ignoreDuplicates: true },
     );
-  if (error) return { error: `No se pudo agregar a la Playlist: ${error.message}` };
+  if (error)
+    return { error: dbErrorMessage("playlist", error, "No se pudo agregar a la Playlist.") };
 
   revalidatePlaylist();
   return { error: null };
@@ -60,7 +62,8 @@ export async function removeFromPlaylist(gameId: string): Promise<PlaylistAction
     .delete()
     .eq("user_id", user.id)
     .eq("game_id", parsed.data);
-  if (error) return { error: `No se pudo sacar de la Playlist: ${error.message}` };
+  if (error)
+    return { error: dbErrorMessage("playlist", error, "No se pudo sacar de la Playlist.") };
 
   revalidatePlaylist();
   return { error: null };

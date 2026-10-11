@@ -12,6 +12,7 @@ import {
 } from "./constants";
 import { pageCount, pageRange } from "./pagination";
 import type { PostPerson, PostView, PostsPage } from "./types";
+import { dbErrorMessage } from "@/lib/errors";
 
 type Client = SupabaseClient<Database>;
 
@@ -308,7 +309,8 @@ async function listPosts(
   // Una página más allá del final: PostgREST responde 416 (PGRST103) SIN el
   // `count`, que es justo lo que hace falta para redirigir a la última página.
   // Se cuenta aparte, sólo en ese caso.
-  if (error && error.code !== "PGRST103") return { status: "error", message: error.message };
+  if (error && error.code !== "PGRST103")
+    return { status: "error", message: dbErrorMessage("posts.queries", error) };
   let total = count ?? 0;
   if (error) {
     let countQuery = supabase
@@ -319,7 +321,8 @@ async function listPosts(
     else if ("gameId" in filter) countQuery = countQuery.eq("game_id", filter.gameId);
     else countQuery = countQuery.eq("user_id", filter.userId);
     const { count: fullCount, error: countError } = await countQuery;
-    if (countError) return { status: "error", message: countError.message };
+    if (countError)
+      return { status: "error", message: dbErrorMessage("posts.queries", countError) };
     total = fullCount ?? 0;
   }
   return {
