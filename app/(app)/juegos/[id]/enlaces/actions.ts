@@ -8,6 +8,7 @@ import {
   cooldownRemainingMs,
   formatCooldown,
 } from "@/lib/sync/cooldown";
+import { dbErrorMessage } from "@/lib/errors";
 
 export type FindExternalGuidesState = {
   inserted: number | null;
@@ -70,9 +71,13 @@ export async function findExternalGuides(
     revalidatePath(`/juegos/${gameId}`, "layout");
     return result;
   } catch (cause) {
-    console.error("findExternalGuides failed:", cause);
-    const message =
-      cause instanceof Error ? cause.message : "Falló la búsqueda de enlaces externos.";
+    // Puede ser el error de `createServiceClient` (nombra variables de
+    // entorno) o uno crudo de la base: el detalle va al log (#165).
+    const message = dbErrorMessage(
+      "findExternalGuides",
+      cause,
+      "Falló la búsqueda de enlaces externos.",
+    );
     return { inserted: null, errors: [message] };
   }
 }

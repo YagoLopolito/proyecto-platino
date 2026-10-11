@@ -64,7 +64,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // La CSP lleva un nonce por request (#222, ver `middleware.ts`), y Next sólo
+  // La CSP lleva un nonce por request (#222, ver `proxy.ts`), y Next sólo
   // se lo puede poner a sus scripts al renderizar. Una página prerenderizada
   // en el build (la landing, `/login`, `/offline`) saldría con scripts sin
   // nonce y el navegador los bloquearía: todo se renderiza por request.

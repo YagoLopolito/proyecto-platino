@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { generateTrophyHint, AiProviderError } from "@/lib/ai";
 import { logDbError } from "@/lib/errors";
-import { TROPHY_HINT_LIMITS, formatCooldown, slidingWindowRemainingMs } from "@/lib/sync/cooldown";
+import { TROPHY_HINT_LIMITS, formatCooldown } from "@/lib/sync/cooldown";
 import type { TrophyType } from "@/components/TrophyTypeIcon";
 
 export type TrophyHintState = {
@@ -50,39 +50,24 @@ export async function explainTrophy(
   }
 
   // Freno por usuario (#235): el free tier de Groq es por organización, y un
-  // usuario en loop lo dejaba caído para todos. Se cuentan los pedidos de la
-  // ventana más larga y se anota este ANTES de llamar al proveedor: un pedido
-  // que falla también le pegó a Groq.
-  const longestWindowMs = Math.max(...TROPHY_HINT_LIMITS.map((limit) => limit.windowMs));
-  const maxInWindow = Math.max(...TROPHY_HINT_LIMITS.map((limit) => limit.max));
-  const { data: usage, error: usageError } = await supabase
-    .from("ai_usage")
-    .select("created_at")
-    .eq("user_id", user.id)
-    .eq("kind", "trophy_hint")
-    .gte("created_at", new Date(Date.now() - longestWindowMs).toISOString())
-    .order("created_at", { ascending: false })
-    .limit(maxInWindow);
-  if (usageError) {
-    logDbError("explainTrophy.usage", usageError);
+  // usuario en loop lo dejaba caído para todos. `claim_ai_usage` cuenta y
+  // anota en un solo paso (con lock: dos pedidos en paralelo no pasan los dos)
+  // ANTES de llamar al proveedor, porque un pedido que falla también le pegó
+  // a Groq. Si devuelve > 0 no anotó nada.
+  const { data: remainingMs, error: usageError } = await supabase.rpc("claim_ai_usage", {
+    p_kind: "trophy_hint",
+    p_window_seconds: TROPHY_HINT_LIMITS.map((limit) => limit.windowMs / 1000),
+    p_max: TROPHY_HINT_LIMITS.map((limit) => limit.max),
+  });
+  if (usageError || remainingMs === null) {
+    logDbError("explainTrophy.claim", usageError);
     return { hint: null, error: "No se pudo generar la ayuda." };
   }
-  const remainingMs = slidingWindowRemainingMs(
-    (usage ?? []).map((row) => row.created_at),
-    TROPHY_HINT_LIMITS,
-  );
   if (remainingMs > 0) {
     return {
       hint: null,
       error: `Pediste muchas ayudas seguidas. Podés pedir otra en ${formatCooldown(remainingMs)}.`,
     };
-  }
-  const { error: recordError } = await supabase
-    .from("ai_usage")
-    .insert({ user_id: user.id, kind: "trophy_hint" });
-  if (recordError) {
-    logDbError("explainTrophy.record", recordError);
-    return { hint: null, error: "No se pudo generar la ayuda." };
   }
 
   try {

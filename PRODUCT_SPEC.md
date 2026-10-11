@@ -388,7 +388,7 @@ La ruta `/psn` deja de existir como sección propia — hoy es un tab de nivel s
   Steam en público) viven adentro de cada tarjeta, no sueltas en la página.
 - `/psn` se mantiene como **redirect** a `/configuracion/conexiones`: hay links guardados y el
   middleware ya la protege.
-- `middleware.ts` tiene un matcher acotado a mano (ver `CLAUDE.md`, sección de performance):
+- `proxy.ts` tiene un matcher acotado a mano (ver `CLAUDE.md`, sección de performance):
   agregar `/configuracion` ahí es parte de la tarea, no un detalle — si se olvida, la ruta
   queda sin la capa de sesión del middleware.
 

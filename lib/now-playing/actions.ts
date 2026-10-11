@@ -91,7 +91,7 @@ export async function stopPlaying(gameId: string): Promise<NowPlayingActionResul
   if (!user) return { error: "Tenés que iniciar sesión." };
 
   const { error } = await endNowPlaying(supabase, user.id, parsed.data, "manual");
-  if (error) return { error: `No se pudo actualizar: ${error}` };
+  if (error) return { error };
 
   revalidateNowPlaying();
   return { error: null };

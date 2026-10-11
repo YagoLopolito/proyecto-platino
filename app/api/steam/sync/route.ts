@@ -49,6 +49,7 @@ export async function POST() {
     // de privacidad que solo el usuario puede cambiar. Va con su propio código
     // para que la UI muestre las instrucciones en vez de "probá más tarde".
     if (error instanceof SteamProfilePrivateError) {
+      // #165: mensaje propio
       return NextResponse.json({ error: error.message, reason: "private" }, { status: 409 });
     }
     const message =

@@ -5,7 +5,7 @@ import { buildContentSecurityPolicy, createNonce } from "@/lib/security/csp";
 /**
  * Rutas que dependen de sesión (protegidas o de auth): sólo ellas pagan el
  * round-trip a Supabase Auth. Antes esto era el `matcher`; desde #222 el
- * middleware corre en todas las páginas para ponerles la CSP con nonce, y la
+ * proxy corre en todas las páginas para ponerles la CSP con nonce, y la
  * sesión se sigue refrescando sólo acá.
  */
 const SESSION_PATH_PREFIXES = [
@@ -31,7 +31,7 @@ function needsSession(pathname: string): boolean {
   );
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const csp = buildContentSecurityPolicy({
     nonce: createNonce(),
     isDev: process.env.NODE_ENV === "development",

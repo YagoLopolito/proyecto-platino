@@ -6,7 +6,7 @@ import { createTestUserClient } from "../helpers/supabase";
 import { createTestUser } from "../helpers/auth";
 import { testGameCommId } from "../helpers/ids";
 import { buildContentSecurityPolicy } from "../../lib/security/csp";
-import { TROPHY_HINT_LIMITS, slidingWindowRemainingMs } from "../../lib/sync/cooldown";
+import { TROPHY_HINT_LIMITS } from "../../lib/sync/cooldown";
 
 /**
  * Endurecimiento de la columna Ready del proyecto de seguridad: guías de sólo
@@ -160,27 +160,48 @@ test.describe("Catálogo compartido (#164)", () => {
 
 test.describe("Errores de la base (#165)", () => {
   test("SEC-10: ningún mensaje crudo de la base se arma en una respuesta", () => {
-    // El equivalente al `grep` del DoD, para que no vuelva: un
-    // `${error.message}` en un template de app/, components/ o lib/ es un
-    // error de Postgres camino al cliente. Los `console.*` son logs del
-    // server y quedan afuera.
+    // El equivalente al `grep` del DoD, para que no vuelva. Tres formas de
+    // mandarle al cliente el mensaje de un error ajeno:
+    // - `${error.message}` dentro de un template;
+    // - `error: error.message` / `message: error.message` en un objeto;
+    // - `cause instanceof Error ? cause.message : …`, que deja pasar CUALQUIER
+    //   error (los propios se distinguen por su clase, no por `Error`).
+    // Los `console.*` son logs del server y quedan afuera, igual que el
+    // mensaje de una clase de error propia marcado con `// #165: mensaje
+    // propio`. La tercera se busca sólo en `app/`: en `lib/` arma mensajes
+    // para el log (IGDB, IA).
+    const LEAKS: { pattern: RegExp; dirs: string[] }[] = [
+      { pattern: /\$\{\w*[eE]rror\??\.message\}/, dirs: ["app", "components", "lib"] },
+      {
+        pattern: /\b(error|message):\s*\w*[eE]rror\??\.message\b/,
+        dirs: ["app", "components", "lib"],
+      },
+      { pattern: /instanceof Error\s*\?\s*\w+\.message/, dirs: ["app"] },
+    ];
     const offenders: string[] = [];
-    const walk = (dir: string) => {
+    const walk = (dir: string, pattern: RegExp) => {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) walk(full);
+        if (entry.isDirectory()) walk(full, pattern);
         else if (/\.(ts|tsx)$/.test(entry.name)) {
-          fs.readFileSync(full, "utf8")
-            .split("\n")
-            .forEach((line, i) => {
-              if (/\$\{\w*[eE]rror\??\.message\}/.test(line) && !/console\./.test(line)) {
-                offenders.push(`${full}:${i + 1}`);
-              }
-            });
+          const lines = fs.readFileSync(full, "utf8").split("\n");
+          lines.forEach((line, i) => {
+            if (!pattern.test(line)) return;
+            // Un `console.*` de varias líneas, o un mensaje de un error propio
+            // marcado a mano (`// #165: mensaje propio`), no van al cliente.
+            const context = lines.slice(Math.max(0, i - 4), i + 1).join("\n");
+            // La marca va en la misma línea o en la anterior (prettier mueve
+            // un comentario al final si la línea se pasa de largo).
+            const marked = /#165: mensaje propio/.test(`${lines[i - 1] ?? ""}\n${line}`);
+            if (/console\./.test(context) || marked) return;
+            offenders.push(`${full}:${i + 1}`);
+          });
         }
       }
     };
-    for (const dir of ["app", "components", "lib"]) walk(path.join(process.cwd(), dir));
+    for (const { pattern, dirs } of LEAKS) {
+      for (const dir of dirs) walk(path.join(process.cwd(), dir), pattern);
+    }
     expect(offenders).toEqual([]);
   });
 });
@@ -242,24 +263,86 @@ test.describe("Content-Security-Policy (#222)", () => {
   });
 });
 
+/**
+ * Un usuario propio por test (y por intento): los topes son por usuario, y
+ * llenar el de userA frenaría a los otros specs que corren en paralelo. El
+ * número de intento va en el mail para que un reintento de Playwright no choque
+ * con el usuario que dejó el intento anterior (lo barre el teardown).
+ */
+async function freshUser(supabase: Parameters<typeof createTestUser>[0], label: string) {
+  const { runId } = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), "e2e", ".auth", "users.json"), "utf8"),
+  ) as { runId: string };
+  return createTestUser(supabase, `${label}-${runId}-r${test.info().retry}`);
+}
+
 test.describe("Freno de la ayuda de trofeo (#235)", () => {
-  test("SEC-12: la ventana deslizante cuenta cada tope por separado", () => {
-    const now = Date.parse("2026-10-10T12:00:00Z");
-    const at = (msAgo: number) => new Date(now - msAgo).toISOString();
-    // 9 en el último minuto: entra uno más.
-    expect(
-      slidingWindowRemainingMs(
-        Array.from({ length: 9 }, () => at(1_000)),
-        TROPHY_HINT_LIMITS,
-        now,
-      ),
-    ).toBe(0);
-    // 10 en el último minuto, el más viejo hace 20 s: faltan 40 s.
-    const tenInAMinute = [...Array.from({ length: 9 }, () => at(1_000)), at(20_000)];
-    expect(slidingWindowRemainingMs(tenInAMinute, TROPHY_HINT_LIMITS, now)).toBe(40_000);
-    // 100 en el día, ninguno en el último minuto: frena el diario.
-    const hundredToday = Array.from({ length: 100 }, (_, i) => at(2 * 60_000 + i * 60_000));
-    expect(slidingWindowRemainingMs(hundredToday, TROPHY_HINT_LIMITS, now)).toBeGreaterThan(0);
+  test("SEC-12: claim_ai_usage cuenta y anota en un paso, aun en paralelo", async ({
+    supabase,
+  }) => {
+    const user = await freshUser(supabase, "claim");
+    const client = await createTestUserClient(user.email, user.password);
+    const claim = () =>
+      client.rpc("claim_ai_usage", {
+        p_kind: "trophy_hint",
+        p_window_seconds: [60],
+        p_max: [3],
+      });
+
+    // Diez pedidos a la vez con un tope de 3: entran exactamente 3. Contado y
+    // anotado por separado, los diez leían el mismo conteo y pasaban todos.
+    const results = await Promise.all(Array.from({ length: 10 }, claim));
+    for (const { error } of results) expect(error).toBeNull();
+    const accepted = results.filter(({ data }) => data === 0);
+    expect(accepted).toHaveLength(3);
+    for (const { data } of results.filter(({ data }) => data !== 0)) {
+      // Lo que falta es lo que le queda al más viejo de los tres en la ventana.
+      expect(data).toBeGreaterThan(0);
+      expect(data).toBeLessThanOrEqual(60_000);
+    }
+    const { count } = await supabase
+      .from("ai_usage")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    expect(count).toBe(3);
+
+    // Con sesión no se anota a mano (ni con otra fecha) ni se borra para
+    // resetear el freno.
+    const { data: inserted } = await client
+      .from("ai_usage")
+      .insert({ user_id: user.id, kind: "trophy_hint", created_at: "2000-01-01T00:00:00Z" })
+      .select("id");
+    expect(inserted ?? []).toEqual([]);
+    const { data: deleted } = await client
+      .from("ai_usage")
+      .delete()
+      .eq("user_id", user.id)
+      .select("id");
+    expect(deleted ?? []).toEqual([]);
+  });
+
+  test("SEC-12b: el cron borra las marcas de más de 2 días y deja las recientes", async ({
+    request,
+    supabase,
+  }) => {
+    const secret = process.env.CRON_SECRET;
+    test.skip(!secret, "Necesita CRON_SECRET.");
+    const user = await freshUser(supabase, "aiclean");
+    const old = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    await supabase.from("ai_usage").insert([
+      { user_id: user.id, kind: "trophy_hint", created_at: old },
+      { user_id: user.id, kind: "trophy_hint" },
+    ]);
+
+    const response = await request.get("/api/cron/sync?paso=ia", {
+      headers: { authorization: `Bearer ${secret}` },
+    });
+    expect(response.ok()).toBe(true);
+    expect((await response.json()).aiUsage.ok).toBe(true);
+
+    const { data } = await supabase.from("ai_usage").select("created_at").eq("user_id", user.id);
+    expect(data).toHaveLength(1);
+    expect(Date.parse(data![0].created_at)).toBeGreaterThan(Date.parse(old));
   });
 
   test("AI-18: pasado el tope, la ayuda de un trofeo avisa sin llamar al proveedor", async ({
@@ -267,9 +350,7 @@ test.describe("Freno de la ayuda de trofeo (#235)", () => {
     supabase,
     users,
   }) => {
-    // Un usuario propio: los topes son por usuario, y llenar el de userA
-    // frenaría las ayudas de los otros specs que corren en paralelo.
-    const user = await createTestUser(supabase, `hint-limit-${users.runId}`);
+    const user = await freshUser(supabase, "hint-limit");
     const { gameId, trophyIds } = await seedGameWithTrophies(supabase, user.id, {
       n: 1,
       nameSuffix: `Ayuda Freno ${users.runId}`,

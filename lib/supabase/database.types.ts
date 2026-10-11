@@ -1441,6 +1441,10 @@ export type Database = {
       };
     };
     Functions: {
+      claim_ai_usage: {
+        Args: { p_kind: string; p_window_seconds: number[]; p_max: number[] };
+        Returns: number;
+      };
       count_unread_received: {
         Args: Record<PropertyKey, never>;
         Returns: number;

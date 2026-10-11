@@ -54,6 +54,7 @@ export async function populateExternalGuidesForGame(
       });
     }
   } catch (cause) {
+    console.error("[external-guides] falló la búsqueda en Steam:", cause);
     errors.push(
       cause instanceof ExternalGuideSourceError
         ? cause.message

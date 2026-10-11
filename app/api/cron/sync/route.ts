@@ -8,6 +8,7 @@ import { refreshSystemLists } from "@/lib/lists/system";
 import { backfillGameCompanies } from "@/lib/studios/backfill";
 import { isValidCronAuthorization } from "@/lib/cron/auth";
 import { cleanupPosts } from "@/lib/posts/cleanup";
+import { cleanupAiUsage } from "@/lib/ai-usage/cleanup";
 import { dbErrorMessage } from "@/lib/errors";
 
 /**
@@ -60,6 +61,19 @@ async function cleanupPostsStep(supabase: ReturnType<typeof createServiceClient>
   }
 }
 
+/**
+ * Borra las marcas viejas del freno de IA (#235). Mismo criterio que los otros
+ * pasos: en su propio try/catch, no puede hacer fallar el sync.
+ */
+async function cleanupAiUsageStep(supabase: ReturnType<typeof createServiceClient>) {
+  try {
+    return { ok: true as const, ...(await cleanupAiUsage(supabase)) };
+  } catch (cause) {
+    console.error("[cron] no se pudieron borrar las marcas viejas de ai_usage", cause);
+    return { ok: false as const, error: "No se pudieron borrar las marcas viejas de IA." };
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
@@ -77,6 +91,11 @@ export async function GET(request: NextRequest) {
   // `?paso=publicaciones` corre sólo la limpieza de la galería (tests y a mano).
   if (request.nextUrl.searchParams.get("paso") === "publicaciones") {
     return NextResponse.json({ posts: await cleanupPostsStep(supabase) });
+  }
+
+  // `?paso=ia` corre sólo la limpieza de `ai_usage` (tests y a mano).
+  if (request.nextUrl.searchParams.get("paso") === "ia") {
+    return NextResponse.json({ aiUsage: await cleanupAiUsageStep(supabase) });
   }
 
   // `?paso=estudios` completa los estudios de IGDB de una tanda de juegos
@@ -144,11 +163,13 @@ export async function GET(request: NextRequest) {
 
   const systemLists = await refreshSystemListsStep(supabase);
   const posts = await cleanupPostsStep(supabase);
+  const aiUsage = await cleanupAiUsageStep(supabase);
 
   // Sólo conteos y errores: la respuesta no identifica a ningún usuario (#133).
   return NextResponse.json({
     systemLists,
     posts,
+    aiUsage,
     accountsProcessed: results.length,
     succeeded: results.filter((r) => r.ok).length,
     failed: results.filter((r) => !r.ok).length,

@@ -45,9 +45,13 @@ function rarityFromPercent(percent: number | null): number | null {
   return 3;
 }
 
-type GameRow = { id: string; steamHasAchievements: boolean | null };
+/**
+ * `isOwner`: el juego lo dio de alta este usuario. Sólo ese sync reescribe los
+ * logros compartidos (mismo criterio que el de PSN).
+ */
+type GameRow = { id: string; steamHasAchievements: boolean | null; isOwner: boolean };
 
-const GAME_SELECT = "id, cover_url, steam_has_achievements";
+const GAME_SELECT = "id, cover_url, steam_has_achievements, created_by";
 
 /**
  * La portada sale de la CDN de Steam (`library_600x900`), no del
@@ -87,7 +91,11 @@ async function resolveGameRow(
         await catalog.from("games").update({ cover_url: coverUrl }).eq("id", existing.id);
       }
     }
-    return { id: existing.id, steamHasAchievements: existing.steam_has_achievements };
+    return {
+      id: existing.id,
+      steamHasAchievements: existing.steam_has_achievements,
+      isOwner: existing.created_by === userId,
+    };
   }
 
   const coverUrl = await resolveCoverUrl(game.appId, game.name);
@@ -107,7 +115,7 @@ async function resolveGameRow(
     .single();
 
   if (created) {
-    return { id: created.id, steamHasAchievements: created.steam_has_achievements };
+    return { id: created.id, steamHasAchievements: created.steam_has_achievements, isOwner: true };
   }
 
   // Carrera con otro sync insertando el mismo appid: reintentar la lectura.
@@ -116,7 +124,13 @@ async function resolveGameRow(
     .select(GAME_SELECT)
     .eq("steam_appid", game.appId)
     .maybeSingle();
-  return retry ? { id: retry.id, steamHasAchievements: retry.steam_has_achievements } : null;
+  return retry
+    ? {
+        id: retry.id,
+        steamHasAchievements: retry.steam_has_achievements,
+        isOwner: retry.created_by === userId,
+      }
+    : null;
 }
 
 async function syncTitle(
@@ -188,7 +202,12 @@ async function syncTitle(
     created_by: userId,
   }));
 
-  await catalog.from("trophies").upsert(rows, { onConflict: "game_id,trophy_id" });
+  // Sólo el sync de quien dio de alta el juego reescribe las filas
+  // compartidas; los demás agregan lo que falta. Así `created_by` no cambia de
+  // dueño en cada sync y queda el mismo criterio que en PSN.
+  await catalog
+    .from("trophies")
+    .upsert(rows, { onConflict: "game_id,trophy_id", ignoreDuplicates: !row.isOwner });
 
   const { data: stored } = await catalog
     .from("trophies")

@@ -8,3 +8,14 @@ export class NpssoExpiredError extends Error {
     this.cause = cause;
   }
 }
+
+/**
+ * El usuario no tiene una cuenta PSN conectada. Es un mensaje propio, sin nada
+ * interno, así que la ruta de sync lo muestra tal cual (#165).
+ */
+export class PsnAccountMissingError extends Error {
+  constructor() {
+    super("No tenés una cuenta PSN conectada. Conectala desde Configuración › Conexiones.");
+    this.name = "PsnAccountMissingError";
+  }
+}

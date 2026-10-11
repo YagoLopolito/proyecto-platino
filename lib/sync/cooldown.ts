@@ -39,36 +39,14 @@ export type RateLimit = { windowMs: number; max: number };
 /**
  * Topes de la ayuda de un trofeo con IA por usuario (#235). No hay una marca
  * única que mirar (la ayuda no se guarda): cada pedido deja una fila en
- * `ai_usage`. El de un minuto frena un loop; el diario, un goteo constante.
+ * `ai_usage`, y la cuenta la hace la función `claim_ai_usage` de la base, que
+ * cuenta y anota en un solo paso. El de un minuto frena un loop; el diario, un
+ * goteo constante.
  */
 export const TROPHY_HINT_LIMITS: readonly RateLimit[] = [
   { windowMs: 60 * 1000, max: 10 },
   { windowMs: 24 * 60 * 60 * 1000, max: 100 },
 ];
-
-/**
- * Milisegundos que faltan para que entre un pedido nuevo sin pasar ningún
- * tope (0 si ya entra). `timestamps` son los pedidos anteriores, en cualquier
- * orden; alcanza con pasar los de la ventana más larga.
- */
-export function slidingWindowRemainingMs(
-  timestamps: readonly string[],
-  limits: readonly RateLimit[],
-  now: number = Date.now(),
-): number {
-  const times = timestamps
-    .map((value) => Date.parse(value))
-    .filter((time) => !Number.isNaN(time))
-    .sort((a, b) => b - a);
-  let remaining = 0;
-  for (const { windowMs, max } of limits) {
-    const inWindow = times.filter((time) => time > now - windowMs);
-    if (inWindow.length < max) continue;
-    // Entra uno nuevo cuando el `max`-ésimo más reciente sale de la ventana.
-    remaining = Math.max(remaining, inWindow[max - 1] + windowMs - now);
-  }
-  return remaining;
-}
 
 /** Milisegundos que faltan para poder repetir la acción (0 si ya se puede). */
 export function cooldownRemainingMs(

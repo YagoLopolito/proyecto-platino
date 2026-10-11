@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { syncTrophiesForUser, NpssoExpiredError } from "@/lib/psn";
+import { syncTrophiesForUser, NpssoExpiredError, PsnAccountMissingError } from "@/lib/psn";
 import { PSN_SYNC_COOLDOWN_MS, cooldownRemainingMs, formatCooldown } from "@/lib/sync/cooldown";
 
 /**
@@ -46,7 +46,10 @@ export async function POST() {
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof NpssoExpiredError) {
-      return NextResponse.json({ error: error.message }, { status: 409 });
+      return NextResponse.json({ error: error.message }, { status: 409 }); // #165: mensaje propio
+    }
+    if (error instanceof PsnAccountMissingError) {
+      return NextResponse.json({ error: error.message }, { status: 404 }); // #165: mensaje propio
     }
     // Lo que no es un NPSSO vencido puede venir de la base o de la config del
     // server: el detalle va al log, nunca a la respuesta (#165).
