@@ -459,6 +459,7 @@ ninguna API externa.
 | PROF-20 | Bio | Se edita en Configuración › Perfil y se ve debajo del avatar | P1 |
 | PROF-21 | Perfil ajeno (`33-profile-tabs.spec.ts`, #197) | Las cuatro tabs (Perfil · Diario · Listas · Playlist), sin engranaje ni editores, con Seguir / Siguiendo; las estadísticas aclaran que son públicas y no traen 100%, likes ni seguidores | **P0 (privacidad)** |
 | PROF-22 | Listas en el perfil (`33-profile-tabs.spec.ts`, #197) | Una lista privada no aparece en el perfil ajeno; en el propio aparece con candado | **P0 (privacidad)** |
+| PROF-23 | Estrellas de Últimas reseñas en mobile | A 360px de ancho, las cinco estrellas y el ícono de reseña quedan dentro de su carátula (se achican en vez de pisarse con las de al lado) | P1 |
 
 ### 6.11 Accesibilidad, mobile y PWA (`11-a11y-mobile.spec.ts`) — proyecto `mobile`
 

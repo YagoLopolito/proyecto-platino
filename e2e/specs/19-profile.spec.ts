@@ -100,6 +100,53 @@ test.describe.serial("Perfil", () => {
     ).toHaveCount(1);
   });
 
+  test("PROF-23: las estrellas de Últimas reseñas no se salen de su carátula en un celular", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const game = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 1,
+      nameSuffix: "Perfil Estrellas",
+      np: 905,
+    });
+    await supabase.from("game_diary_entries").upsert(
+      {
+        user_id: users.userA.id,
+        game_id: game.gameId,
+        playthrough_number: 1,
+        rating: 9,
+        review: "[E2E] Reseña para medir las estrellas",
+        finished_on: "2026-05-06",
+      },
+      { onConflict: "user_id,game_id,playthrough_number" },
+    );
+
+    // 360px: el celular angosto típico. Cinco estrellas de 14px más el ícono
+    // de reseña no entraban debajo de una carátula de 1/5 del ancho y se
+    // pisaban con las de la carátula de al lado.
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto("/perfil");
+
+    const entry = page
+      .getByTestId("profile-diary-entry")
+      .filter({ has: page.getByRole("link", { name: testGameTitle("Perfil Estrellas") }) });
+    await expect(entry).toHaveCount(1);
+    const stars = entry.getByLabel("9/10");
+    const note = entry.getByRole("img", { name: "Tiene reseña" });
+    await expect(stars).toBeVisible();
+    await expect(note).toBeVisible();
+
+    const cell = await entry.boundingBox();
+    const starsBox = await stars.boundingBox();
+    const noteBox = await note.boundingBox();
+    expect(cell && starsBox && noteBox).toBeTruthy();
+    // Medio píxel de tolerancia por el redondeo subpíxel.
+    expect(starsBox!.x).toBeGreaterThanOrEqual(cell!.x - 0.5);
+    expect(starsBox!.x + starsBox!.width).toBeLessThanOrEqual(noteBox!.x + 0.5);
+    expect(noteBox!.x + noteBox!.width).toBeLessThanOrEqual(cell!.x + cell!.width + 0.5);
+  });
+
   test("PROF-09: el perfil de otro usuario muestra su Top 5 y sus reseñas", async ({
     page,
     supabase,
