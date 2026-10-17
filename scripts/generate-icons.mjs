@@ -5,7 +5,8 @@
  *
  * Se corre a mano (`node scripts/generate-icons.mjs`) y los archivos resultantes
  * se commitean: no hace falta en cada build, y `sharp` sólo está disponible como
- * dependencia transitiva de Next.
+ * dependencia transitiva de Next. Después de regenerarlos, subir `ICON_VERSION`
+ * en `app/manifest.ts`: si no, Android no actualiza el ícono de la app instalada.
  *
  * El fondo es el `--background` de la app (`#0f1721`, el `background_color` del
  * manifest) con un halo apenas más claro detrás del trofeo. Antes era un negro
