@@ -53,7 +53,7 @@ export function RecentReviewsSection({
                         <Icon
                           name="note"
                           label="Tiene reseña"
-                          className="h-3.5 w-3.5 text-ink-faint"
+                          className="h-3.5 w-3.5 shrink-0 text-ink-faint"
                         />
                       )}
                     </span>

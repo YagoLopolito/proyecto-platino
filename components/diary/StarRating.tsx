@@ -34,24 +34,34 @@ const TONE_CLASS: Record<RatingTone, string> = {
 
 /**
  * Una estrella: el contorno apagado de base y, encima, la misma forma en el
- * color del tono, recortada al ancho que corresponda (0%, 50% o 100%).
+ * color del tono, recortada con `clip-path` (nada, la mitad izquierda o nada
+ * recortado).
  *
- * El recorte va en el contenedor y el ícono de adentro conserva el ancho
- * completo: así la media estrella es exactamente la mitad izquierda de la
- * entera, y no una forma distinta. Antes eran los glifos ★/☆, que cada sistema
- * dibuja con su propio ancho -- las cinco estrellas no alineaban entre
- * dispositivos y el color venía del emoji, no del tema.
+ * Las dos capas ocupan el cuadro entero de la estrella: así la media estrella
+ * es exactamente la mitad izquierda de la entera, y no una forma distinta.
+ * Antes eran los glifos ★/☆, que cada sistema dibuja con su propio ancho -- las
+ * cinco estrellas no alineaban entre dispositivos y el color venía del emoji,
+ * no del tema.
+ *
+ * `size` es el tamaño **máximo**: la estrella es un ítem flex que se encoge
+ * (`min-w-0` + `aspect-square`) si la fila no entra en su contenedor. Con
+ * tamaño fijo, cinco estrellas de 14px no entraban debajo de una carátula de
+ * la fila de "Últimas reseñas" en un celular y se pisaban con las de al lado.
  */
 function Star({ fill, size, tone }: { fill: 0 | 0.5 | 1; size: string; tone: RatingTone }) {
   return (
-    <span className={`relative block ${size}`} data-rating-tone={tone} aria-hidden="true">
-      <Icon name="star" className={`${size} text-ink-faint/40`} />
+    <span
+      className={`relative block aspect-square min-w-0 shrink ${size}`}
+      data-rating-tone={tone}
+      aria-hidden="true"
+    >
+      <Icon name="star" className="absolute inset-0 h-full w-full text-ink-faint/40" />
       {fill > 0 && (
         <span
-          className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden"
-          style={{ width: fill === 0.5 ? "50%" : "100%" }}
+          className="pointer-events-none absolute inset-0"
+          style={fill === 0.5 ? { clipPath: "inset(0 50% 0 0)" } : undefined}
         >
-          <Icon name="star" className={`${size} ${TONE_CLASS[tone]}`} />
+          <Icon name="star" className={`h-full w-full ${TONE_CLASS[tone]}`} />
         </span>
       )}
     </span>
@@ -118,9 +128,14 @@ export function StarRatingDisplay({ rating, tone }: { rating: number | null; ton
   if (rating === null) return null;
   const stars = toStars(rating);
   return (
-    <span className="inline-flex items-center gap-0.5 align-middle" aria-label={`${rating}/10`}>
+    // `max-w-full` + `min-w-0`: la fila nunca se sale de su contenedor; si no
+    // entra, las estrellas se achican (ver `Star`) en vez de desbordar.
+    <span
+      className="inline-flex min-w-0 max-w-full items-center gap-0.5 align-middle"
+      aria-label={`${rating}/10`}
+    >
       {Array.from({ length: MAX_STARS }, (_, i) => (
-        <Star key={i + 1} fill={fillFor(stars, i + 1)} size="h-3.5 w-3.5" tone={tone} />
+        <Star key={i + 1} fill={fillFor(stars, i + 1)} size="w-3.5" tone={tone} />
       ))}
     </span>
   );
