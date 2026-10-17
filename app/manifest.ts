@@ -16,6 +16,15 @@ import type { MetadataRoute } from "next";
  * landing sólo lo haría clickear "Entrar" cada vez. Si no hay sesión, el
  * middleware redirige a `/login` igual.
  */
+/**
+ * Versión de los íconos, en la query de cada `src`. Android no vuelve a bajar el
+ * ícono de una app ya instalada si el manifest no cambia: con el mismo nombre
+ * de archivo, regenerar los PNG no le llegaba a nadie que ya la tuviera
+ * instalada. Subir este número cada vez que se corre
+ * `scripts/generate-icons.mjs` cambia el manifest y dispara la actualización.
+ */
+const ICON_VERSION = 2;
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Platinoob — Trophy Tracker",
@@ -35,10 +44,20 @@ export default function manifest(): MetadataRoute.Manifest {
     dir: "ltr",
     categories: ["games", "entertainment", "utilities"],
     icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
       {
-        src: "/icon-maskable-512.png",
+        src: `/icon-192.png?v=${ICON_VERSION}`,
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: `/icon-512.png?v=${ICON_VERSION}`,
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: `/icon-maskable-512.png?v=${ICON_VERSION}`,
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

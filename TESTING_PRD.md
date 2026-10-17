@@ -478,7 +478,7 @@ ninguna API externa.
 | MOB-05 | Filtros plegados en mobile | En la biblioteca el buscador se ve siempre y el orden/los filtros viven detrás de "Filtros", con el globito de cuántos hay puestos | P2 |
 | MOB-06 | Una sola acción de cerrar sesión | En mobile el header no la repite: vive al final del perfil | P2 |
 | MOB-07 | Top 5 en una sola fila | La grilla de favoritos declara cinco columnas en mobile | P2 |
-| PWA-01 | Manifest instalable | `display: standalone`, `start_url` en `/biblioteca`, íconos 192/512 y uno `maskable` | P1 |
+| PWA-01 | Manifest instalable | `display: standalone`, `start_url` en `/biblioteca`, íconos 192/512 y uno `maskable`, todos versionados (`?v=N`) y servidos | P1 |
 | PWA-02 | Service worker sin caché larga | `/sw.js` responde con `max-age=0` (si no, un SW nuevo no llega a los celulares) | P1 |
 | PWA-03 | Build id en vivo | `/api/version` devuelve el build id con `no-store`: es lo que dispara el aviso de actualizar | P1 |
 | PWA-04 | Pantalla de offline pública | `/offline` carga sin sesión (el SW la precachea antes de que haya usuario) | P2 |

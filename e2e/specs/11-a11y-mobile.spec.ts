@@ -211,6 +211,13 @@ test.describe("PWA", () => {
     expect(manifest.icons.some((icon: { purpose?: string }) => icon.purpose === "maskable")).toBe(
       true,
     );
+
+    // Cada ícono existe y va versionado: con la misma URL, Android no vuelve a
+    // bajar el ícono de una app ya instalada aunque el PNG haya cambiado.
+    for (const icon of manifest.icons as { src: string }[]) {
+      expect(icon.src).toMatch(/\?v=\d+$/);
+      expect((await request.get(icon.src)).ok()).toBe(true);
+    }
   });
 
   test("PWA-02: el service worker se sirve sin caché larga", async ({ request }) => {
