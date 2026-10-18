@@ -70,6 +70,7 @@ function sourceLabel(source: string | null) {
       </>
     );
   }
+  if (source === "hltb") return "Tiempos de HowLongToBeat.";
   return "Tiempo estimado por la comunidad (IGDB).";
 }
 

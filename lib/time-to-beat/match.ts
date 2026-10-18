@@ -31,6 +31,10 @@ const NOISE_SUFFIXES = [
   "playstation 4",
   "playstation 5",
   "bundle",
+  "classic edition",
+  // PSN nombra así algunos sets de trofeos ("Injustice 2 Trophies").
+  "trophy set",
+  "trophies",
   "trial",
   "demo",
   "beta",
@@ -144,12 +148,22 @@ export function secondsToMinutes(seconds: unknown): number | null {
 export const MIN_IGDB_SUBMISSIONS = 3;
 
 /**
+ * Ningún juego lleva más que esto para ver los créditos (en HLTB, Persona 5
+ * Royal ronda las 100 h). IGDB a veces manda la fila rota: 348 h de historia
+ * para DRAGON BALL Z: KAKAROT, más de 15.000 h para League of Legends. Con una
+ * historia por encima de esto se descarta la fila entera, porque el 100% sale
+ * de las mismas partidas.
+ */
+export const MAX_PLAUSIBLE_BEAT_MINUTES = 150 * 60;
+
+/**
  * Traduce una fila de `game_time_to_beats` a los dos tiempos de la ficha,
  * con los mismos criterios que HowLongToBeat:
  * - historia = `hastily` (Main Story), cayendo a `normally` si no hay;
  * - completo = `completely` (Completionist), nunca menor que la historia.
  *
- * `null` si no hay datos o hay muy pocas partidas (`count`).
+ * `null` si no hay datos, hay muy pocas partidas (`count`) o la historia es
+ * imposible (`MAX_PLAUSIBLE_BEAT_MINUTES`).
  */
 export function pickIgdbTimes(
   row: Record<string, unknown>,
@@ -160,6 +174,7 @@ export function pickIgdbTimes(
   const beatMinutes = secondsToMinutes(row.hastily) ?? secondsToMinutes(row.normally);
   let completeMinutes = secondsToMinutes(row.completely);
   if (beatMinutes === null && completeMinutes === null) return null;
+  if (beatMinutes !== null && beatMinutes > MAX_PLAUSIBLE_BEAT_MINUTES) return null;
   if (beatMinutes !== null && completeMinutes !== null && completeMinutes < beatMinutes) {
     completeMinutes = beatMinutes;
   }

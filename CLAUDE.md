@@ -175,7 +175,17 @@ muestran en el hero de la ficha de juego (`GameHero`, uno solo desde el issue #1
   es "Main + Extras"), 100% = `completely`, nunca menor que la historia, y con `count` < 3
   partidas el dato se descarta. El prompt de la IA pide los números de HLTB por nombre y va con
   `temperature: 0`.
-- **IGDB primero y, para lo que no tiene, una estimación del LLM** (`generateTimeEstimates` en
+- **Primero la tabla de referencia de HLTB** (`lib/time-to-beat/reference.ts`, fuente `hltb`):
+  los "Main Story" y "Completionist" de HowLongToBeat de ~150 juegos de la biblioteca real,
+  cargados a mano el 2026-10-18 desde los sitios que republican sus datos (DekuDeals,
+  IsThereAnyDeal, PSPrices). Se agregó porque, comparado contra HLTB, la mayoría de lo
+  cacheado estaba mal: IGDB promedia pocas partidas (348 h de historia en DRAGON BALL Z:
+  KAKAROT, 6,7 h en The Last of Us) y la IA subestima casi todo. La clave es
+  `comparableName`; un nombre de tienda que no queda igual ("Ultimate Edition", "– The
+  Definitive Edition") va como alias. Para sumar un juego, se agrega una fila y se borra su
+  `time_estimates_checked_at`. A IGDB además se le descarta una fila con historia de más de
+  150 h (`MAX_PLAUSIBLE_BEAT_MINUTES`).
+- **Después IGDB y, para lo que no tiene, una estimación del LLM** (`generateTimeEstimates` en
   `lib/ai/`, horas enteras, con el mismo `NO_CONOZCO` que la descripción). La ficha **siempre
   cita la fuente**, y la de IA lleva el ✨ y un "puede tener errores": un agregado de partidas
   reales y la estimación de un modelo no valen lo mismo. El fallback existe porque IGDB no
@@ -210,7 +220,7 @@ muestran en el hero de la ficha de juego (`GameHero`, uno solo desde el issue #1
   limpiarlos a mano. Cada camino que no termina en datos se loguea con prefijo `[igdb]`: sin
   eso, "faltan credenciales" y "IGDB no conoce el juego" se veían idénticos desde afuera.
 - Se cachean en `games` (`time_to_beat_minutes`, `time_to_complete_minutes`,
-  `time_estimates_source` (`igdb`, `ai` o `none`), `time_estimates_checked_at`; migración
+  `time_estimates_source` (`hltb`, `igdb`, `ai` o `none`), `time_estimates_checked_at`; migración
   `20260906000000_games_time_to_beat.sql`) desde `getGameCardData`, con la misma escritura por
   service role que la descripción y el fondo. **`time_estimates_checked_at` es la marca de "ya
   preguntamos"**: con valor no se vuelve a consultar aunque los dos tiempos hayan quedado en
