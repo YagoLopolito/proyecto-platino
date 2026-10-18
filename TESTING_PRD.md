@@ -576,10 +576,11 @@ spec, igual que `steam-relevance`); SHOT-06 es de UI y no sube nada a Storage.
 ### 6.17 Tiempos estimados de juego (`18-time-to-beat.spec.ts`)
 
 Cuánto lleva pasarse la historia y cuánto llegar al 100%, en la ficha de trofeos y en la de
-diario. HowLongToBeat no tiene API pública, así que la fuente es IGDB (`game_time_to_beat`), y
-es la única: el `playtime` de RAWG se probó como fallback y se revirtió por dar números
-equivocados — ver la sección correspondiente de `CLAUDE.md`.
-TIME-01..03 son de la función pura (`lib/time-to-beat/match.ts`); TIME-04/05 corren contra el
+diario. HowLongToBeat no tiene API pública: la primera fuente es una tabla de referencia con
+sus números cargada a mano (`lib/time-to-beat/reference.ts`), después IGDB
+(`game_time_to_beats`) y por último la IA. El `playtime` de RAWG se probó como fallback y se
+revirtió por dar números equivocados — ver la sección correspondiente de `CLAUDE.md`.
+TIME-01..03, 10 y 11 son de funciones puras (`lib/time-to-beat/match.ts`); TIME-04/05 corren contra el
 mock de `lib/time-to-beat/mocks.ts` (12 h / 30 h para los juegos `[E2E]`), así que CI nunca
 llama a IGDB.
 
@@ -594,6 +595,8 @@ llama a IGDB.
 | TIME-07 | No se pudo consultar IGDB | El juego **no** queda marcado como consultado, para que se reintente cuando el problema se arregle | P0 |
 | TIME-08 | Nombres del catálogo contra IGDB | "Skyrim", "…- Multiplayer" y los que traen ®/™ matchean contra el título real; una entrega distinta de la saga no | P0 |
 | TIME-09 | Criterio HowLongToBeat sobre la fila de IGDB | La historia sale de `hastily` (Main Story, cae a `normally` si falta), el 100% nunca es menor que la historia y con menos de 3 partidas (`count`) no se usa el dato | P0 |
+| TIME-10 | Tabla de referencia de HLTB | Los nombres de la tienda (®/™, "Remastered", "Ultimate Edition", "– The Definitive Edition") caen en su entrada con los números de HLTB en minutos; un juego que no está devuelve `null` | P0 |
+| TIME-11 | Fila de IGDB imposible | Una historia de más de 150 h descarta la fila entera (IGDB mandó 348 h para DRAGON BALL Z: KAKAROT) | P0 |
 
 ### 6.18 Sistema de diseño (`21-design-system.spec.ts`)
 

@@ -26,7 +26,7 @@ import { pickIgdbTimes } from "./match";
  */
 
 export interface IgdbTimeToBeat {
-  /** Minutos de la historia principal ("normally" en IGDB). */
+  /** Minutos de la historia principal ("hastily" en IGDB). */
   beatMinutes: number | null;
   /** Minutos para el 100% ("completely"). */
   completeMinutes: number | null;
@@ -80,7 +80,7 @@ export async function findIgdbTimeToBeat(
     if (typeof first !== "object" || first === null) return { status: "not_found" };
     const picked = pickIgdbTimes(first as Record<string, unknown>);
     if (!picked) {
-      console.warn(`[igdb] "${gameName}" (id ${game.id}) tiene tiempos con muy pocas partidas`);
+      console.warn(`[igdb] "${gameName}" (id ${game.id}) tiene tiempos con muy pocas partidas o imposibles`);
       return { status: "not_found" };
     }
     return { status: "ok", times: picked };

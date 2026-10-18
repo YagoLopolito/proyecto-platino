@@ -3,16 +3,19 @@ import { findIgdbTimeToBeat } from "./igdb";
 import type { IgdbGameLookup } from "@/lib/igdb/games";
 import { generateTimeEstimates } from "@/lib/ai";
 import { TIME_TO_BEAT_MOCKS_ENABLED, mockTimeEstimates } from "./mocks";
+import { findReferenceTimes } from "./reference";
 
 export { pickIgdbGame, pickIgdbTimes, secondsToMinutes } from "./match";
+export { findReferenceTimes } from "./reference";
 
 /**
  * De dónde salieron los tiempos.
- * - `igdb`: agregados de la comunidad, el dato bueno.
+ * - `hltb`: la tabla de referencia de HowLongToBeat (`reference.ts`).
+ * - `igdb`: agregados de la comunidad, para lo que la tabla no tiene.
  * - `ai`: estimación del modelo, para los juegos que IGDB no tiene.
  * - `none`: ninguna fuente lo conoce.
  */
-export type TimeEstimatesSource = "igdb" | "ai" | "none";
+export type TimeEstimatesSource = "hltb" | "igdb" | "ai" | "none";
 
 export interface TimeEstimates {
   beatMinutes: number | null;
@@ -33,9 +36,11 @@ const EMPTY: TimeEstimates = { beatMinutes: null, completeMinutes: null, source:
 /**
  * Tiempos estimados de un juego, al estilo HowLongToBeat.
  *
- * IGDB primero (agregados reales de la comunidad) y, para los juegos que no
- * tiene, una estimación del modelo. La ficha siempre cita cuál de las dos fue:
- * no son igual de confiables, y el usuario tiene que poder distinguirlas.
+ * Primero la tabla de HowLongToBeat (`reference.ts`), que es la referencia
+ * contra la que el usuario compara; después IGDB (agregados reales de la
+ * comunidad, pero de pocas partidas) y, para los juegos que ninguno tiene, una
+ * estimación del modelo. La ficha siempre cita cuál fue: no son igual de
+ * confiables, y el usuario tiene que poder distinguirlas.
  *
  * Se probó usar el `playtime` de RAWG como fallback y fue un error que hubo
  * que revertir: ese campo no es "cuánto lleva pasarlo" sino las horas que los
@@ -58,6 +63,9 @@ export async function fetchTimeEstimates(
     igdbGame?: IgdbGameLookup;
   } = {},
 ): Promise<TimeEstimatesOutcome> {
+  const reference = findReferenceTimes(gameName);
+  if (reference) return { ...reference, source: "hltb" };
+
   if (TIME_TO_BEAT_MOCKS_ENABLED) {
     const mocked = mockTimeEstimates(gameName);
     if (mocked.status === "unavailable") return null;

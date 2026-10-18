@@ -1,13 +1,15 @@
 import { test, expect } from "../fixtures/test";
 import { seedGameWithTrophies } from "../helpers/seed";
 import { comparableName, pickIgdbGame, pickIgdbTimes, secondsToMinutes } from "../../lib/time-to-beat/match";
+import { findReferenceTimes } from "../../lib/time-to-beat/reference";
 
 /**
  * Tiempos estimados de juego al estilo HowLongToBeat, en la ficha de trofeos y
- * en la de diario. Casos TIME-01..TIME-07 de TESTING_PRD.md §6.17.
+ * en la de diario. Casos TIME-01..TIME-11 de TESTING_PRD.md §6.17.
  *
- * TIME-01..03 son de la función pura (`lib/time-to-beat/match.ts`, sin
- * `server-only` justamente para poder importarla desde el spec); TIME-04 y 05
+ * TIME-01..03, 10 y 11 son de funciones puras (`lib/time-to-beat/match.ts` y
+ * `reference.ts`, sin `server-only` justamente para poder importarlas desde el
+ * spec); TIME-04 y 05
  * son de UI y corren contra el mock de `lib/time-to-beat/mocks.ts`, que
  * responde 12 h / 30 h para los juegos `[E2E]` sin salir a IGDB.
  */
@@ -80,6 +82,37 @@ test.describe("Elección del juego y unidades", () => {
     // Con menos de 3 partidas el promedio no es confiable.
     expect(pickIgdbTimes({ hastily: 36_000, completely: 90_000, count: 2 })).toBeNull();
     expect(pickIgdbTimes({ hastily: 0, normally: 0, completely: 0, count: 40 })).toBeNull();
+  });
+
+  test("TIME-11: una fila de IGDB con una historia imposible se descarta", () => {
+    // Datos reales que mandó IGDB: 348 h de historia para DRAGON BALL Z: KAKAROT.
+    expect(
+      pickIgdbTimes({ hastily: 348 * 3600, completely: 348 * 3600, count: 12 }),
+    ).toBeNull();
+    // 150 h justas todavía pasan.
+    expect(pickIgdbTimes({ hastily: 150 * 3600, count: 12 })?.beatMinutes).toBe(150 * 60);
+  });
+
+  test("TIME-10: la tabla de referencia de HowLongToBeat reconoce los nombres de la tienda", () => {
+    // Nombre tal cual lo trae PSN, con ® y "Remastered".
+    expect(findReferenceTimes("Assassin's Creed® III Remastered")).toEqual({
+      beatMinutes: 15 * 60,
+      completeMinutes: 55 * 60,
+    });
+    // Medias horas y alias que `comparableName` no resuelve solo.
+    expect(findReferenceTimes("Control Ultimate Edition")).toEqual({
+      beatMinutes: 12.5 * 60,
+      completeMinutes: 39 * 60,
+    });
+    expect(
+      findReferenceTimes("Grand Theft Auto: San Andreas – The Definitive Edition")?.beatMinutes,
+    ).toBe(30 * 60);
+    // Otra entrega de la saga no hereda los números.
+    expect(findReferenceTimes("The Last of Us™ Part II Remastered")?.beatMinutes).toBe(23 * 60);
+    expect(findReferenceTimes("The Last of Us™ Remastered")?.beatMinutes).toBe(14.5 * 60);
+    // Lo que no está en la tabla sigue a IGDB.
+    expect(findReferenceTimes("[E2E] Juego de prueba")).toBeNull();
+    expect(findReferenceTimes("")).toBeNull();
   });
 });
 
