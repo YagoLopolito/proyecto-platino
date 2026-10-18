@@ -110,6 +110,9 @@ test.describe("Elección del juego y unidades", () => {
     // Otra entrega de la saga no hereda los números.
     expect(findReferenceTimes("The Last of Us™ Part II Remastered")?.beatMinutes).toBe(23 * 60);
     expect(findReferenceTimes("The Last of Us™ Remastered")?.beatMinutes).toBe(14.5 * 60);
+    // Alias con el nombre corto de la tienda y sufijo "Trophies" de PSN.
+    expect(findReferenceTimes("JUMANJI!")?.completeMinutes).toBe(15 * 60);
+    expect(findReferenceTimes("EA SPORTS FC™ 25 Trophies")?.beatMinutes).toBe(50 * 60);
     // Lo que no está en la tabla sigue a IGDB.
     expect(findReferenceTimes("[E2E] Juego de prueba")).toBeNull();
     expect(findReferenceTimes("")).toBeNull();
