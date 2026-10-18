@@ -176,7 +176,7 @@ muestran en el hero de la ficha de juego (`GameHero`, uno solo desde el issue #1
   partidas el dato se descarta. El prompt de la IA pide los números de HLTB por nombre y va con
   `temperature: 0`.
 - **Primero la tabla de referencia de HLTB** (`lib/time-to-beat/reference.ts`, fuente `hltb`):
-  los "Main Story" y "Completionist" de HowLongToBeat de ~150 juegos de la biblioteca real,
+  los "Main Story" y "Completionist" de HowLongToBeat de ~280 juegos de la biblioteca real,
   cargados a mano el 2026-10-18 desde los sitios que republican sus datos (DekuDeals,
   IsThereAnyDeal, PSPrices). Se agregó porque, comparado contra HLTB, la mayoría de lo
   cacheado estaba mal: IGDB promedia pocas partidas (348 h de historia en DRAGON BALL Z:
