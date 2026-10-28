@@ -1082,7 +1082,8 @@ El cuarto botón: un log de frases, como la Activity de Letterboxd. Tabs **Amigo
   del diario sale de `formatDiaryDate` (partes del string + `Date.UTC`, nunca `new
   Date("YYYY-MM-DD")`). En el platino el avatar se reemplaza por `public/trophy-platinum.webp`,
   el trofeo que aportó el dueño del proyecto (`scripts/generate-platinum-trophy.mjs` le saca el
-  damero pintado del PNG original).
+  damero pintado del PNG original y `scripts/clean-platinum-trophy.mjs` limpia los restos que
+  quedaban entre las cintas y el agujero del pedestal).
 
 ## Perfil › Perfil (epic #183, issue #196)
 
