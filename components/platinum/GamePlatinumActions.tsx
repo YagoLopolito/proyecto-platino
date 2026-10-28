@@ -44,7 +44,8 @@ export function GamePlatinumActions({ piece }: { piece: PlatinumPiece }) {
   }, [runId, prefs.sound]);
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+    // En mobile los dos botones se reparten el ancho; desde `sm`, a su tamaño.
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
       {/* Sin efectos ni sonido no hay nada que repetir. */}
       {(motion || prefs.sound) && (
         <Button
@@ -55,9 +56,16 @@ export function GamePlatinumActions({ piece }: { piece: PlatinumPiece }) {
           ¡Otra vez!
         </Button>
       )}
-      <Button variant="secondary" onClick={() => openShare(piece)}>
+      <Button
+        variant="secondary"
+        onClick={() => openShare(piece)}
+        aria-label="Compartir en actividad"
+        // Sin "¡Otra vez!" (efectos y sonido apagados) ocupa la fila entera.
+        className={motion || prefs.sound ? undefined : "col-span-2"}
+      >
         <Icon name="upload" className="h-4 w-4" />
-        Compartir en actividad
+        {/* "en actividad" no entra al lado de "¡Otra vez!" en un celular. */}
+        Compartir<span className="hidden sm:inline"> en actividad</span>
       </Button>
       {run?.raining && (
         <PlatinumRain

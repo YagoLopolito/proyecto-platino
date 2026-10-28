@@ -18,6 +18,7 @@ import { boolean, oneOf, text, useUrlFilterState } from "@/lib/hooks/useUrlFilte
 import { matchesSearch } from "@/lib/library/search";
 import { isNearPlatinum } from "@/lib/library/near-platinum";
 import { formatPlatinumDate } from "@/lib/platinum/stats";
+import { PlatinumTrophy } from "@/components/platinum/PlatinumTrophy";
 
 export type LibraryGame = {
   id: string;
@@ -327,13 +328,21 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                         )}
                       </span>
                       {platinum && game.platinumAt && (
-                        <span className="text-trophy-platinum">
-                          Platinado el {formatPlatinumDate(game.platinumAt)}
+                        // En tres columnas de mobile "Platinado el dd/mm/aaaa"
+                        // no entra en un renglón: el trofeo dice "platinado"
+                        // y el texto queda para lectores de pantalla.
+                        <span className="flex items-center gap-1 whitespace-nowrap text-trophy-platinum">
+                          <PlatinumTrophy size={12} />
+                          <span className="sr-only">Platinado el </span>
+                          <span className="tabular-nums">
+                            {formatPlatinumDate(game.platinumAt)}
+                          </span>
                         </span>
                       )}
                       {nearPlatinum && (
-                        <span className="flex items-center gap-1 text-trophy-platinum">
-                          <Icon name="target" className="h-3 w-3" />A punto de platinar
+                        <span className="flex items-start gap-1 text-trophy-platinum">
+                          <Icon name="target" className="mt-px h-3 w-3 shrink-0" />A punto de
+                          platinar
                         </span>
                       )}
                     </span>

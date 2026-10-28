@@ -38,38 +38,47 @@ export function GamePlatinumShowcase({ summary }: { summary: GamePlatinumSummary
       data-testid="game-platinum"
       className="platinum-frame mt-6"
     >
-      <div className="flex flex-col items-center gap-5 rounded-card bg-surface-raised p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
-        <div className="relative flex h-32 w-32 shrink-0 items-center justify-center sm:h-36 sm:w-36">
+      {/* Grilla y no flex: en mobile el trofeo va chico al lado del título y
+          los datos debajo, a todo el ancho (antes era una columna centrada que
+          ocupaba media pantalla antes de la lista de trofeos); desde `sm`, el
+          trofeo grande a la izquierda de todo. */}
+      <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-4 rounded-card bg-surface-raised p-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-x-6 sm:p-5">
+        <div className="relative flex h-20 w-20 items-center justify-center sm:row-span-3 sm:h-36 sm:w-36">
           <span
             aria-hidden="true"
-            className="platinum-pulse absolute inset-3 rounded-full bg-platinum-glow blur-2xl"
+            className="platinum-pulse absolute inset-2 rounded-full bg-platinum-glow blur-2xl sm:inset-3"
           />
           <PlatinumSheen className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full">
-            <PlatinumTrophy size={112} label="Trofeo de platino" priority />
+            <PlatinumTrophy
+              size={112}
+              label="Trofeo de platino"
+              priority
+              className="h-[4.5rem] w-[4.5rem] sm:h-28 sm:w-28"
+            />
           </PlatinumSheen>
         </div>
 
-        <div className="min-w-0 flex-1 space-y-3 text-center sm:text-left">
-          <div>
-            <p id="game-platinum-heading" className="type-overline text-trophy-platinum">
-              Platino conseguido
-            </p>
-            <p className="type-title text-ink">
-              Tu platino <span className="tabular-nums">#{piece.number}</span>
-            </p>
-          </div>
+        <div className="min-w-0">
+          <p id="game-platinum-heading" className="type-overline text-trophy-platinum">
+            Platino conseguido
+          </p>
+          <p className="type-title text-ink">
+            Tu platino <span className="tabular-nums">#{piece.number}</span>
+          </p>
+        </div>
 
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-2 min-[420px]:grid-cols-2">
-            {facts.map((fact) => (
-              <div key={fact.label} className="min-w-0">
-                <dt className="type-overline text-ink-faint">{fact.label}</dt>
-                <dd className="truncate type-meta text-ink" title={fact.value}>
-                  {fact.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+        <dl className="col-span-2 grid grid-cols-2 gap-x-4 gap-y-2.5 border-t border-border pt-3 sm:col-span-1 sm:col-start-2 sm:gap-x-6 sm:border-t-0 sm:pt-0">
+          {facts.map((fact) => (
+            <div key={fact.label} className="min-w-0">
+              <dt className="type-overline text-ink-faint">{fact.label}</dt>
+              <dd className="truncate type-meta text-ink" title={fact.value}>
+                {fact.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
 
+        <div className="col-span-2 sm:col-span-1 sm:col-start-2">
           <GamePlatinumActions piece={piece} />
         </div>
       </div>

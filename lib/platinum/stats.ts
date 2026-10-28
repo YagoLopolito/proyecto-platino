@@ -117,6 +117,32 @@ export function sortPieces(pieces: PlatinumPiece[], order: ShowcaseOrder): Plati
   return byNumber;
 }
 
+export interface ShowcaseShelfGroup {
+  /** Año de los platinos de la repisa; NULL = una sola repisa sin agrupar. */
+  year: number | null;
+  pieces: PlatinumPiece[];
+}
+
+/**
+ * Las repisas de la vitrina. Ordenada por fecha (primeros / recientes), una
+ * repisa por año, en el orden que ya traen las piezas: la colección se lee
+ * como una línea de tiempo. Por rareza el año no ordena nada y va todo en una.
+ */
+export function groupShowcaseShelves(
+  pieces: PlatinumPiece[],
+  order: ShowcaseOrder,
+): ShowcaseShelfGroup[] {
+  if (order === "rareza") return pieces.length > 0 ? [{ year: null, pieces }] : [];
+  const groups: ShowcaseShelfGroup[] = [];
+  for (const piece of pieces) {
+    const year = yearOfInstant(piece.unlockedAt);
+    const last = groups[groups.length - 1];
+    if (last && last.year === year) last.pieces.push(piece);
+    else groups.push({ year, pieces: [piece] });
+  }
+  return groups;
+}
+
 /** El trofeo obtenido más raro de un juego (el de menor `earned_rate`). */
 export function rarestObtained<T extends { obtained: boolean; earned_rate: number | null }>(
   trophies: T[],

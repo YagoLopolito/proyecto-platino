@@ -1291,9 +1291,10 @@ conserva su propio badge (ver la sección de Steam).
   bloquea el audio aparece un botón para reproducirlo.
 - **Vitrina** (`/vitrina`): `get_platinum_collection()` (security invoker, una fila por
   platino con su número, rareza y primer trofeo) y `lib/platinum/stats.ts` (puro) arman las
-  stats (más raro, más rápido, mejor año), las repisas (`ShowcaseShelf`) y los huecos de "Tu
-  próximo platino" (`getNextPlatinumCandidates`, mismo criterio que "Cerca del platino").
-  Orden en `?orden=`. **Reemplaza a `/perfil/platinos`**, que redirige (`next.config.ts`), y se
+  stats (más raro, más rápido, mejor año), las repisas (`ShowcaseShelf`: un solo mueble con los
+  años como divisores, `groupShowcaseShelves`) y los huecos de "Tu próximo platino" (`getNextPlatinumCandidates`, mismo criterio que "Cerca del platino").
+  La vista es `ShowcaseView` (la página sólo trae datos). Orden en `?orden=`, como segmentado
+  en su propia fila: al lado del título desbordaba la página en mobile. **Reemplaza a `/perfil/platinos`**, que redirige (`next.config.ts`), y se
   llevó el nivel de PSN y la `TrophyTypeStrip`. Cuenta como sección Perfil y está en el menú de
   cuenta; no tiene botón propio en la barra de 5.
 - **Compartir en actividad**: `app/api/platino/[gameId]/tarjeta` dibuja la card "¡Platiné X!"

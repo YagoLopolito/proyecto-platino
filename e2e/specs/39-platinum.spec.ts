@@ -9,6 +9,7 @@ import {
   formatDaysToPlatinum,
   formatEarnedRate,
   formatPlatinumDate,
+  groupShowcaseShelves,
   showcaseStats,
   sortPieces,
   type PlatinumPiece,
@@ -178,6 +179,23 @@ test.describe("Reglas puras", () => {
     expect(sortPieces(pieces, "recientes").map((p) => p.gameId)).toEqual(["c", "b", "a"]);
     // Los que no tienen rareza van al final.
     expect(sortPieces(pieces, "rareza").map((p) => p.gameId)).toEqual(["b", "a", "c"]);
+
+    // Una repisa por año en el orden de la vitrina; por rareza, una sola.
+    const byYear = (order: "antiguos" | "recientes" | "rareza") =>
+      groupShowcaseShelves(sortPieces(pieces, order), order).map((group) => ({
+        year: group.year,
+        ids: group.pieces.map((p) => p.gameId),
+      }));
+    expect(byYear("antiguos")).toEqual([
+      { year: 2025, ids: ["a"] },
+      { year: 2026, ids: ["b", "c"] },
+    ]);
+    expect(byYear("recientes")).toEqual([
+      { year: 2026, ids: ["c", "b"] },
+      { year: 2025, ids: ["a"] },
+    ]);
+    expect(byYear("rareza")).toEqual([{ year: null, ids: ["b", "a", "c"] }]);
+    expect(groupShowcaseShelves([], "rareza")).toEqual([]);
 
     expect(daysToPlatinum(null, "2026-01-01T00:00:00Z")).toBeNull();
     expect(formatDaysToPlatinum(0)).toBe("en el mismo día");
@@ -359,6 +377,17 @@ test.describe("Platino en la app", () => {
       "aria-current",
       "page",
     );
+
+    // En un celular la vitrina no se desborda de costado (el orden estaba al
+    // lado del título y estiraba la página a ~520px).
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/vitrina");
+    await expect(page.getByTestId("platinum-game").first()).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
   });
 
   test("PLAT-08: compartir un platino publica la card en la Galería online, destacada", async ({
