@@ -4,7 +4,13 @@ import { CompletionBadge } from "@/components/CompletionBadge";
 import { GameHero } from "@/components/game/GameHero";
 import { GameActionPanel } from "@/components/game/GameActionPanel";
 import { SwipeTabs } from "@/components/ui/SwipeTabs";
-import { getGameDiary, getGamePageBase, getGameTrophyProgress } from "@/lib/game-page/data";
+import {
+  getGameDiary,
+  getGamePageBase,
+  getGamePlatinum,
+  getGameTrophyProgress,
+} from "@/lib/game-page/data";
+import { GamePlatinumShowcase } from "@/components/platinum/GamePlatinumShowcase";
 import { countFriendsPlaying, isPlayingGame } from "@/lib/now-playing/queries";
 import { countFriendsWithInPlaylist, isInPlaylist } from "@/lib/playlist/queries";
 import { countOwnListsWithGame } from "@/lib/lists/queries";
@@ -38,6 +44,7 @@ export default async function GameLayout({
     progress,
     diary,
     [isPlaying, friendsPlaying, inPlaylist, friendsWithInPlaylist, inOwnLists],
+    platinum,
   ] = await Promise.all([
     getGamePageBase(gameId),
     getGameTrophyProgress(gameId),
@@ -54,6 +61,8 @@ export default async function GameLayout({
         countOwnListsWithGame(supabase, userId, gameId),
       ]),
     ),
+    // Tu platino de este juego (PSN): hero, ficha del platino y lluvia.
+    getGamePlatinum(gameId),
   ]);
 
   const summary = diary.status === "ok" ? diary.summary : null;
@@ -79,6 +88,7 @@ export default async function GameLayout({
           game={base.card}
           playtimeMinutes={base.playtimeMinutes}
           hasPlatinum={progress.hasPlatinumTrophy}
+          platinumed={platinum !== null}
           badges={
             <>
               {progress.isPlatinumed && <PlatinumBadge />}
@@ -105,6 +115,7 @@ export default async function GameLayout({
             />
           }
         />
+        {platinum && <GamePlatinumShowcase summary={platinum} />}
       </div>
 
       <div className="mt-6">

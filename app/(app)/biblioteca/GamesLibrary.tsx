@@ -16,6 +16,8 @@ import { Icon } from "@/components/ui/Icon";
 import type { PsnTrophyType } from "@/components/TrophyTypeIcon";
 import { boolean, oneOf, text, useUrlFilterState } from "@/lib/hooks/useUrlFilterState";
 import { matchesSearch } from "@/lib/library/search";
+import { isNearPlatinum } from "@/lib/library/near-platinum";
+import { formatPlatinumDate } from "@/lib/platinum/stats";
 
 export type LibraryGame = {
   id: string;
@@ -30,14 +32,17 @@ export type LibraryGame = {
   counts: Record<PsnTrophyType, number>;
   source: string | null;
   playtimeMinutes: number | null;
+  /** Cuándo lo platinaste (PSN). NULL si no está platinado o PSN no dio la fecha. */
+  platinumAt: string | null;
 };
 
-type SortOption = "recent" | "name" | "percent" | "playtime";
+type SortOption = "recent" | "platinum" | "name" | "percent" | "playtime";
 type SortDirection = "asc" | "desc";
 type FilterOption = "all" | "platinum" | "over50";
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "recent", label: "Jugados recientemente" },
+  { value: "platinum", label: "Platinados primero" },
   { value: "name", label: "Nombre" },
   { value: "percent", label: "% completado" },
   { value: "playtime", label: "Horas jugadas" },
@@ -45,12 +50,21 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 
 const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
   { value: "all", label: "Todos" },
-  { value: "platinum", label: "Platinados" },
+  { value: "platinum", label: "Solo platinados" },
   { value: "over50", label: "+50% progreso" },
 ];
 
 /** Orden de cada criterio cuando la dirección es "desc" (la que muestra el botón al elegirlo por primera vez). */
 function compareDescending(a: LibraryGame, b: LibraryGame, sort: SortOption): number {
+  if (sort === "platinum") {
+    // Los platinados arriba, del más nuevo al más viejo; el resto, por lo
+    // último jugado (el orden por defecto).
+    const aPlat = isPlatinumed(a);
+    const bPlat = isPlatinumed(b);
+    if (aPlat !== bPlat) return aPlat ? -1 : 1;
+    if (aPlat && bPlat) return (b.platinumAt ?? "").localeCompare(a.platinumAt ?? "");
+    return compareDescending(a, b, "recent");
+  }
   if (sort === "name") return b.name.localeCompare(a.name);
   if (sort === "percent") return b.percent - a.percent;
   // Sin horas conocidas (juegos de catálogo, o de PSN/Steam que no las
@@ -63,6 +77,11 @@ function compareDescending(a: LibraryGame, b: LibraryGame, sort: SortOption): nu
   if (aTime !== null) return -1;
   if (bTime !== null) return 1;
   return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
+}
+
+/** Platino de PSN: Steam no tiene platino (su 100% lleva su propio badge). */
+function isPlatinumed(game: LibraryGame): boolean {
+  return game.source !== "steam" && game.counts.platinum > 0;
 }
 
 function sortGames(
@@ -278,6 +297,11 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
         {visibleGames.map((game) => {
           const isSteam = game.source === "steam";
           const playtime = formatPlaytime(game.playtimeMinutes);
+          const platinum = isPlatinumed(game);
+          // "A punto de platinar": el empujón final, sólo en PSN (en Steam no
+          // hay platino y su "cerca" ya está en la fila de arriba).
+          const nearPlatinum =
+            !isSteam && isNearPlatinum({ ...game, platinumObtained: game.counts.platinum });
           return (
             <li key={game.id} data-testid="game-card">
               <GamePoster
@@ -285,19 +309,31 @@ export default function GamesLibrary({ games }: { games: LibraryGame[] }) {
                 name={game.name}
                 imageUrl={game.imageUrl}
                 progress={game.total > 0 ? game : null}
-                isPlatinum={!isSteam && game.counts.platinum > 0}
+                isPlatinum={platinum}
                 isCompleted={isSteam && game.total > 0 && game.obtained === game.total}
                 showName
                 caption={
                   game.total > 0 ? (
-                    <span className="flex flex-wrap items-center gap-x-1.5">
-                      <span className="tabular-nums">{game.percent}%</span>
-                      {playtime && (
-                        // El ⏱ que había acá era el último emoji de la
-                        // biblioteca (issue #176 §3.3).
-                        <span className="flex items-center gap-1 text-ink-faint">
-                          <Icon name="clock" className="h-3 w-3" />
-                          <span className="tabular-nums">{playtime}</span>
+                    <span className="flex flex-col gap-0.5">
+                      <span className="flex flex-wrap items-center gap-x-1.5">
+                        <span className="tabular-nums">{game.percent}%</span>
+                        {playtime && (
+                          // El ⏱ que había acá era el último emoji de la
+                          // biblioteca (issue #176 §3.3).
+                          <span className="flex items-center gap-1 text-ink-faint">
+                            <Icon name="clock" className="h-3 w-3" />
+                            <span className="tabular-nums">{playtime}</span>
+                          </span>
+                        )}
+                      </span>
+                      {platinum && game.platinumAt && (
+                        <span className="text-trophy-platinum">
+                          Platinado el {formatPlatinumDate(game.platinumAt)}
+                        </span>
+                      )}
+                      {nearPlatinum && (
+                        <span className="flex items-center gap-1 text-trophy-platinum">
+                          <Icon name="target" className="h-3 w-3" />A punto de platinar
                         </span>
                       )}
                     </span>

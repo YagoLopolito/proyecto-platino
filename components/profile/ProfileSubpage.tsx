@@ -5,7 +5,7 @@ import { APP_TIME_ZONE } from "@/lib/profile/stats";
 
 /**
  * Marco de los expandidos de Estadísticas (`/perfil/jugados`,
- * `/perfil/platinos`…, issue #196): "Volver al perfil", el título y un
+ * `/perfil/completados`…, issue #196): "Volver al perfil", el título y un
  * subtítulo con el número. No son tabs del perfil, por eso viven en su propio
  * grupo de rutas y no bajo las `SwipeTabs`.
  */

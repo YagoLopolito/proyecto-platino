@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import type { PostView } from "@/lib/posts/types";
 import { PostCarousel } from "./PostCarousel";
+import { PlatinumPostBadge } from "@/components/platinum/PlatinumPostBadge";
 import {
   CommentForm,
   CommentList,
@@ -29,18 +30,29 @@ export function PostCard({ post }: { post: PostView }) {
   const commentInput = useRef<HTMLInputElement>(null);
 
   if (deleted) return null;
-  const label = `Publicación de ${post.author.name} en ${post.game.name}`;
+  const isPlatinum = post.kind === "platinum";
+  const label = `${isPlatinum ? "Platino de" : "Publicación de"} ${post.author.name} en ${post.game.name}`;
 
-  return (
+  const card = (
     <article
       aria-label={label}
       data-testid="post-card"
       data-post-id={post.id}
+      data-kind={post.kind}
       // Cada publicación es una tarjeta propia, también en mobile: con fotos a
       // ancho completo una debajo de otra, un hairline solo no alcanzaba para
       // ver dónde termina un post y empieza el siguiente.
-      className="overflow-hidden rounded-card border border-border-strong bg-surface pb-3 shadow-lg shadow-black/30"
+      // Un post de platino lleva el marco metálico (envoltorio de abajo) en
+      // vez del borde: resalta en el feed como el logro que es.
+      className={`overflow-hidden rounded-card bg-surface pb-3 shadow-lg shadow-black/30 ${
+        isPlatinum ? "" : "border border-border-strong"
+      }`}
     >
+      {isPlatinum && (
+        <div className="flex justify-center border-b border-border bg-gradient-to-r from-surface via-platinum-glow to-surface py-1.5">
+          <PlatinumPostBadge />
+        </div>
+      )}
       <PostHeader
         post={post}
         editedAt={editable.editedAt}
@@ -86,4 +98,6 @@ export function PostCard({ post }: { post: PostView }) {
       </div>
     </article>
   );
+
+  return isPlatinum ? <div className="platinum-frame">{card}</div> : card;
 }

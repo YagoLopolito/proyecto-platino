@@ -20,6 +20,7 @@ const SESSION_PATH_PREFIXES = [
   "/listas",
   "/estudios",
   "/publicaciones",
+  "/vitrina",
   "/login",
   "/registro",
   "/auth",

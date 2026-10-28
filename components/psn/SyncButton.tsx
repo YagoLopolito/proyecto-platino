@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { FormError, FormSuccess } from "@/components/FormError";
 import { PSN_SYNC_COOLDOWN_MS, formatCooldown } from "@/lib/sync/cooldown";
+import { requestPlatinumCheck } from "@/components/platinum/PlatinumProvider";
 
 type SyncMessage =
   | { kind: "success"; text: string }
@@ -84,6 +85,8 @@ export default function SyncButton({
       });
       setCooldownLeft(PSN_SYNC_COOLDOWN_MS);
       router.refresh();
+      // Un platino nuevo se celebra ya, no en la próxima apertura de la app.
+      requestPlatinumCheck();
     } catch {
       setMessage({
         kind: "error",

@@ -374,3 +374,19 @@ para el próximo ajuste de superficies).
   advisor), siempre va acompañado de un número o un título que dice lo mismo (1.4.1).
 - **`--accent-2` (3.12:1)** queda sólo para display grande. Por eso el like tiene su propio
   token más claro y no usa el ○ directo.
+
+## Platino: metal, movimiento y celebración
+
+- **Tokens nuevos** (`--platinum-light`, `--platinum-deep`, `--platinum-glow`): son decorativos
+  (marco metálico, halo, reflejo), nunca texto. El texto de platino sigue en
+  `--trophy-platinum`, que pasa AA sobre las seis superficies. El canto claro del marco
+  (`--platinum-light`) pasa los 3:1 de un borde (WCAG 1.4.11) en el peor caso.
+- **Movimiento**: la lluvia de trofeos, el reflejo de las carátulas, el halo que respira y la
+  entrada del trofeo respetan `prefers-reduced-motion` (WCAG 2.3.3) y el toggle "Efectos
+  visuales" de Configuración › Perfil (`<html data-platinum-fx="off">`). Sin movimiento queda el
+  destaque estático: marco, halo fijo y trofeo. La lluvia es `aria-hidden` y
+  `pointer-events: none`, y nunca bloquea un click ni el scroll.
+- **Celebración**: diálogo modal con `aria-modal`, nombre accesible ("¡Platino desbloqueado!"),
+  foco atrapado (Tab / Shift+Tab dan la vuelta), Esc y click afuera cierran, y el foco vuelve a
+  donde estaba. El sonido nunca es la única señal y, si el navegador lo bloquea, hay un botón
+  para reproducirlo.

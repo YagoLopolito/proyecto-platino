@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 /**
  * Los cuatro tipos de PSN más `achievement`, el único valor que tienen las
  * filas que trae Steam. Steam no tiene bronce/plata/oro ni platino: es un tipo
@@ -27,11 +29,55 @@ export type PsnTrophyType = Exclude<TrophyType, "achievement">;
 export const PSN_TROPHY_TYPES: PsnTrophyType[] = ["platinum", "gold", "silver", "bronze"];
 
 /**
- * Ícono de trofeo por tipo. No reproducimos el asset oficial de Sony (sin
- * licencia para eso); es una copa estilizada con el color canónico de cada
- * tipo, suficiente para distinguirlos de un vistazo.
+ * Los trofeos oficiales de PlayStation (bronce, plata, oro y platino), en
+ * versión chica (96px, WebP) para las listas. Los aportó el dueño del
+ * proyecto; el de platino grande (hero, celebración, vitrina) es
+ * `PLATINUM_TROPHY_SRC` en `lib/platinum/assets.ts`. Son assets de Sony: si la
+ * app se hace pública y masiva, conviene reemplazarlos por diseño propio.
+ */
+const OFFICIAL_ICON: Record<PsnTrophyType, string> = {
+  bronze: "/trophies/bronze-sm.webp",
+  silver: "/trophies/silver-sm.webp",
+  gold: "/trophies/gold-sm.webp",
+  platinum: "/trophies/platinum-sm.webp",
+};
+
+/**
+ * Ícono de trofeo por tipo: el trofeo oficial de PSN. Decorativo
+ * (`alt=""`): siempre va al lado del nombre del tipo o de un dato que ya lo
+ * dice. El `achievement` de Steam no es un trofeo y sigue como la copa
+ * vectorial en gris neutro (`TrophyVectorIcon`).
  */
 export function TrophyTypeIcon({
+  type,
+  className = "h-4 w-4",
+}: {
+  type: TrophyType;
+  className?: string;
+}) {
+  if (type === "achievement" || !(type in OFFICIAL_ICON)) {
+    return <TrophyVectorIcon type="achievement" className={className} />;
+  }
+  return (
+    <Image
+      src={OFFICIAL_ICON[type as PsnTrophyType]}
+      alt=""
+      aria-hidden="true"
+      width={96}
+      height={96}
+      // Mismo criterio que `GameArt`: nada pasa por el optimizador de Vercel.
+      unoptimized
+      draggable={false}
+      className={`shrink-0 select-none object-contain ${className}`}
+    />
+  );
+}
+
+/**
+ * La copa estilizada con el color canónico de cada tipo. Queda para el logro
+ * de Steam y como último fallback del platino cuando no carga ninguna imagen.
+ */
+export function TrophyVectorIcon({
   type,
   className = "h-4 w-4",
 }: {

@@ -28,6 +28,7 @@ export function GameHero({
   badges,
   playtimeMinutes,
   hasPlatinum,
+  platinumed = false,
   aside,
 }: {
   game: GameCardData;
@@ -40,6 +41,8 @@ export function GameHero({
   playtimeMinutes: number | null;
   /** El juego tiene trofeo de platino: cambia la etiqueta del tiempo de completitud. */
   hasPlatinum: boolean;
+  /** Lo platinaste: la carátula lleva el marco de platino. */
+  platinumed?: boolean;
   /** Panel de acciones: tercera columna en escritorio, debajo de los datos en mobile. */
   aside?: ReactNode;
 }) {
@@ -109,7 +112,13 @@ export function GameHero({
       >
         {/* Póster. Marco fijo 3:4: las carátulas llegan de fuentes con
             proporciones muy distintas y sin marco la ficha bailaba. */}
-        <div className="relative aspect-[3/4] w-28 self-start overflow-hidden rounded-card border border-border-strong bg-surface shadow-lg min-[420px]:w-32 sm:w-44 lg:row-span-2 lg:w-full">
+        <div
+          className={`relative aspect-[3/4] w-28 self-start overflow-hidden rounded-card bg-surface shadow-lg min-[420px]:w-32 sm:w-44 lg:row-span-2 lg:w-full ${
+            platinumed
+              ? "border-2 border-trophy-platinum shadow-[0_0_24px_var(--platinum-glow)]"
+              : "border border-border-strong"
+          }`}
+        >
           {game.coverUrl ? (
             // Tocar la carátula la abre a pantalla completa.
             <ExpandableImage

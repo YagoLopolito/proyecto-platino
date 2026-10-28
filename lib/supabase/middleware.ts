@@ -59,7 +59,8 @@ export async function updateSession(
     request.nextUrl.pathname.startsWith("/configuracion") ||
     request.nextUrl.pathname.startsWith("/listas") ||
     request.nextUrl.pathname.startsWith("/estudios") ||
-    request.nextUrl.pathname.startsWith("/publicaciones");
+    request.nextUrl.pathname.startsWith("/publicaciones") ||
+    request.nextUrl.pathname.startsWith("/vitrina");
 
   if (!user && !isAuthRoute && isProtectedRoute) {
     const url = request.nextUrl.clone();

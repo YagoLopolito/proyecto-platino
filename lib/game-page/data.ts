@@ -12,6 +12,7 @@ import {
 import { getGameStudios } from "@/lib/studios/store";
 import { getGameDiarySummary, type GameDiarySummaryOutcome } from "@/lib/diary/queries";
 import { dbErrorMessage } from "@/lib/errors";
+import { daysToPlatinum, rarestObtained, type PlatinumPiece } from "@/lib/platinum/stats";
 
 /**
  * Datos de la ficha de juego unificada (epic #183, issue #186).
@@ -117,6 +118,10 @@ export interface GameTrophy {
   earned_rate: number | null;
   progress_target: string | null;
   obtained: boolean;
+  /** Cuándo lo obtuviste. NULL si no lo tenés o PSN no informó la fecha. */
+  obtainedAt: string | null;
+  /** La fila de `user_trophies` (para marcar la celebración). */
+  userTrophyId: string | null;
 }
 
 export interface GameTrophyProgress {
@@ -159,13 +164,21 @@ export const getGameTrophyProgress = cache(async (gameId: string): Promise<GameT
   const { data: unlocked } = ids.length
     ? await supabase
         .from("user_trophies")
-        .select("trophy_id")
+        .select("id, trophy_id, unlocked_at")
         .eq("user_id", userId)
         .in("trophy_id", ids)
-    : { data: [] as { trophy_id: string }[] };
+    : { data: [] as { id: string; trophy_id: string; unlocked_at: string | null }[] };
 
-  const obtained = new Set((unlocked ?? []).map((row) => row.trophy_id));
-  const trophies = rows.map((row) => ({ ...row, obtained: obtained.has(row.id) }));
+  const unlockedById = new Map((unlocked ?? []).map((row) => [row.trophy_id, row]));
+  const trophies = rows.map((row) => {
+    const mine = unlockedById.get(row.id);
+    return {
+      ...row,
+      obtained: mine !== undefined,
+      obtainedAt: mine?.unlocked_at ?? null,
+      userTrophyId: mine?.id ?? null,
+    };
+  });
   const total = trophies.length;
   const obtainedCount = trophies.filter((trophy) => trophy.obtained).length;
   const isSteam = source === "steam";
@@ -189,3 +202,61 @@ export const getGameDiary = cache(async (gameId: string): Promise<GameDiarySumma
   const { supabase, userId } = await getGamePageBase(gameId);
   return getGameDiarySummary(supabase, gameId, userId);
 });
+
+/** Lo que muestra la ficha de un juego platinado (hero + "ficha del platino"). */
+export interface GamePlatinumSummary {
+  piece: PlatinumPiece;
+  /** Días entre el primer trofeo del juego y el platino. */
+  days: number | null;
+  /** El trofeo más raro que conseguiste en este juego. */
+  rarest: { name: string; earnedRate: number } | null;
+}
+
+/**
+ * Datos del platino de este juego, si lo tenés (PSN). Sale de los trofeos que
+ * la ficha ya trajo; lo único extra es contar cuántos platinos tenías hasta
+ * ese día, para el "Tu platino #17".
+ */
+export const getGamePlatinum = cache(
+  async (gameId: string): Promise<GamePlatinumSummary | null> => {
+    const [{ supabase, userId, card }, progress] = await Promise.all([
+      getGamePageBase(gameId),
+      getGameTrophyProgress(gameId),
+    ]);
+    if (!progress.isPlatinumed) return null;
+    const platinum = progress.trophies.find((t) => t.type === "platinum" && t.obtained);
+    if (!platinum?.obtainedAt || !platinum.userTrophyId) return null;
+
+    const { count } = await supabase
+      .from("user_trophies")
+      .select("id, trophies!inner (type)", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("trophies.type", "platinum")
+      .lte("unlocked_at", platinum.obtainedAt);
+
+    const firstUnlockedAt =
+      progress.trophies
+        .map((t) => t.obtainedAt)
+        .filter((at): at is string => at !== null)
+        .sort()[0] ?? null;
+    const rarest = rarestObtained(progress.trophies);
+
+    return {
+      piece: {
+        userTrophyId: platinum.userTrophyId,
+        gameId,
+        name: card.name,
+        imageUrl: card.coverUrl,
+        unlockedAt: platinum.obtainedAt,
+        earnedRate: platinum.earned_rate,
+        firstUnlockedAt,
+        number: Math.max(1, count ?? 1),
+      },
+      days: daysToPlatinum(firstUnlockedAt, platinum.obtainedAt),
+      rarest:
+        rarest && rarest.earned_rate !== null
+          ? { name: rarest.name, earnedRate: Number(rarest.earned_rate) }
+          : null,
+    };
+  },
+);

@@ -12,6 +12,15 @@ export const POST_MEDIA_BUCKET = "post-media";
 
 /** 1..10 archivos por publicación (carrusel), como Instagram. */
 export const MIN_FILES_PER_POST = 1;
+
+/**
+ * `photo` es lo que sube cualquiera; `platinum` es la card "¡Platiné X!" que
+ * genera la app, y el feed la muestra con borde metálico. Sólo se puede crear
+ * para un platino propio (validado en `createDraftPost` y en el trigger
+ * `posts_guard_kind`).
+ */
+export const POST_KINDS = ["photo", "platinum"] as const;
+export type PostKind = (typeof POST_KINDS)[number];
 export const MAX_FILES_PER_POST = 10;
 
 /**

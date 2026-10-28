@@ -12,6 +12,7 @@ import {
   mediaKindOf,
   parseMediaPath,
   posterPathFor,
+  type PostKind,
 } from "./constants";
 import { captionSchema, commentSchema, confirmPostSchema, type ConfirmedMedia } from "./validation";
 import type { PostComment } from "./types";
@@ -56,7 +57,9 @@ export async function createDraftPost(input: {
   gameId: string;
   caption: string;
   isSpoiler: boolean;
+  kind?: PostKind;
 }): Promise<CreateDraftResult> {
+  const kind: PostKind = input.kind === "platinum" ? "platinum" : "photo";
   const gameId = uuidSchema.safeParse(input.gameId);
   if (!gameId.success) return { status: "error", message: "Elegí el juego de la publicación." };
   const caption = captionSchema.safeParse(input.caption ?? "");
@@ -77,6 +80,22 @@ export async function createDraftPost(input: {
     .maybeSingle();
   if (!game) return { status: "error", message: "Ese juego no existe." };
 
+  // Una card de platino sólo para un platino propio. Doble capa: el trigger
+  // `posts_guard_kind` lo vuelve a cortar en la base.
+  if (kind === "platinum") {
+    const { data: platinum } = await supabase
+      .from("user_trophies")
+      .select("id, trophies!inner (game_id, type)")
+      .eq("user_id", user.id)
+      .eq("trophies.game_id", gameId.data)
+      .eq("trophies.type", "platinum")
+      .limit(1)
+      .maybeSingle();
+    if (!platinum) {
+      return { status: "error", message: "Sólo podés compartir un platino que conseguiste." };
+    }
+  }
+
   const { data, error } = await supabase
     .from("posts")
     .insert({
@@ -84,11 +103,15 @@ export async function createDraftPost(input: {
       game_id: gameId.data,
       caption: caption.data,
       is_spoiler: Boolean(input.isSpoiler),
+      kind,
     })
     .select("id")
     .single();
   if (error || !data) {
-    return { status: "error", message: `No se pudo crear la publicación: ${error?.message ?? ""}` };
+    return {
+      status: "error",
+      message: dbErrorMessage("posts.create", error, "No se pudo crear la publicación."),
+    };
   }
   return { status: "ok", postId: data.id, userId: user.id };
 }

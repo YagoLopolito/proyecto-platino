@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GameArt } from "@/components/game/GameArt";
 import { Icon } from "@/components/ui/Icon";
 import type { PostView } from "@/lib/posts/types";
+import { PlatinumPostBadge } from "@/components/platinum/PlatinumPostBadge";
 
 /**
  * Grilla de 3 columnas tipo perfil de Instagram (capturas de un juego, las de
@@ -23,6 +24,7 @@ export function PostGrid({ posts, showGame = false }: { posts: PostView[]; showG
           showGame ? `en ${post.game.name}` : null,
           post.media.length > 1 ? `${post.media.length} archivos` : null,
           isVideo ? "video" : null,
+          post.kind === "platinum" ? "platino" : null,
           post.isSpoiler ? "contiene spoilers" : null,
         ]
           .filter(Boolean)
@@ -34,7 +36,10 @@ export function PostGrid({ posts, showGame = false }: { posts: PostView[]; showG
               aria-label={label}
               data-testid="post-grid-cell"
               data-spoiler={post.isSpoiler || undefined}
-              className="group relative block aspect-square overflow-hidden bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink lg:rounded-chip"
+              data-kind={post.kind}
+              className={`group relative block aspect-square overflow-hidden bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-ink lg:rounded-chip ${
+                post.kind === "platinum" ? "shadow-[inset_0_0_0_2px_var(--trophy-platinum)]" : ""
+              }`}
             >
               {cover?.src ? (
                 <GameArt
@@ -61,6 +66,12 @@ export function PostGrid({ posts, showGame = false }: { posts: PostView[]; showG
                 <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 type-overline text-white">
                   <Icon name="alert" className="h-5 w-5" />
                   Spoiler
+                </span>
+              )}
+
+              {post.kind === "platinum" && (
+                <span className="absolute left-1.5 top-1.5 z-[1]">
+                  <PlatinumPostBadge compact />
                 </span>
               )}
 

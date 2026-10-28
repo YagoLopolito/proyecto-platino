@@ -127,7 +127,7 @@ export default async function PerfilPage() {
     },
     {
       label: "Platinos",
-      href: "/perfil/platinos",
+      href: "/vitrina",
       value: platinumCount.total,
       thisYear: platinumCount.thisYear,
     },

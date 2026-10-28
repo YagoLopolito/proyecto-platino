@@ -117,6 +117,19 @@ export default function TrophyList({
     group.trophies.some((trophy) => trophy.type !== "achievement"),
   );
 
+  // El platino va separado arriba de todo, destacado: es el trofeo que define
+  // el juego. Respeta los filtros (si lo filtrás, no aparece) y no se repite
+  // abajo, en su grupo.
+  const platinumTrophy = filteredGroups
+    .flatMap((group) => group.trophies)
+    .find((trophy) => trophy.type === "platinum");
+  const listedGroups = platinumTrophy
+    ? filteredGroups.map((group) => ({
+        ...group,
+        trophies: group.trophies.filter((trophy) => trophy.id !== platinumTrophy.id),
+      }))
+    : filteredGroups;
+
   const visibleCount = filteredGroups.reduce((acc, g) => acc + g.trophies.length, 0);
   const totalCount = groups.reduce((acc, g) => acc + g.trophies.length, 0);
   const hasFilters = query.trim() !== "" || status !== "all" || type !== "all" || rarity !== "all";
@@ -213,10 +226,21 @@ export default function TrophyList({
         </p>
       </div>
 
+      {platinumTrophy && (
+        <section aria-labelledby="platinum-trophy-heading" className="space-y-2">
+          <h3 id="platinum-trophy-heading" className="type-overline text-trophy-platinum">
+            Platino
+          </h3>
+          <ul data-testid="platinum-trophy-row">
+            <TrophyRow gameId={gameId} trophy={platinumTrophy} focus={focus} featured />
+          </ul>
+        </section>
+      )}
+
       {visibleCount === 0 ? (
         <EmptyState title="Ningún trofeo coincide con los filtros." />
       ) : showGroups ? (
-        filteredGroups
+        listedGroups
           .filter((group) => group.trophies.length > 0)
           .map((group) => (
             <div key={group.groupId} className="space-y-2">
@@ -243,7 +267,7 @@ export default function TrophyList({
           ))
       ) : (
         <ul className="border-t border-border">
-          {filteredGroups.flatMap((group) =>
+          {listedGroups.flatMap((group) =>
             group.trophies.map((trophy) => (
               <TrophyRow key={trophy.id} gameId={gameId} trophy={trophy} focus={focus} />
             )),
@@ -258,13 +282,16 @@ function TrophyRow({
   gameId,
   trophy,
   focus,
+  featured = false,
 }: {
   gameId: string;
   trophy: TrophyListItem;
   focus: { trophyId: string; token: number } | null;
+  featured?: boolean;
 }) {
   return (
     <TrophyItem
+      featured={featured}
       focusToken={focus?.trophyId === trophy.id ? focus.token : null}
       gameId={gameId}
       trophyId={trophy.id}

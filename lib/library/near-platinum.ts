@@ -19,6 +19,13 @@ export type NearPlatinumCandidate = {
   platinumObtained: number;
 };
 
+/** Un juego está "cerca" (ver `selectNearPlatinum`). */
+export function isNearPlatinum(game: NearPlatinumCandidate): boolean {
+  if (game.total <= 0 || game.percent <= NEAR_PLATINUM_MIN_PERCENT) return false;
+  if (game.obtained >= game.total) return false;
+  return game.source === "steam" ? true : game.platinumObtained === 0;
+}
+
 /**
  * Juegos con más del 80% y todavía sin cerrar, del más avanzado al menos.
  *
@@ -32,11 +39,7 @@ export function selectNearPlatinum<T extends NearPlatinumCandidate>(
   limit = NEAR_PLATINUM_LIMIT,
 ): T[] {
   return games
-    .filter((game) => {
-      if (game.total <= 0 || game.percent <= NEAR_PLATINUM_MIN_PERCENT) return false;
-      if (game.obtained >= game.total) return false;
-      return game.source === "steam" ? true : game.platinumObtained === 0;
-    })
+    .filter(isNearPlatinum)
     .sort((a, b) => b.percent - a.percent || b.obtained - a.obtained)
     .slice(0, limit);
 }

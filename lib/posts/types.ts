@@ -2,7 +2,7 @@
  * Formas de una publicación tal como llega a la UI (ya con URLs firmadas y
  * nombres resueltos). Puro: lo importan componentes cliente y servidor.
  */
-import type { MediaKind } from "./constants";
+import type { MediaKind, PostKind } from "./constants";
 
 export interface PostPerson {
   id: string;
@@ -42,6 +42,8 @@ export interface PostView {
   id: string;
   caption: string | null;
   isSpoiler: boolean;
+  /** `platinum`: la card "¡Platiné X!", que el feed muestra con borde metálico. */
+  kind: PostKind;
   publishedAt: string;
   editedAt: string | null;
   isOwn: boolean;

@@ -84,7 +84,7 @@ export async function getComposerGame(
 
 type Variant = "feed" | "grid" | "detail";
 
-const POST_COLUMNS = "id, user_id, game_id, caption, is_spoiler, published_at, edited_at";
+const POST_COLUMNS = "id, user_id, game_id, caption, is_spoiler, kind, published_at, edited_at";
 
 interface PostRow {
   id: string;
@@ -92,6 +92,7 @@ interface PostRow {
   game_id: string;
   caption: string | null;
   is_spoiler: boolean;
+  kind: string;
   published_at: string | null;
   edited_at: string | null;
 }
@@ -248,6 +249,7 @@ async function hydratePosts(
       id: row.id,
       caption: row.caption,
       isSpoiler: row.is_spoiler,
+      kind: row.kind === "platinum" ? "platinum" : "photo",
       publishedAt: row.published_at,
       editedAt: row.edited_at,
       isOwn,

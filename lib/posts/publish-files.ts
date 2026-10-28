@@ -4,7 +4,13 @@
  * con validación en el servidor), para el importador masivo de
  * `/diario/capturas`. Sólo cliente.
  */
-import { buildMediaPath, displayPathFor, isAcceptedMediaType, posterPathFor } from "./constants";
+import {
+  buildMediaPath,
+  displayPathFor,
+  isAcceptedMediaType,
+  posterPathFor,
+  type PostKind,
+} from "./constants";
 import { prepareMedia, type PreparedMedia } from "./prepare";
 import { uploadResumable, uploadSmall } from "./upload";
 import { abandonDraft, confirmPost, createDraftPost } from "./actions";
@@ -24,6 +30,8 @@ export async function publishFiles(input: {
   files: File[];
   caption?: string;
   isSpoiler?: boolean;
+  /** `platinum` para la card "¡Platiné X!" (ver `POST_KINDS`). */
+  kind?: PostKind;
   onFileDone?: () => void;
 }): Promise<PublishFilesResult> {
   const skipped: string[] = [];
@@ -50,6 +58,7 @@ export async function publishFiles(input: {
     gameId: input.gameId,
     caption: input.caption ?? "",
     isSpoiler: input.isSpoiler ?? false,
+    kind: input.kind,
   });
   if (draft.status === "error") return { status: "error", message: draft.message, skipped };
 
