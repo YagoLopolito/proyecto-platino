@@ -392,13 +392,16 @@ test.describe("Platino en la app", () => {
       .click();
     const dialog = page.getByRole("dialog", { name: "Compartir en actividad" });
     await expect(dialog.getByRole("img", { name: /Card de platino de/ })).toBeVisible();
-    await dialog.getByLabel("Texto (opcional)").fill("[E2E] ¡por fin!");
+    // Texto único por intento: el archivo es serial y, si otro caso falla,
+    // Playwright reintenta el grupo entero y este caso vuelve a publicar.
+    const caption = `[E2E] ¡por fin! ${users.runId}-${test.info().retry}`;
+    await dialog.getByLabel("Texto (opcional)").fill(caption);
     await dialog.getByRole("button", { name: "Publicar en la Galería" }).click();
     await expect(dialog.getByRole("status")).toContainText("ya está en la Galería online");
 
     await page.goto("/actividad/galeria");
     const post = page.locator('[data-testid="post-card"][data-kind="platinum"]').filter({
-      hasText: "¡por fin!",
+      hasText: caption,
     });
     await expect(post).toBeVisible();
     await expect(post.getByTestId("platinum-post-badge")).toBeVisible();

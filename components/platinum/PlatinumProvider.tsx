@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -137,6 +138,19 @@ export function PlatinumProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Cuántas veces el usuario cambió las preferencias en esta página. Un pedido
+  // al servidor que salió antes de un cambio trae el valor viejo y no lo pisa:
+  // sin esto, tocar "Efectos visuales" antes de que terminara la carga inicial
+  // dejaba el toggle apagado y los efectos encendidos.
+  const localChanges = useRef(0);
+  const setPrefsFromUser = useCallback(
+    (next: PlatinumPrefs) => {
+      localChanges.current += 1;
+      applyPrefs(next);
+    },
+    [applyPrefs],
+  );
+
   // Pedidos al servidor y suscripciones a eventos del navegador: efecto
   // externo. Los setState pasan en los callbacks, no sincrónicamente.
   useEffect(() => {
@@ -145,6 +159,7 @@ export function PlatinumProvider({ children }: { children: ReactNode }) {
     if (cached) document.documentElement.dataset.platinumFx = cached.effects ? "on" : "off";
 
     const refresh = () => {
+      const changesAtStart = localChanges.current;
       void fetch(STATE_ENDPOINT, { cache: "no-store" })
         .then((response) => (response.ok ? response.json() : null))
         .then((body: unknown) => {
@@ -154,7 +169,7 @@ export function PlatinumProvider({ children }: { children: ReactNode }) {
             setReady(true);
             return;
           }
-          applyPrefs(body.prefs);
+          if (localChanges.current === changesAtStart) applyPrefs(body.prefs);
           setReady(true);
           // Con una celebración en pantalla no se pisa la cola: el que se está
           // mostrando todavía puede figurar como pendiente en el servidor.
@@ -204,10 +219,10 @@ export function PlatinumProvider({ children }: { children: ReactNode }) {
       prefs,
       ready,
       motion: prefs.effects && !reducedMotion,
-      setPrefs: applyPrefs,
+      setPrefs: setPrefsFromUser,
       openShare: setSharing,
     }),
-    [prefs, ready, reducedMotion, applyPrefs],
+    [prefs, ready, reducedMotion, setPrefsFromUser],
   );
 
   return (
