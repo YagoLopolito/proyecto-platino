@@ -109,6 +109,12 @@ test.describe("Jugando ahora", () => {
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    // El toggle es optimista: `aria-pressed` cambia antes de que la action
+    // termine. Navegar sin esperar a la racha guardada es una carrera que el
+    // perfil pierde cuando la action tarda.
+    await expect
+      .poll(async () => (await openSessions(supabase, users.userA.id, gameId)).length)
+      .toBe(1);
 
     await page.goto("/perfil");
     const ownSection = page.getByRole("region", { name: "Jugando ahora" });
