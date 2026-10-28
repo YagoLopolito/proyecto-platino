@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { TrophyTypeIcon } from "@/components/TrophyTypeIcon";
+import { TrophyVectorIcon } from "@/components/TrophyTypeIcon";
 import {
   PLATINUM_TROPHY_FALLBACK_SRC,
   PLATINUM_TROPHY_SRC,
@@ -45,7 +45,7 @@ export function PlatinumTrophy({
         className={`inline-flex shrink-0 ${className}`}
         style={{ width: size, height: size }}
       >
-        <TrophyTypeIcon type="platinum" className="h-full w-full" />
+        <TrophyVectorIcon type="platinum" className="h-full w-full" />
       </span>
     );
   }

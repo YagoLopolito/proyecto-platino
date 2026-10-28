@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { GameArt } from "@/components/game/GameArt";
-import { TrophyTypeIcon } from "@/components/TrophyTypeIcon";
+import { TrophyVectorIcon } from "@/components/TrophyTypeIcon";
 import { PlatinumSheen } from "./PlatinumSheen";
 import { PlatinumTrophy } from "./PlatinumTrophy";
 import { SharePlatinumButton } from "./SharePlatinumButton";
@@ -125,7 +125,7 @@ function NextSlot({ candidate }: { candidate: NextPlatinumCandidate | null }) {
           fallback={null}
         />
       )}
-      <TrophyTypeIcon type="platinum" className="relative h-12 w-12 opacity-30 grayscale" />
+      <TrophyVectorIcon type="platinum" className="relative h-12 w-12 opacity-30 grayscale" />
     </div>
   );
 

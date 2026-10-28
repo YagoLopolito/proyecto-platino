@@ -2,10 +2,11 @@
  * Rutas de los assets del platino, en un solo lugar para poder cambiarlas
  * juntas. Puro y sin `server-only`: lo usan componentes cliente.
  *
- * El ícono y el sonido oficiales de PlayStation los coloca a mano el dueño del
- * proyecto (no se descargan ni se generan): mientras no estén, todo cae a
- * `PLATINUM_TROPHY_FALLBACK_SRC` (el trofeo que ya usa Actividad) y, si ese
- * tampoco carga, al trofeo vectorial del set. Sin sonido no pasa nada.
+ * El ícono y el sonido oficiales de PlayStation los aporta a mano el dueño del
+ * proyecto (no se descargan ni se generan). El trofeo ya está commiteado
+ * (512px, PNG cuantizado); si alguna vez no carga, cae a
+ * `PLATINUM_TROPHY_FALLBACK_SRC` (la misma imagen en WebP, la de Actividad) y
+ * después al trofeo vectorial. Sin el sonido no pasa nada.
  *
  * Son assets de Sony: si la app se hace pública y masiva, conviene
  * reemplazarlos por diseño propio (mismo criterio que los logos de
@@ -42,7 +43,7 @@ export function warnMissingPlatinumAsset(path: string): void {
 }
 
 /**
- * La copa de `TrophyTypeIcon` (viewBox 24×24), para dibujarla en el canvas de
+ * La copa de `TrophyVectorIcon` (viewBox 24×24), para dibujarla en el canvas de
  * la lluvia cuando no carga ninguna imagen.
  */
 export const TROPHY_VECTOR_PATH =

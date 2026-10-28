@@ -461,11 +461,14 @@ La fase 3 sumó los que faltaban para vaciar de emojis la biblioteca y la ficha:
 (chrome, el único de trazo). Van todos sin `label`: acompañan a un texto que ya dice lo
 mismo, así que son decorativos.
 
-Los íconos de trofeo **por tipo** no están en ese set: siguen en `components/TrophyTypeIcon.tsx`,
-porque lo que los distingue es el color canónico de cada tipo y no la forma. Las plataformas van
-con un gamepad y un monitor genéricos, nunca con los logos de PlayStation o Steam: son marcas
-registradas y no tenemos licencia (mismo criterio que ya aplicaba `TrophyTypeIcon` con el asset
-oficial de Sony).
+Los íconos de trofeo **por tipo** no están en ese set: `components/TrophyTypeIcon.tsx` muestra
+los trofeos oficiales de PlayStation (bronce, plata, oro, platino), que aportó el dueño del
+proyecto: `public/trophies/<tipo>-sm.webp` (96px) para las listas y `public/trophies/platinum.png`
+(512px) para los usos grandes del platino. El logro de Steam no es un trofeo y sigue como la copa
+vectorial en gris (`TrophyVectorIcon`). Son assets de Sony usados con decisión explícita del
+dueño; si la app se hace pública y masiva, conviene reemplazarlos por diseño propio. Las
+plataformas siguen yendo con un gamepad y un monitor genéricos, nunca con los logos de
+PlayStation o Steam.
 
 ### Estructura (decidido el 2026-09-05)
 
@@ -1081,9 +1084,8 @@ El cuarto botón: un log de frases, como la Activity de Letterboxd. Tabs **Amigo
 - Fila: avatar · frase con nombres en 600 linkeables · tiempo relativo en `ink-faint`. La fecha
   del diario sale de `formatDiaryDate` (partes del string + `Date.UTC`, nunca `new
   Date("YYYY-MM-DD")`). En el platino el avatar se reemplaza por `public/trophy-platinum.webp`,
-  el trofeo que aportó el dueño del proyecto (`scripts/generate-platinum-trophy.mjs` le saca el
-  damero pintado del PNG original y `scripts/clean-platinum-trophy.mjs` limpia los restos que
-  quedaban entre las cintas y el agujero del pedestal).
+  el trofeo oficial que aportó el dueño del proyecto (el mismo de `public/trophies/platinum.png`,
+  en WebP de 256px).
 
 ## Perfil › Perfil (epic #183, issue #196)
 
@@ -1260,12 +1262,12 @@ Reemplaza a la galería vieja de capturas (ver la sección del diario).
 Un platino de PSN se destaca en toda la app. **Sólo PSN**: el 100% de Steam no es un platino y
 conserva su propio badge (ver la sección de Steam).
 
-- **Assets oficiales** en `lib/platinum/assets.ts`: `public/trophies/platinum.png` y
-  `public/sounds/platinum.mp3`, que **coloca a mano el dueño del proyecto** (son de Sony: no se
-  descargan ni se generan, y si la app se hace masiva conviene reemplazarlos por diseño propio).
-  Sin ellos nada se rompe: `PlatinumTrophy` cae a `public/trophy-platinum.webp` y después a la
-  copa vectorial, el sonido simplemente no suena, y en desarrollo sale un aviso en consola (una
-  vez por asset).
+- **Assets oficiales** en `lib/platinum/assets.ts`: `public/trophies/platinum.png` (ya
+  commiteado, 512px cuantizado) y `public/sounds/platinum.mp3`, que **aporta a mano el dueño del
+  proyecto** (son de Sony: no se descargan ni se generan, y si la app se hace masiva conviene
+  reemplazarlos por diseño propio). Si falta alguno nada se rompe: `PlatinumTrophy` cae a
+  `public/trophy-platinum.webp` y después a la copa vectorial, el sonido simplemente no suena, y
+  en desarrollo sale un aviso en consola (una vez por asset).
 - **Biblioteca**: `GamePoster` con `isPlatinum` lleva marco metálico (`.platinum-frame`), el
   trofeo en la esquina y el reflejo que cruza la carátula (`PlatinumSheen`: CSS puro con
   `transform`, pausado fuera de pantalla con **un único** IntersectionObserver compartido).
