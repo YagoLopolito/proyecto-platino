@@ -59,6 +59,8 @@ const nextConfig: NextConfig = {
       { source: "/juegos/:id/diario", destination: "/juegos/:id/resenas", permanent: false },
       { source: "/juegos/:id/trofeos", destination: "/juegos/:id", permanent: false },
       { source: "/juegos/:id/enlaces", destination: "/juegos/:id/guias", permanent: false },
+      // El expandido de Platinos del perfil pasó a ser la Vitrina.
+      { source: "/perfil/platinos", destination: "/vitrina", permanent: false },
     ];
   },
 

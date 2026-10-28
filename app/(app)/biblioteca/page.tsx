@@ -19,6 +19,8 @@ import { GamePoster } from "@/components/game/GamePoster";
 import { PosterRow, PosterRowItem } from "@/components/game/PosterGrid";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { dbErrorMessage } from "@/lib/errors";
+import { getPlatinums } from "@/lib/profile/overview";
+import { PlatinumCounter } from "@/components/platinum/PlatinumCounter";
 
 type GameStats = {
   total: number;
@@ -92,6 +94,7 @@ export default async function BibliotecaJuegosPage({
     { data: library, error },
     { data: statsRows },
     nowPlaying,
+    platinums,
   ] = await Promise.all([
     supabase
       .from("psn_accounts")
@@ -102,7 +105,11 @@ export default async function BibliotecaJuegosPage({
     libraryQuery,
     supabase.rpc("get_library_trophy_stats"),
     getNowPlaying(supabase, userId),
+    // La fecha de cada platino (para la tarjeta y "Platinados primero") y el
+    // contador de la vitrina. Una consulta más, en paralelo con el resto.
+    getPlatinums(supabase, userId),
   ]);
+  const platinumAtByGame = new Map(platinums.map((p) => [p.gameId, p.unlockedAt]));
 
   // Después y no en paralelo: las dos reusan las stats del RPC en vez de
   // pedirlas de nuevo, que es la consulta cara de esta página.
@@ -156,6 +163,7 @@ export default async function BibliotecaJuegosPage({
       counts: stats.counts,
       source: game.source,
       playtimeMinutes: row.playtime_minutes,
+      platinumAt: platinumAtByGame.get(game.id) ?? null,
     };
   });
 
@@ -172,6 +180,7 @@ export default async function BibliotecaJuegosPage({
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="type-title text-ink">Mi biblioteca</h1>
             {psnAccount && <SyncStatusBadge status={psnAccount.token_status as SyncTokenStatus} />}
+            {(psnAccount || platinums.length > 0) && <PlatinumCounter count={platinums.length} />}
             {/*
              * Estado de sync: antes eran tres párrafos y un botón antes de la
              * primera carátula. Ahora es una sola línea al lado del título

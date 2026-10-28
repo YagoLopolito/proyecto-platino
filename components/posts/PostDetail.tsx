@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { PostView } from "@/lib/posts/types";
 import { PostCarousel } from "./PostCarousel";
+import { PlatinumPostBadge } from "@/components/platinum/PlatinumPostBadge";
 import {
   CommentForm,
   CommentList,
@@ -85,6 +86,11 @@ export function PostDetail({ post, inModal }: { post: PostView; inModal: boolean
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto py-3">
+          {post.kind === "platinum" && (
+            <div className="px-3 sm:px-4">
+              <PlatinumPostBadge />
+            </div>
+          )}
           <PostCaption post={post} caption={editable.caption} clamp={false} />
           <div className="px-3 sm:px-4">
             {comments.comments.length === 0 ? (

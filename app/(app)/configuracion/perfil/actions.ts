@@ -82,3 +82,37 @@ export async function saveProfilePlatform(
   revalidatePath("/configuracion/perfil");
   return { error: null, success: "Listo: tu perfil se muestra con esa cuenta." };
 }
+
+export type PlatinumPrefsResult = { error: string | null };
+
+const platinumPrefsSchema = z.object({ sound: z.boolean(), effects: z.boolean() });
+
+/**
+ * Preferencias del platino: sonido y efectos visuales (lluvia, reflejos,
+ * celebración animada), independientes entre sí. En la base y no en el
+ * navegador para que valgan en todos los dispositivos; la RLS
+ * `users_update_own` exige que la fila sea propia.
+ */
+export async function savePlatinumPrefs(input: {
+  sound: boolean;
+  effects: boolean;
+}): Promise<PlatinumPrefsResult> {
+  const parsed = platinumPrefsSchema.safeParse(input);
+  if (!parsed.success) return { error: "Preferencia inválida." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Tu sesión expiró. Volvé a iniciar sesión." };
+
+  const { error } = await supabase
+    .from("users")
+    .update({
+      platinum_sound_enabled: parsed.data.sound,
+      platinum_effects_enabled: parsed.data.effects,
+    })
+    .eq("id", user.id);
+  if (error) return { error: "No se pudo guardar. Probá de nuevo." };
+  return { error: null };
+}

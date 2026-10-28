@@ -701,6 +701,7 @@ export type Database = {
           game_id: string;
           id: string;
           is_spoiler: boolean;
+          kind: string;
           published_at: string | null;
           status: string;
           updated_at: string;
@@ -713,6 +714,7 @@ export type Database = {
           game_id: string;
           id?: string;
           is_spoiler?: boolean;
+          kind?: string;
           published_at?: string | null;
           status?: string;
           updated_at?: string;
@@ -725,6 +727,7 @@ export type Database = {
           game_id?: string;
           id?: string;
           is_spoiler?: boolean;
+          kind?: string;
           published_at?: string | null;
           status?: string;
           updated_at?: string;
@@ -1333,6 +1336,7 @@ export type Database = {
       };
       user_trophies: {
         Row: {
+          celebrated_at: string | null;
           created_at: string;
           id: string;
           trophy_id: string;
@@ -1340,6 +1344,7 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          celebrated_at?: string | null;
           created_at?: string;
           id?: string;
           trophy_id: string;
@@ -1347,6 +1352,7 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          celebrated_at?: string | null;
           created_at?: string;
           id?: string;
           trophy_id?: string;
@@ -1377,6 +1383,8 @@ export type Database = {
           created_at: string;
           display_name: string | null;
           id: string;
+          platinum_effects_enabled: boolean;
+          platinum_sound_enabled: boolean;
           profile_platform: string | null;
           updated_at: string;
         };
@@ -1386,6 +1394,8 @@ export type Database = {
           created_at?: string;
           display_name?: string | null;
           id: string;
+          platinum_effects_enabled?: boolean;
+          platinum_sound_enabled?: boolean;
           profile_platform?: string | null;
           updated_at?: string;
         };
@@ -1395,6 +1405,8 @@ export type Database = {
           created_at?: string;
           display_name?: string | null;
           id?: string;
+          platinum_effects_enabled?: boolean;
+          platinum_sound_enabled?: boolean;
           profile_platform?: string | null;
           updated_at?: string;
         };
@@ -1521,6 +1533,21 @@ export type Database = {
           platinum: number;
           silver: number;
           total: number;
+        }[];
+      };
+      get_platinum_collection: {
+        Args: never;
+        Returns: {
+          user_trophy_id: string;
+          game_id: string;
+          name: string;
+          cover_url: string | null;
+          icon_url: string | null;
+          unlocked_at: string;
+          earned_rate: number | null;
+          first_unlocked_at: string | null;
+          platinum_number: number;
+          celebrated_at: string | null;
         }[];
       };
       get_post_stats: {

@@ -42,7 +42,8 @@ const PERFIL: NavLink = {
   icon: "user",
   // El diario y el resumen del año son sub-secciones del perfil propio, y las
   // listas (#189) se arman y se ven desde Perfil › Listas.
-  alsoActiveOn: ["/diario", "/configuracion", "/listas"],
+  // La vitrina de platinos es la ampliación de "Platinos" de sus estadísticas.
+  alsoActiveOn: ["/diario", "/configuracion", "/listas", "/vitrina"],
   notActiveOn: ["/listas/sistema"],
 };
 
@@ -83,6 +84,7 @@ export function sectionTitle(pathname: string): string | null {
   if (matchesPrefix(pathname, "/configuracion")) return "Configuración";
   if (matchesPrefix(pathname, "/listas")) return "Listas";
   if (matchesPrefix(pathname, "/estudios")) return "Estudio";
+  if (matchesPrefix(pathname, "/vitrina")) return "Vitrina";
   if (matchesPrefix(pathname, "/juegos")) return null;
   for (const link of [BIBLIOTECA, BUSCAR, ACTIVIDAD, PERFIL]) {
     if (isActiveLink(pathname, link)) return link.label;

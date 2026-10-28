@@ -154,6 +154,27 @@
    */
   --trophy-neutral: #9aa3b6;
 
+  /* --- Platino: metal --------------------------------------------------- */
+  /*
+   * El tratamiento "premium" de un juego platinado (marco metálico, reflejo,
+   * vitrina). Son tres escalones del mismo metal alrededor de
+   * `--trophy-platinum`, que sigue siendo el color canónico del trofeo:
+   *
+   * - `--platinum-light`: el brillo del reflejo y el canto claro del marco.
+   * - `--platinum-deep`: la sombra del metal, para que el gradiente se lea
+   *   como metal y no como un celeste plano.
+   * - `--platinum-glow`: el halo, ya con su opacidad (va detrás de cosas).
+   *
+   * Son decorativos (marcos, halos): nunca texto. El texto de platino sigue
+   * yendo en `--trophy-platinum` (11.9:1 sobre `surface-hover`). El canto
+   * claro del marco pasa los 3:1 de un borde (WCAG 1.4.11) sobre las seis
+   * superficies; el oscuro no hace falta que los pase, siempre va pegado al
+   * claro.
+   */
+  --platinum-light: #f1f8ff;
+  --platinum-deep: #5f84a6;
+  --platinum-glow: rgb(185 225 255 / 0.35);
+
   /* --- Rareza de trofeo ------------------------------------------------- */
   /*
    * Los cuatro escalones que devuelve psn-api (0=ultra rara .. 3=común). Son
@@ -222,6 +243,9 @@
   --color-trophy-gold: var(--trophy-gold);
   --color-trophy-platinum: var(--trophy-platinum);
   --color-trophy-neutral: var(--trophy-neutral);
+  --color-platinum-light: var(--platinum-light);
+  --color-platinum-deep: var(--platinum-deep);
+  --color-platinum-glow: var(--platinum-glow);
 
   --color-rarity-ultra: var(--rarity-ultra);
   --color-rarity-very: var(--rarity-very);
@@ -467,4 +491,149 @@ body {
   100% {
     transform: scale(1);
   }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Platino                                                                   */
+/* ------------------------------------------------------------------------ */
+
+/*
+ * Marco metálico de un juego platinado: un gradiente de 2px alrededor de la
+ * carátula (el `padding` deja ver el fondo del contenedor) más un halo fijo.
+ * Estático a propósito: con `prefers-reduced-motion` o los efectos apagados,
+ * esto es lo que queda del destaque.
+ */
+.platinum-frame {
+  padding: 2px;
+  border-radius: calc(var(--radius-card) + 2px);
+  background: linear-gradient(
+    135deg,
+    var(--platinum-light) 0%,
+    var(--trophy-platinum) 30%,
+    var(--platinum-deep) 55%,
+    var(--trophy-platinum) 75%,
+    var(--platinum-light) 100%
+  );
+  box-shadow: 0 0 14px var(--platinum-glow);
+}
+
+/*
+ * Reflejo de luz que cruza la carátula cada ~7s. Sólo `transform` (corre en
+ * la GPU, sin layout ni paint del resto) y pausado mientras la carátula no
+ * está en pantalla: `PlatinumSheen` le pone `data-visible` con un único
+ * IntersectionObserver compartido por todas las carátulas.
+ */
+.platinum-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    color-mix(in srgb, var(--platinum-light) 32%, transparent) 50%,
+    transparent 65%
+  );
+  transform: translateX(-130%);
+  animation: platinum-sweep 7s ease-in-out infinite;
+  animation-delay: var(--platinum-sheen-delay, 1.2s);
+  animation-play-state: paused;
+}
+
+.platinum-sheen[data-visible]::after {
+  animation-play-state: running;
+}
+
+@keyframes platinum-sweep {
+  0% {
+    transform: translateX(-130%);
+  }
+  22%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+/* Halo que respira detrás del trofeo grande (hero, celebración, vitrina). */
+@keyframes platinum-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+.platinum-pulse {
+  animation: platinum-pulse 3.2s ease-in-out infinite;
+}
+
+/* Entrada del trofeo en la celebración: desde chico, con un rebote. */
+@keyframes platinum-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-12deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.12) rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+.platinum-enter {
+  animation: platinum-enter 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* El destello detrás del trofeo cuando entra. */
+@keyframes platinum-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+.platinum-flash {
+  animation: platinum-flash 1.1s ease-out both;
+}
+
+/*
+ * Sin movimiento: con `prefers-reduced-motion` o con los efectos apagados en
+ * Configuración (`PlatinumProvider` pone `data-platinum-fx="off"` en <html>).
+ * El marco y el halo fijos se quedan; la lluvia ni se monta.
+ */
+@media (prefers-reduced-motion: reduce) {
+  /* El destello termina invisible: sin animación quedaría fijo encima. */
+  .platinum-sheen::after,
+  .platinum-flash {
+    display: none;
+  }
+  .platinum-pulse,
+  .platinum-enter {
+    animation: none;
+  }
+}
+
+:root[data-platinum-fx="off"] .platinum-sheen::after,
+:root[data-platinum-fx="off"] .platinum-flash {
+  display: none;
+}
+
+:root[data-platinum-fx="off"] .platinum-pulse,
+:root[data-platinum-fx="off"] .platinum-enter {
+  animation: none;
 }

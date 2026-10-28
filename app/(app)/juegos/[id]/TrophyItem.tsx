@@ -29,6 +29,7 @@ export default function TrophyItem({
   earnedRate,
   progressTarget,
   focusToken,
+  featured = false,
 }: {
   gameId: string;
   trophyId: string;
@@ -47,6 +48,8 @@ export default function TrophyItem({
    * el mismo trofeo scrollee de nuevo en vez de no cambiar nada.
    */
   focusToken: number | null;
+  /** El platino, separado arriba de la lista: fila destacada con el metal. */
+  featured?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
@@ -102,8 +105,13 @@ export default function TrophyItem({
     <li
       ref={itemRef}
       id={`trofeo-${trophyId}`}
+      data-featured={featured || undefined}
       className={`scroll-mt-20 border-b border-border px-1 py-3 transition-colors last:border-b-0 ${
-        focusToken !== null ? "bg-accent/10 ring-1 ring-accent-ink" : "hover:bg-surface"
+        focusToken !== null
+          ? "bg-accent/10 ring-1 ring-accent-ink"
+          : featured
+            ? "rounded-card border-b-0 bg-gradient-to-r from-platinum-glow via-surface to-surface px-3 shadow-[inset_3px_0_0_var(--trophy-platinum)]"
+            : "hover:bg-surface"
       }`}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -112,9 +120,9 @@ export default function TrophyItem({
             <GameArt
               src={iconUrl}
               alt=""
-              width={40}
-              height={40}
-              className={`h-10 w-10 shrink-0 rounded-chip object-cover ${
+              width={featured ? 56 : 40}
+              height={featured ? 56 : 40}
+              className={`${featured ? "h-14 w-14" : "h-10 w-10"} shrink-0 rounded-chip object-cover ${
                 isObtained ? "" : "grayscale opacity-60"
               }`}
               // El ícono es decorativo: sin él alcanza con el color del tipo.

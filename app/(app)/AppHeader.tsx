@@ -225,6 +225,10 @@ function AccountMenu() {
             <Icon name="user" className="h-4 w-4" />
             Perfil
           </Link>
+          <Link href="/vitrina" role="menuitem" className={itemClass}>
+            <Icon name="trophy" className="h-4 w-4" />
+            Vitrina
+          </Link>
           <Link href="/configuracion" role="menuitem" className={itemClass}>
             <Icon name="settings" className="h-4 w-4" />
             Configuración

@@ -46,7 +46,7 @@ test("PROF-13: el perfil muestra las secciones en el orden de Letterboxd", async
     })
     .allTextContents();
   expect(headings).toEqual(["Favoritos", "Últimas reseñas", "Tus puntuaciones", "Estadísticas"]);
-  // El desglose de trofeos de PSN se mudó al expandido de Platinos.
+  // El desglose de trofeos de PSN se mudó a la Vitrina.
   await expect(page.getByText("PlayStation Network · trofeos por tipo")).toHaveCount(0);
 });
 
@@ -121,18 +121,16 @@ test("PROF-16: 'Juegos jugados' no cuenta dos veces un juego platinado y reseña
     np: 3202,
   });
   await unlockPlatinum(supabase, users.userA.id, game.gameId);
-  await supabase
-    .from("game_diary_entries")
-    .upsert(
-      {
-        user_id: users.userA.id,
-        game_id: game.gameId,
-        playthrough_number: 1,
-        rating: 8,
-        finished_on: "2026-03-10",
-      },
-      { onConflict: "user_id,game_id,playthrough_number" },
-    );
+  await supabase.from("game_diary_entries").upsert(
+    {
+      user_id: users.userA.id,
+      game_id: game.gameId,
+      playthrough_number: 1,
+      rating: 8,
+      finished_on: "2026-03-10",
+    },
+    { onConflict: "user_id,game_id,playthrough_number" },
+  );
 
   await page.goto("/perfil/jugados");
   await expect(
@@ -143,7 +141,8 @@ test("PROF-16: 'Juegos jugados' no cuenta dos veces un juego platinado y reseña
 test("PROF-17: cada fila de Estadísticas lleva a su expandido", async ({ page }) => {
   const rows: [RegExp, RegExp, string][] = [
     [/^Juegos jugados/, /\/perfil\/jugados$/, "Juegos jugados"],
-    [/^Platinos/, /\/perfil\/platinos$/, "Platinos"],
+    // Platinos abre la Vitrina, que reemplazó al expandido `/perfil/platinos`.
+    [/^Platinos/, /\/vitrina$/, "Vitrina"],
     [/^Reseñas/, /\/perfil\/resenas$/, "Tus reseñas"],
     [/^Likes/, /\/perfil\/likes$/, "Likes"],
     [/^Siguiendo/, /\/perfil\/siguiendo$/, "Siguiendo"],
@@ -202,7 +201,7 @@ test("PROF-19: Platinos y 100% de Steam van separados", async ({ page, supabase,
 
   await page.goto("/perfil/completados");
   await expect(page.getByTestId("completed-game").filter({ hasText: title })).toHaveCount(1);
-  await page.goto("/perfil/platinos");
+  await page.goto("/vitrina");
   await expect(page.getByTestId("platinum-game").filter({ hasText: title })).toHaveCount(0);
 });
 

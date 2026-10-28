@@ -6,6 +6,7 @@ import { findCoverUrl } from "@/lib/covers";
 import { normalizeName } from "@/lib/catalog/dedup";
 import { reconcilePlatinumDiaryEntry } from "@/lib/diary/platinum";
 import { endNowPlaying } from "@/lib/now-playing/end";
+import { shouldCelebratePlatinum } from "@/lib/platinum/celebration";
 import { getAuthorizationFromNpsso, getPsnAvatarUrl, getPsnTrophySummary } from "./auth";
 import { mapWithConcurrency } from "./concurrency";
 import { decryptSecret } from "./crypto";
@@ -145,6 +146,7 @@ async function syncTitle(
   title: FetchedTitle,
   catalogGameIdByName: Map<string, string>,
   playtimeByName: Map<string, number>,
+  hadPreviousSync: boolean,
 ): Promise<{ titleSynced: boolean; trophiesSynced: number }> {
   const game = await resolveGameId(catalog, userId, title, catalogGameIdByName);
   if (!game) return { titleSynced: false, trophiesSynced: 0 };
@@ -236,14 +238,54 @@ async function syncTitle(
       Boolean(row.trophy_id),
     );
 
+  const platinum = title.trophies.find((t) => t.type === "platinum" && t.earned && t.earnedAt);
+  const platinumTrophyId = platinum ? trophyIdByNpId.get(String(platinum.npTrophyId)) : undefined;
+
+  // ¿El platino es nuevo? Se mira ANTES del upsert: después ya no se puede
+  // distinguir una fila recién creada de una que estaba. Una consulta más sólo
+  // en los títulos con platino, no en todos.
+  let platinumWasKnown = true;
+  if (platinumTrophyId && hadPreviousSync) {
+    const { data: known } = await supabase
+      .from("user_trophies")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("trophy_id", platinumTrophyId)
+      .maybeSingle();
+    platinumWasKnown = known !== null;
+  }
+
   if (earnedRows.length > 0) {
     await supabase.from("user_trophies").upsert(earnedRows, { onConflict: "user_id,trophy_id" });
+  }
+
+  // Celebración de pantalla completa: `celebrated_at` nace en `now()` y sólo un
+  // platino nuevo y reciente queda en NULL (ver `shouldCelebratePlatinum`).
+  // Mismo criterio que el diario: un extra que no puede tirar abajo el sync.
+  if (
+    platinumTrophyId &&
+    shouldCelebratePlatinum({
+      alreadyHad: platinumWasKnown,
+      hadPreviousSync,
+      earnedAt: platinum?.earnedAt ?? null,
+    })
+  ) {
+    const { error } = await supabase
+      .from("user_trophies")
+      .update({ celebrated_at: null })
+      .eq("user_id", userId)
+      .eq("trophy_id", platinumTrophyId);
+    if (error) {
+      console.error(
+        `[psn-sync] no se pudo marcar el platino para celebrar (${title.name}):`,
+        error,
+      );
+    }
   }
 
   // Auto-detección de platino para el diario (issue #96). Va en try/catch a
   // propósito: es un extra sobre el sync, si falla no puede tirar abajo la
   // sincronización de trofeos del título.
-  const platinum = title.trophies.find((t) => t.type === "platinum" && t.earned && t.earnedAt);
   if (platinum?.earnedAt) {
     try {
       await reconcilePlatinumDiaryEntry(supabase, userId, gameId, platinum.earnedAt);
@@ -297,7 +339,7 @@ export async function syncTrophiesForUser(
   const catalog = createServiceClient();
   const { data: account, error: accountError } = await catalog
     .from("psn_accounts")
-    .select("npsso_encrypted, account_id")
+    .select("npsso_encrypted, account_id, last_synced_at")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -399,7 +441,16 @@ export async function syncTrophiesForUser(
   }
 
   const results = await mapWithConcurrency(titles, TITLE_WRITE_CONCURRENCY, (title) =>
-    syncTitle(supabase, catalog, userId, title, catalogGameIdByName, playtimeByName),
+    syncTitle(
+      supabase,
+      catalog,
+      userId,
+      title,
+      catalogGameIdByName,
+      playtimeByName,
+      // El primer sync trae la historia entera: nada de eso se celebra.
+      account.last_synced_at !== null,
+    ),
   );
 
   // El avatar puede cambiar en PSN sin que el usuario reconecte la cuenta; se

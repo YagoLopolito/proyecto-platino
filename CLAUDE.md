@@ -1254,6 +1254,56 @@ Reemplaza a la galería vieja de capturas (ver la sección del diario).
 - **Moderación**: no hay. El compositor recuerda que es para contenido de juegos; una tabla
   `post_reports` con FK en cascada encaja sin tocar lo demás.
 
+## Platino: el logro máximo (`lib/platinum/`, `components/platinum/`)
+
+Un platino de PSN se destaca en toda la app. **Sólo PSN**: el 100% de Steam no es un platino y
+conserva su propio badge (ver la sección de Steam).
+
+- **Assets oficiales** en `lib/platinum/assets.ts`: `public/trophies/platinum.png` y
+  `public/sounds/platinum.mp3`, que **coloca a mano el dueño del proyecto** (son de Sony: no se
+  descargan ni se generan, y si la app se hace masiva conviene reemplazarlos por diseño propio).
+  Sin ellos nada se rompe: `PlatinumTrophy` cae a `public/trophy-platinum.webp` y después a la
+  copa vectorial, el sonido simplemente no suena, y en desarrollo sale un aviso en consola (una
+  vez por asset).
+- **Biblioteca**: `GamePoster` con `isPlatinum` lleva marco metálico (`.platinum-frame`), el
+  trofeo en la esquina y el reflejo que cruza la carátula (`PlatinumSheen`: CSS puro con
+  `transform`, pausado fuera de pantalla con **un único** IntersectionObserver compartido).
+  Debajo, "Platinado el …" (fecha de `getPlatinums`), "A punto de platinar" con más del 80%, el
+  orden "Platinados primero" y el contador `PlatinumCounter`, que lleva a la vitrina.
+- **Ficha del juego**: `getGamePlatinum` (en `lib/game-page/data.ts`, sale de los trofeos que la
+  ficha ya trae más un `count` para el "#N") alimenta `GamePlatinumShowcase`: el trofeo grande,
+  número, fecha, rareza, días desde el primer trofeo y tu trofeo más raro. `GamePlatinumActions`
+  vive en el **layout**, así que la lluvia (`PlatinumRain`, canvas, sin librerías, cargado con
+  `dynamic()`) y el sonido salen **cada vez que se entra al juego**, no al cambiar de tab.
+  "¡Otra vez!" la repite. En `TrophyList` el platino va separado arriba y no se repite abajo.
+- **Celebración de platinos nuevos**: `user_trophies.celebrated_at` (migración
+  `20261028000000_platinum_impact.sql`) **nace en `now()`**: todo lo viejo y todo trofeo que no
+  sea un platino recién conseguido cuenta como ya celebrado. El sync de PSN la pone en NULL sólo
+  si `shouldCelebratePlatinum` (`lib/platinum/celebration.ts`, puro): la fila es nueva, la
+  cuenta ya tenía un sync previo (el primero es historia) y el platino es de los últimos 30 días.
+  `PlatinumProvider` (en `app/(app)/layout.tsx`) pide la cola a `GET /api/platino/estado` al
+  abrir la app, al volver a primer plano y tras un sync manual (`requestPlatinumCheck`), y marca
+  cada una con `POST /api/platino/celebrado`. **Route handlers y no Server Actions**, por lo
+  mismo que `/api/actividad/no-leidas`. La cola va de a uno ("1 de 3"), y si el navegador
+  bloquea el audio aparece un botón para reproducirlo.
+- **Vitrina** (`/vitrina`): `get_platinum_collection()` (security invoker, una fila por
+  platino con su número, rareza y primer trofeo) y `lib/platinum/stats.ts` (puro) arman las
+  stats (más raro, más rápido, mejor año), las repisas (`ShowcaseShelf`) y los huecos de "Tu
+  próximo platino" (`getNextPlatinumCandidates`, mismo criterio que "Cerca del platino").
+  Orden en `?orden=`. **Reemplaza a `/perfil/platinos`**, que redirige (`next.config.ts`), y se
+  llevó el nivel de PSN y la `TrophyTypeStrip`. Cuenta como sección Perfil y está en el menú de
+  cuenta; no tiene botón propio en la barra de 5.
+- **Compartir en actividad**: `app/api/platino/[gameId]/tarjeta` dibuja la card "¡Platiné X!"
+  (1080×1350) con `next/og`, sólo para un platino propio. `SharePlatinumDialog` la baja una vez,
+  la muestra y la publica con `publishFiles(..., kind: "platinum")`: **el mismo flujo de tres
+  pasos que cualquier foto**. `posts.kind` (`photo` / `platinum`) lo valida `createDraftPost`
+  **y** el trigger `posts_guard_kind` (no se marca como platino un juego que no platinaste, y el
+  tipo no cambia). El feed, la grilla y el detalle destacan esos posts con marco y badge.
+- **Preferencias**: `users.platinum_sound_enabled` / `platinum_effects_enabled` (true por
+  defecto), en Configuración › Perfil. El provider las refleja en `<html data-platinum-fx>`
+  para que el CSS apague los reflejos sin JS. `prefers-reduced-motion` también apaga la
+  lluvia, el reflejo y las animaciones de entrada; el marco y el halo fijos se quedan.
+
 ## Modelo de datos (borrador)
 
 - `users` — cuenta de la app (Supabase Auth).
@@ -1277,6 +1327,8 @@ Reemplaza a la galería vieja de capturas (ver la sección del diario).
   la sección de Biblioteca › Listas.
 - `posts` / `post_media` / `post_likes` / `post_comments` — Galería online, sólo con sesión. Ver
   su sección.
+- `user_trophies.celebrated_at`, `posts.kind`, `users.platinum_*_enabled` — celebración,
+  posts de platino y preferencias. Ver la sección de Platino.
 - `game_diary_entries` — Letterbox: entradas de diario por partida terminada (rating 0-10, reseña, fecha). Ver sección dedicada abajo.
 
 ## Letterbox: diario de partidas (`game_diary_entries`, `game_scores`)
@@ -1672,6 +1724,9 @@ deja "para después": un PR sin tests para lo que agrega está incompleto.
 13. Galería online: publicaciones de fotos y videos con feed en Actividad, tab Capturas en la
     ficha y en el perfil, detalle con URL propia, likes, comentarios y avisos en Recibido. ✅
     Reemplaza a la galería de capturas vieja.
+
+14. Impacto del platino: carátula premium, ficha del platino con lluvia, celebración de
+    platinos nuevos, Vitrina, card "¡Platiné X!" en la Galería y preferencias. ✅
 
 Ver `PRODUCT_SPEC.md` para el detalle completo de fases (0-13), decisiones de producto y Definition of Done por issue — este roadmap es el resumen corto.
 
