@@ -206,7 +206,7 @@ test.describe("Sistema de diseño", () => {
     expect(colors.button).toBe(colors.accent);
   });
 
-  test("DS-07: el badge de platino del póster es un ícono del set, no un emoji", async ({
+  test("DS-07: el badge de platino del póster es el trofeo oficial, no un emoji", async ({
     page,
     supabase,
     users,
@@ -237,12 +237,15 @@ test.describe("Sistema de diseño", () => {
 
     // El 🏆 que había acá se dibujaba distinto en cada sistema operativo y
     // traía su propio color, así que no seguía al tema (issue #176 §3.3).
-    await expect(card.locator('[data-icon="trophy"]')).toBeVisible();
+    // Desde el impacto del platino el badge es el trofeo oficial de PSN (una
+    // imagen de `public/trophies/`), igual en todos los dispositivos.
     await expect(card).not.toContainText("🏆");
 
-    // El ícono ES la información -- no hay texto al lado que diga "Platino" --
+    // El trofeo ES la información -- no hay texto al lado que diga "Platino" --
     // así que acá sí se anuncia, al revés que el caso DS-05.
-    await expect(card.getByRole("img", { name: "Platino" })).toBeVisible();
+    const badge = card.getByRole("img", { name: "Platino" });
+    await expect(badge).toBeVisible();
+    await expect(badge).toHaveAttribute("src", /\/trophies\/platinum\.png$/);
   });
 
   test("DS-08: el nombre del juego en la ficha se renderiza en la serif editorial", async ({
