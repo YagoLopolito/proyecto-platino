@@ -844,12 +844,12 @@ siembran "ya celebrados" (el default de `celebrated_at`): la cola de la celebrac
 | ID | Caso | Resultado esperado | Prio |
 | --- | --- | --- | --- |
 | PLAT-01 | Cuándo se celebra | `shouldCelebratePlatinum`: sólo un platino nuevo, de los últimos 30 días y con un sync previo de la cuenta | P0 |
-| PLAT-02 | Cuentas de la vitrina | Más raro, más rápido, mejor año, los tres órdenes, días hasta el platino y la fecha en la zona de la app | P1 |
+| PLAT-02 | Cuentas de la vitrina | Más raro, más rápido, mejor año, los tres órdenes, el agrupado por año de las repisas, días hasta el platino y la fecha en la zona de la app | P1 |
 | PLAT-03 | Biblioteca | Carátula con marco de platino y trofeo, "Platinado el …", "A punto de platinar" al 95%, "Platinados primero" y el contador lleva a la vitrina | P0 |
 | PLAT-04 | Ficha del juego | "Tu platino #N", fecha y días; la lluvia arranca sola, se va sola y "¡Otra vez!" la repite; el platino va separado arriba de la lista | P0 |
 | PLAT-05 | Reduced motion | Con `prefers-reduced-motion` no hay lluvia y el reflejo queda en `display: none` | P0 |
 | PLAT-06 | Celebración | Cola "1 de 2" → "2 de 2", foco atrapado, Esc pasa al siguiente y cada uno se marca en `/api/platino/celebrado` | P0 |
-| PLAT-07 | Vitrina | `/perfil/platinos` redirige, la pieza tiene número y fecha, hay hueco de "Tu próximo platino" y `?orden=rareza` | P1 |
+| PLAT-07 | Vitrina | `/perfil/platinos` redirige, la pieza tiene número y fecha, hay hueco de "Tu próximo platino", `?orden=rareza` y a 375px no hay scroll horizontal | P1 |
 | PLAT-08 | Compartir | La card es PNG para un platino propio y 404 sin platino; publicarla deja un post `platinum` con su badge en la Galería | P0 |
 | PLAT-09 | Trigger de `posts.kind` | Con la sesión de userA, un post `platinum` sin platino falla y el tipo no cambia después de creado | P0 |
 | PLAT-10 | Preferencias | Apagar "Efectos visuales" se guarda en `users`, pone `data-platinum-fx="off"` y la ficha queda sin lluvia pero con el destaque | P1 |
@@ -956,7 +956,7 @@ test.describe("Enlaces externos", () => {
 | `platinum-counter` | `components/platinum/PlatinumCounter.tsx` | Contador de platinos de la biblioteca (PLAT-03) |
 | `game-platinum` / `platinum-trophy-row` | `GamePlatinumShowcase`, `TrophyList` | Ficha del platino y el platino separado arriba de la lista (PLAT-04/05/08/10) |
 | `platinum-rain` | `components/platinum/PlatinumRain.tsx` | El canvas de la lluvia (PLAT-04/05/10) |
-| `showcase-stats` / `next-platinum-slot` | `app/(app)/vitrina/page.tsx`, `ShowcaseShelf` | Stats de la vitrina y los huecos de "Tu próximo platino" (PLAT-07); las piezas reusan `platinum-game` |
+| `showcase-stats` / `next-platinum-slot` | `ShowcaseView`, `ShowcaseShelf` | Stats de la vitrina y los huecos de "Tu próximo platino" (PLAT-07); las piezas reusan `platinum-game` |
 | `platinum-post-badge` | `components/platinum/PlatinumPostBadge.tsx` | Badge de un post de platino en el feed (PLAT-08) |
 
 Agregar un `data-testid` es un cambio en producción: va en el mismo PR que el test que lo
