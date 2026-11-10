@@ -117,4 +117,44 @@ test.describe("Detalle de juego", () => {
       await context.close();
     }
   });
+
+  test("GAME-09: un nombre largo no esconde el chip de Obtenido en mobile", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 2,
+      nameSuffix: "Detalle Nombre Largo",
+      np: 109,
+    });
+    const longName = `${testGameTitle("Detalle Nombre Largo")} - "Un nombre de trofeo tan largo que no entra en una pantalla de celular ni de casualidad"`;
+    const { data: trophy, error } = await supabase
+      .from("trophies")
+      .update({ name: longName, hidden: true })
+      .eq("game_id", gameId)
+      .eq("trophy_id", "t1")
+      .select("id")
+      .single();
+    expect(error).toBeNull();
+    await supabase
+      .from("user_trophies")
+      .upsert(
+        { user_id: users.userA.id, trophy_id: trophy!.id, unlocked_at: "2026-01-10T12:00:00.000Z" },
+        { onConflict: "user_id,trophy_id" },
+      );
+
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto(`/juegos/${gameId}/trofeos`);
+
+    const row = page.getByRole("listitem").filter({ hasText: "Un nombre de trofeo tan largo" });
+    const chip = row.getByText("Obtenido", { exact: true });
+    await expect(chip).toBeVisible();
+
+    // `toBeVisible` no detecta un recorte por `overflow: hidden`: el chip
+    // tiene que quedar entero dentro de la fila, no detrás del "…".
+    const rowBox = await row.boundingBox();
+    const chipBox = await chip.boundingBox();
+    expect(chipBox!.x + chipBox!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width);
+  });
 });

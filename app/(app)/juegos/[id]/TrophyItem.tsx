@@ -138,12 +138,17 @@ export default function TrophyItem({
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate type-subtitle text-ink">
-              {name}
-              {hidden && <span className="ml-2 type-caption text-ink-faint">(oculto)</span>}
+            {/*
+             * Sólo el nombre se corta. Antes el `truncate` iba en todo el
+             * renglón y, con un nombre largo, el "…" se comía el chip de
+             * "Obtenido": un trofeo ya ganado se veía como pendiente.
+             */}
+            <p className="flex min-w-0 items-baseline gap-2 type-subtitle text-ink">
+              <span className="min-w-0 truncate">{name}</span>
+              {hidden && <span className="shrink-0 type-caption text-ink-faint">(oculto)</span>}
               {isObtained && (
-                <span className="ml-2 inline-flex items-center gap-0.5 type-caption font-medium text-success">
-                  <Icon name="check" className="h-3 w-3" />
+                <span className="inline-flex shrink-0 items-center gap-0.5 type-caption font-medium text-success">
+                  <Icon name="check" className="h-3 w-3 self-center" />
                   Obtenido
                 </span>
               )}
