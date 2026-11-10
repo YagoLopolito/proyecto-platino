@@ -336,6 +336,7 @@ Prioridades: **P0** rompe el producto (bloquea merge) · **P1** funcionalidad pr
 | GAME-07 | Juego de otro usuario | No se filtran trofeos ajenos (RLS) | **P0 (seguridad)** |
 | GAME-08 | Caché de datos de catálogo | La ficha guarda fondo/descripción aunque el juego lo haya creado otro usuario | P1 |
 | GAME-09 | Chip "Obtenido" con nombre largo | En mobile, un trofeo obtenido de nombre largo corta sólo el nombre: el chip "Obtenido" queda entero dentro de la fila | P1 |
+| GAME-10 | Contador de progreso de un trofeo | Un trofeo pendiente con fila en `user_trophy_progress` muestra barra y "3/10 · faltan 7"; uno ya obtenido no muestra contador | P1 |
 
 ### 6.5 ~~Guías propias~~ (eliminado)
 

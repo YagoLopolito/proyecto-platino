@@ -21,6 +21,7 @@ export type TrophyListItem = {
   rarity: number | null;
   earned_rate: number | null;
   progress_target: string | null;
+  counter?: { current: number; target: number } | null;
   obtained: boolean;
 };
 
@@ -304,6 +305,7 @@ function TrophyRow({
       rarity={trophy.rarity}
       earnedRate={trophy.earned_rate}
       progressTarget={trophy.progress_target}
+      counter={trophy.counter ?? null}
     />
   );
 }

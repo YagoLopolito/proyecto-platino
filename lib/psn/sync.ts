@@ -18,7 +18,7 @@ import {
   getMockPlaytimeByName,
 } from "./mocks";
 import { fetchPsnPlaytime, playtimeMatchKey, type PsnPlaytimeResult } from "./playtime";
-import { fetchUserTitlesWithTrophies, type FetchedTitle } from "./trophies";
+import { fetchUserTitlesWithTrophies, parseTrophyCounter, type FetchedTitle } from "./trophies";
 
 export type SyncResult = { titlesSynced: number; trophiesSynced: number };
 
@@ -257,6 +257,27 @@ async function syncTitle(
 
   if (earnedRows.length > 0) {
     await supabase.from("user_trophies").upsert(earnedRows, { onConflict: "user_id,trophy_id" });
+  }
+
+  // Contadores ("3 de 10"): sólo PS5 y sólo los trofeos que el juego declara
+  // con contador. Un extra: si falla, se loguea y el sync sigue.
+  const progressRows = title.trophies
+    .filter((t) => t.progress !== null)
+    .map((t) => ({
+      user_id: userId,
+      trophy_id: trophyIdByNpId.get(String(t.npTrophyId)),
+      progress: t.progress as number,
+      target: parseTrophyCounter(t.progressTarget) || null,
+      updated_at: new Date().toISOString(),
+    }))
+    .filter((row): row is typeof row & { trophy_id: string } => Boolean(row.trophy_id));
+  if (progressRows.length > 0) {
+    const { error } = await supabase
+      .from("user_trophy_progress")
+      .upsert(progressRows, { onConflict: "user_id,trophy_id" });
+    if (error) {
+      console.error(`[psn-sync] no se pudo guardar el progreso (${title.name}):`, error);
+    }
   }
 
   // Celebración de pantalla completa: `celebrated_at` nace en `now()` y sólo un

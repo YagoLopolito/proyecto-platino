@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { ProgressBar } from "@/components/ProgressBar";
 import { GameArt } from "@/components/game/GameArt";
 import { Icon } from "@/components/ui/Icon";
 import { explainTrophy } from "./actions";
@@ -28,6 +29,7 @@ export default function TrophyItem({
   rarity,
   earnedRate,
   progressTarget,
+  counter = null,
   focusToken,
   featured = false,
 }: {
@@ -42,6 +44,8 @@ export default function TrophyItem({
   rarity: number | null;
   earnedRate: number | null;
   progressTarget: string | null;
+  /** Contador que informa PSN ("3 de 10"). Sólo PS5 y sólo algunos trofeos. */
+  counter?: { current: number; target: number } | null;
   /**
    * Cambia cada vez que el advisor pide enfocar ESTE trofeo (`null` si no es
    * el enfocado). Es un contador y no un booleano para que volver a clickear
@@ -51,6 +55,8 @@ export default function TrophyItem({
   /** El platino, separado arriba de la lista: fila destacada con el metal. */
   featured?: boolean;
 }) {
+  // Con el trofeo ya ganado el contador no dice nada.
+  const showCounter = counter !== null && !isObtained && counter.current < counter.target;
   const [open, setOpen] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -167,8 +173,31 @@ export default function TrophyItem({
                 </span>
               )}
               {earnedRate !== null && <span>{earnedRate}% lo desbloqueó</span>}
-              {progressTarget && <span>Objetivo: {progressTarget}</span>}
+              {progressTarget && !showCounter && <span>Objetivo: {progressTarget}</span>}
             </p>
+            {showCounter && counter && (
+              <div className="mt-1.5 flex items-center gap-2">
+                <div
+                  role="progressbar"
+                  aria-label={`Progreso de ${name}`}
+                  aria-valuemin={0}
+                  aria-valuemax={counter.target}
+                  aria-valuenow={counter.current}
+                  className="max-w-40 flex-1"
+                >
+                  <ProgressBar percent={(counter.current / counter.target) * 100} />
+                </div>
+                <span className="shrink-0 type-caption tabular-nums text-ink-muted">
+                  {counter.current}/{counter.target}
+                  <span className="text-ink-faint">
+                    {" · "}
+                    {counter.target - counter.current === 1
+                      ? "falta 1"
+                      : `faltan ${counter.target - counter.current}`}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
         <button

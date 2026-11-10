@@ -157,4 +157,43 @@ test.describe("Detalle de juego", () => {
     const chipBox = await chip.boundingBox();
     expect(chipBox!.x + chipBox!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width);
   });
+
+  test("GAME-10: un trofeo con contador muestra cuánto llevás y cuánto falta", async ({
+    page,
+    supabase,
+    users,
+  }) => {
+    const { gameId, trophyIds } = await seedGameWithTrophies(supabase, users.userA.id, {
+      n: 3,
+      nameSuffix: "Detalle Contador",
+      np: 110,
+    });
+    // Pendiente con contador (3 de 10) y obtenido con contador (no se muestra).
+    const { error } = await supabase.from("user_trophy_progress").upsert(
+      [
+        { user_id: users.userA.id, trophy_id: trophyIds[0], progress: 3, target: 10 },
+        { user_id: users.userA.id, trophy_id: trophyIds[1], progress: 5, target: 5 },
+      ],
+      { onConflict: "user_id,trophy_id" },
+    );
+    expect(error).toBeNull();
+    await supabase
+      .from("user_trophies")
+      .upsert(
+        {
+          user_id: users.userA.id,
+          trophy_id: trophyIds[1],
+          unlocked_at: "2026-01-10T12:00:00.000Z",
+        },
+        { onConflict: "user_id,trophy_id" },
+      );
+
+    await page.goto(`/juegos/${gameId}/trofeos`);
+
+    const bars = page.getByRole("progressbar", { name: /^Progreso de / });
+    await expect(bars).toHaveCount(1);
+    await expect(bars).toHaveAttribute("aria-valuenow", "3");
+    await expect(bars).toHaveAttribute("aria-valuemax", "10");
+    await expect(page.getByText("3/10 · faltan 7")).toBeVisible();
+  });
 });

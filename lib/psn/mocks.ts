@@ -72,6 +72,7 @@ function makeTrophy(
   name: string,
   type: FetchedTitle["trophies"][number]["type"],
   earned: boolean,
+  counter?: { progress: number; target: number },
 ): FetchedTitle["trophies"][number] {
   return {
     npTrophyId,
@@ -86,7 +87,8 @@ function makeTrophy(
     groupId: "default",
     rarity: earned ? 2 : null,
     earnedRate: earned ? "25.00" : null,
-    progressTarget: null,
+    progressTarget: counter ? String(counter.target) : null,
+    progress: counter ? counter.progress : null,
   };
 }
 
@@ -122,7 +124,8 @@ export function getMockTitles(): FetchedTitle[] {
       trophies: [
         makeTrophy(1, "Bronce 1", "bronze", true),
         makeTrophy(2, "Bronce 2", "bronze", false),
-        makeTrophy(3, "Plata 1", "silver", false),
+        // Con contador: 3 de 10 (PS5 lo informa aunque el trofeo no esté ganado).
+        makeTrophy(3, "Plata 1", "silver", false, { progress: 3, target: 10 }),
         makeTrophy(4, "Oro 1", "gold", false),
       ],
     },

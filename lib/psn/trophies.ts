@@ -29,11 +29,13 @@ export type FetchedTrophy = {
   rarity: number | null;
   /** % de jugadores que lo desbloqueó, como string numérico (ej. "23.50"). */
   earnedRate: string | null;
-  /**
-   * Objetivo de trofeos con contador (ej. "8" coleccionables). La API de PSN
-   * no expone el progreso *actual* del usuario en ese contador, solo el total.
-   */
+  /** Objetivo de trofeos con contador (ej. "8" coleccionables). Sólo PS5. */
   progressTarget: string | null;
+  /**
+   * Cuánto lleva el usuario de ese contador. Sólo PS5, y sólo si el juego
+   * declaró el trofeo con contador; NULL en todos los demás.
+   */
+  progress: number | null;
 };
 
 export type FetchedTrophyGroup = {
@@ -99,6 +101,26 @@ async function fetchAllPages<T>(
   return items;
 }
 
+/**
+ * Campos de contador que PSN manda en títulos de PS5 y que los tipos de
+ * `psn-api` no declaran completos: el objetivo puede venir en la definición
+ * del trofeo y el avance (`progress`) viene en la respuesta del usuario.
+ */
+type ProgressFields = { trophyProgressTargetValue?: unknown; progress?: unknown };
+
+/** Un contador de PSN (llega como string numérico) a entero no negativo, o NULL. */
+export function parseTrophyCounter(value: unknown): number | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  if (value === "") return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function counterText(value: unknown): string | null {
+  const parsed = parseTrophyCounter(value);
+  return parsed !== null && parsed > 0 ? String(parsed) : null;
+}
+
 async function fetchTrophiesForTitle(
   authorization: AuthorizationPayload,
   title: TrophyTitle,
@@ -137,11 +159,15 @@ async function fetchTrophiesForTitle(
       earned: earned?.earned ?? false,
       earnedAt: earned?.earnedDateTime ?? null,
       groupId: trophy.trophyGroupId ?? "default",
-      // Rareza/tasa/objetivo de progreso solo vienen en la respuesta de trofeos
-      // ganados (UserThinTrophy), no en la de definiciones (TitleThinTrophy).
+      // Rareza y tasa sólo vienen en la respuesta del usuario (UserThinTrophy).
       rarity: earned?.trophyRare ?? null,
       earnedRate: earned?.trophyEarnedRate ?? null,
-      progressTarget: earned?.trophyProgressTargetValue ?? null,
+      // El objetivo se busca en las dos respuestas: los tipos de `psn-api` lo
+      // declaran sólo en la del usuario, pero de ahí nunca llegó ninguno.
+      progressTarget:
+        counterText((trophy as ProgressFields).trophyProgressTargetValue) ??
+        counterText(earned?.trophyProgressTargetValue),
+      progress: parseTrophyCounter((earned as ProgressFields | undefined)?.progress),
     };
   });
 }
