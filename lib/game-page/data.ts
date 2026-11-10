@@ -117,6 +117,8 @@ export interface GameTrophy {
   rarity: number | null;
   earned_rate: number | null;
   progress_target: string | null;
+  /** Contador del trofeo ("3 de 10"). NULL si el juego no lo informa. */
+  counter: { current: number; target: number } | null;
   obtained: boolean;
   /** Cuándo lo obtuviste. NULL si no lo tenés o PSN no informó la fecha. */
   obtainedAt: string | null;
@@ -161,19 +163,34 @@ export const getGameTrophyProgress = cache(async (gameId: string): Promise<GameT
 
   const rows = trophyRows ?? [];
   const ids = rows.map((row) => row.id);
-  const { data: unlocked } = ids.length
-    ? await supabase
-        .from("user_trophies")
-        .select("id, trophy_id, unlocked_at")
-        .eq("user_id", userId)
-        .in("trophy_id", ids)
-    : { data: [] as { id: string; trophy_id: string; unlocked_at: string | null }[] };
+  const [{ data: unlocked }, { data: progressRows }] = ids.length
+    ? await Promise.all([
+        supabase
+          .from("user_trophies")
+          .select("id, trophy_id, unlocked_at")
+          .eq("user_id", userId)
+          .in("trophy_id", ids),
+        supabase
+          .from("user_trophy_progress")
+          .select("trophy_id, progress, target")
+          .eq("user_id", userId)
+          .in("trophy_id", ids),
+      ])
+    : [
+        { data: [] as { id: string; trophy_id: string; unlocked_at: string | null }[] },
+        { data: [] as { trophy_id: string; progress: number; target: number | null }[] },
+      ];
+  const progressById = new Map((progressRows ?? []).map((row) => [row.trophy_id, row]));
 
   const unlockedById = new Map((unlocked ?? []).map((row) => [row.trophy_id, row]));
   const trophies = rows.map((row) => {
     const mine = unlockedById.get(row.id);
+    const saved = progressById.get(row.id);
+    // El objetivo propio primero; si no, el de la fila compartida del trofeo.
+    const target = saved?.target ?? (Number.parseInt(row.progress_target ?? "", 10) || null);
     return {
       ...row,
+      counter: saved && target ? { current: Math.min(saved.progress, target), target } : null,
       obtained: mine !== undefined,
       obtainedAt: mine?.unlocked_at ?? null,
       userTrophyId: mine?.id ?? null,

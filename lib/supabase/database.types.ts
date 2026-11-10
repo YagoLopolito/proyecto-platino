@@ -1334,6 +1334,45 @@ export type Database = {
           },
         ];
       };
+      user_trophy_progress: {
+        Row: {
+          progress: number;
+          target: number | null;
+          trophy_id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          progress: number;
+          target?: number | null;
+          trophy_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          progress?: number;
+          target?: number | null;
+          trophy_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_trophy_progress_trophy_id_fkey";
+            columns: ["trophy_id"];
+            isOneToOne: false;
+            referencedRelation: "trophies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_trophy_progress_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_trophies: {
         Row: {
           celebrated_at: string | null;
